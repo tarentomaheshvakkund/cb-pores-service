@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "type_of_user": {
+      "type": "string"
+    },
+    "learning_mode": {
+      "type": "string",
+      "enum": ["self-paced", "instructor-led"]
+    },
+    "targeting_competencies": {
+      "type": "object"
+    },
+    "reference_links": {
+      "type": "string"
+    },
+    "request_type": {
+      "type": "string",
+      "enum": ["Broadcast", "Single"]
+    },
+    "preferred_providers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "status": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "objective",
+    "request_type"
+  ]
+}
