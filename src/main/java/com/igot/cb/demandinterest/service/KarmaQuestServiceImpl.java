@@ -84,14 +84,14 @@ public class KarmaQuestServiceImpl implements KarmaQuestService {
         return cassandraOperation.insertRecord(Constants.DATABASE, Constants.TABLE, parameterisedMap);
     }
 
-    @Override
+   /* @Override
     public CustomResponse updateDemand(JsonNode demandsDetails) {
         log.info("DemandServiceImpl::updateDemand");
         if (!demandsDetails.get("id").isEmpty()){
 
         }
         return null;
-    }
+    }*/
 
     private void parseStringifiedField(Map<String, Object> record, String fieldName) {
         if (record.containsKey(fieldName)) {
