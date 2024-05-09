@@ -8,24 +8,24 @@
     "objective": {
       "type": "string"
     },
-    "type_of_user": {
+    "typeOfUser": {
       "type": "string"
     },
-    "learning_mode": {
+    "learningMode": {
       "type": "string",
       "enum": ["self-paced", "instructor-led"]
     },
-    "targeting_competencies": {
+    "competencies": {
       "type": "object"
     },
-    "reference_links": {
+    "referenceLink": {
       "type": "string"
     },
-    "request_type": {
+    "requestType": {
       "type": "string",
       "enum": ["Broadcast", "Single"]
     },
-    "preferred_providers": {
+    "preferredProvider": {
       "type": "array",
       "items": {
         "type": "object"
@@ -41,6 +41,6 @@
   "required": [
     "title",
     "objective",
-    "request_type"
+    "requestType"
   ]
 }
