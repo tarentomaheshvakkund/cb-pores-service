@@ -1,0 +1,53 @@
+{
+  "title": {
+    "type": "keyword"
+  },
+  "objective": {
+    "type": "keyword"
+  },
+  "targeting_competencies": {
+    "type": "nested",
+    "properties": {
+      "theme": {"type": "keyword"},
+      "sub_theme": {"type":"keyword"}
+    }
+  },
+  "reference_links": {
+    "type": "keyword"
+  },
+  "type_of_user": {
+    "type": "keyword"
+  },
+  "request_type": {
+    "type": "keyword"
+  },
+  "preferred_providers": {
+    "type": "keyword"
+  },
+  "learning_mode": {
+    "type": "keyword"
+  },
+  "source": {
+    "type": "keyword"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "isActive": {
+    "type": "keyword"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  }
+}
