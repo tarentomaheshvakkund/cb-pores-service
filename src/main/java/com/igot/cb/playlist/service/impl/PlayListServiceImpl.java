@@ -50,6 +50,7 @@ public class PlayListServiceImpl implements PlayListSerive {
   public CustomResponse createPlayList(JsonNode playListDetails) {
     CustomResponse response = new CustomResponse();
     try {
+      //create playlIst method
       log.info("PlayListService::createPlayList:creating playList");
       String playListId = String.valueOf(UUID.randomUUID());
       ((ObjectNode) playListDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
