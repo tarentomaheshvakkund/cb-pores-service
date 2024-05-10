@@ -34,13 +34,12 @@ public class Constants {
     public static final String USER_ID_RQST = "userId";
     public static final String INTEREST_FLAG = "interest_flag";
     public static final String INTEREST_FLAG_RQST = "interestFlag";
-    public static final String CREATED_ON = "created_on";
-    public static final String UPDATED_ON = "updated_on";
+    public static final String CREATED_ON = "createdOn";
+    public static final String UPDATED_ON = "updatedOn";
     public static final String DATA = "data";
     public static final String DATABASE = "sunbird";
     public static final String TABLE = "interest_capture";
     public static final String REGEX = "^\"|\"$";
-    public static final String DEM_ID = "id";
     public static final String IS_ACTIVE = "isActive";
     public static final Boolean ACTIVE_STATUS = true;
     public static final String  LAST_UPDATED_DATE= "lastUpdatedDate";

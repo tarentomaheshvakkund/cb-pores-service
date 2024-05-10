@@ -12,5 +12,5 @@ public interface KarmaQuestService {
     Object getInterest(String interestId);
 
     Object insertInterest(JsonNode requestBodyMap);
-    CustomResponse updateDemand(JsonNode demandsDetails);
+//    CustomResponse updateDemand(JsonNode demandsDetails);
 }
