@@ -51,8 +51,8 @@ public class DemandServiceImpl implements DemandService {
   private CacheService cacheService;
   @Autowired
   private ObjectMapper objectMapper;
-//  @Autowired
-//  private RedisTemplate<String, SearchResult> searchResultRedisTemplate;
+  @Autowired
+  private RedisTemplate<String, SearchResult> searchResultRedisTemplate;
 
   @Value("${search.result.redis.ttl}")
   private long searchResultRedisTtl;
@@ -142,13 +142,13 @@ public class DemandServiceImpl implements DemandService {
     log.info("DemandServiceImpl::searchDemand");
     CustomResponse response = new CustomResponse();
     SearchResult searchResult = new SearchResult();
-    /*SearchResult searchResult =  searchResultRedisTemplate.opsForValue().get(generateRedisJwtTokenKey(searchCriteria));
+    searchResult =  searchResultRedisTemplate.opsForValue().get(generateRedisJwtTokenKey(searchCriteria));
     if(searchResult != null) {
       log.info("SidJobServiceImpl::searchJobs: job search result fetched from redis");
       response.getResult().put(Constants.RESULT, searchResult);
       createSuccessResponse(response);
       return response;
-    }*/
+    }
     String searchString = searchCriteria.getSearchString();
     if (searchString != null && searchString.length() < 2) {
       createErrorResponse(
@@ -167,9 +167,9 @@ public class DemandServiceImpl implements DemandService {
     } catch (Exception e) {
       createErrorResponse(
           response, e.getMessage(), org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
-      /*searchResultRedisTemplate.opsForValue()
+      searchResultRedisTemplate.opsForValue()
           .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
-              TimeUnit.SECONDS);*/
+              TimeUnit.SECONDS);
       return response;
     }
   }
