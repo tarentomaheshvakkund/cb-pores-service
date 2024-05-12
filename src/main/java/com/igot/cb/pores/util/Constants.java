@@ -59,6 +59,13 @@ public class Constants {
     public static final String CONTENT_PROVIDER_ID ="id";
     public static final String INTEREST_COUNT ="demand_search_result";
     public static final String INTERESTS ="demand_search_result";
+    public static final String DOT_SEPARATOR = ".";
+    public static final String SHA_256_WITH_RSA = "SHA256withRSA";
+    public static final String UNAUTHORIZED = "Unauthorized";
+    public static final String SUB = "sub";
+    public static final String SSO_URL = "sso.url";
+    public static final String SSO_REALM = "sso.realm";
+    public static final String ACCESS_TOKEN_PUBLICKEY_BASEPATH = "accesstoken.publickey.basepath";
     private Constants() {
     }
 }

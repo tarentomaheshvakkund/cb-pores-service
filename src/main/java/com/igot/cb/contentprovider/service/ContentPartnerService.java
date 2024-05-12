@@ -1,4 +1,4 @@
-package com.igot.cb.contentprovider.servise;
+package com.igot.cb.contentprovider.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.igot.cb.pores.dto.CustomResponse;
