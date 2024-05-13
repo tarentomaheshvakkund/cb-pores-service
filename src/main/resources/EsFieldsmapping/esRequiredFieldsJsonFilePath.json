@@ -40,15 +40,7 @@
     }
   },
   "assignedProvider": {
-    "type": "nested",
-    "properties": {
-      "providerId": {
-        "type": "keyword"
-      },
-      "providerName": {
-        "type": "keyword"
-      }
-    }
+    "type": "object"
   },
   "learningMode": {
     "type": "keyword"

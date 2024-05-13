@@ -74,7 +74,7 @@ public class KarmaQuestServiceImpl implements KarmaQuestService {
             parameterisedMap.put(Constants.DATA, dataString);
             logger.info(dataString);
         } catch (JsonProcessingException e) {
-            throw new CustomException("ERROR01", "Exception while mapping JsonNode", HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new CustomException(Constants.ERROR, "Exception while mapping JsonNode", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return cassandraOperation.insertRecord(Constants.DATABASE, Constants.TABLE, parameterisedMap);
     }

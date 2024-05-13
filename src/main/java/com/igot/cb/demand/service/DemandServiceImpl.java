@@ -88,10 +88,10 @@ public class DemandServiceImpl implements DemandService {
 
             cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created");
-            response.setMessage("Successfully created");
+            response.setMessage(Constants.SUCCESSFULLY_CREATED);
             map.put("demandId", id);
             response.setResult(map);
-            response.setResponseCode(((HttpStatus.OK)));
+            response.setResponseCode(HttpStatus.OK);
             return response;
         } catch (Exception e) {
             throw new CustomException("error while processing", e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -104,7 +104,7 @@ public class DemandServiceImpl implements DemandService {
         log.info("reading demands for content");
         CustomResponse response = new CustomResponse();
         if (StringUtils.isEmpty(id)) {
-            response.setResponseCode((HttpStatus.INTERNAL_SERVER_ERROR));
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             response.setMessage("Id not found");
             return response;
         }
@@ -159,7 +159,7 @@ public class DemandServiceImpl implements DemandService {
             createErrorResponse(
                     response,
                     "Minimum 3 characters are required to search",
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    HttpStatus.BAD_REQUEST,
                     Constants.FAILED_CONST);
             return response;
         }
@@ -170,8 +170,7 @@ public class DemandServiceImpl implements DemandService {
             createSuccessResponse(response);
             return response;
         } catch (Exception e) {
-            createErrorResponse(
-                    response, e.getMessage(), org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
+            createErrorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
             redisTemplate.opsForValue()
                     .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
                             TimeUnit.SECONDS);
@@ -226,7 +225,7 @@ public class DemandServiceImpl implements DemandService {
         log.info("DemandServiceImpl::updateDemand");
         CustomResponse response = new CustomResponse();
         if (demandsDetails.get(Constants.DEMAND_ID) == null) {
-            throw new CustomException("ERROR", "demandsDetailsEntity id is required for creating interest",HttpStatus.BAD_REQUEST);
+            throw new CustomException(Constants.ERROR,"demandsDetailsEntity id is required for creating interest",HttpStatus.BAD_REQUEST);
         }
         log.info("Creating interest for demand with id : " + demandsDetails.get("id"));
         Optional<DemandEntity> optSchemeDetails = demandRepository.findById(demandsDetails.get(Constants.DEMAND_ID).asText());
@@ -247,7 +246,7 @@ public class DemandServiceImpl implements DemandService {
             response.setResponseCode(HttpStatus.OK);
             return response;
         } else {
-            throw new CustomException("Error01", "No data found for this demandId", HttpStatus.NOT_FOUND);
+            throw new CustomException(Constants.ERROR, Constants.No_DATA_FOUND, HttpStatus.NOT_FOUND);
         }
 
     }
@@ -307,11 +306,11 @@ public class DemandServiceImpl implements DemandService {
     public void createSuccessResponse(CustomResponse response) {
         response.setParams(new RespParam());
         response.getParams().setStatus("SUCCESS");
-        response.setResponseCode(org.springframework.http.HttpStatus.OK);
+        response.setResponseCode(HttpStatus.OK);
     }
 
     public void createErrorResponse(
-            CustomResponse response, String errorMessage, org.springframework.http.HttpStatus httpStatus, String status) {
+            CustomResponse response, String errorMessage, HttpStatus httpStatus, String status) {
         response.setParams(new RespParam());
         //response.getParams().setErrorMsg(errorMessage);
         response.getParams().setStatus(status);

@@ -31,6 +31,9 @@
         "type": "object"
       }
     },
+    "assignedProvider": {
+        "type": "object"
+    },
     "status": {
       "type": "string"
     },

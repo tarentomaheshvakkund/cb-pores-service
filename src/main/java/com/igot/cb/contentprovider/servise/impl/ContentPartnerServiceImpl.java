@@ -23,7 +23,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpStatus;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -95,7 +95,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     }
                 }
             }
-            response.setResponseCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.SC_OK));
+            response.setResponseCode(HttpStatus.OK);
             return response;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -108,7 +108,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         log.info("ContentPartnerServiceImpl::read:reading information about the content partner");
         CustomResponse response = new CustomResponse();
         if (StringUtils.isEmpty(id)) {
-            response.setResponseCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             response.setMessage("Id not found");
             return response;
         }
@@ -133,7 +133,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                             entity.getData(), new TypeReference<Object>() {
                                             }));
                 } else {
-                    response.setResponseCode(org.springframework.http.HttpStatus.BAD_REQUEST);
+                    response.setResponseCode(HttpStatus.BAD_REQUEST);
                 }
             }
         } catch (JsonMappingException e) {
@@ -153,7 +153,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             createErrorResponse(
                     response,
                     "Minimum 3 characters are required to search",
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    HttpStatus.BAD_REQUEST,
                     Constants.FAILED_CONST);
             return response;
         }
@@ -165,7 +165,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             return response;
         } catch (Exception e) {
             createErrorResponse(
-                    response, e.getMessage(), org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
+                    response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
             return response;
         }
     }
@@ -211,21 +211,21 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 for (ValidationMessage message : validationMessages) {
                     errorMessage.append(message.getMessage());
                 }
-                throw new CustomException(Constants.ERROR, errorMessage.toString(), org.springframework.http.HttpStatus.BAD_REQUEST);
+                throw new CustomException(Constants.ERROR, errorMessage.toString(), HttpStatus.BAD_REQUEST);
             }
         } catch (CustomException e) {
-            throw new CustomException(Constants.ERROR, "Failed to validate payload: " + e.getMessage(), org.springframework.http.HttpStatus.BAD_REQUEST);
+            throw new CustomException(Constants.ERROR, "Failed to validate payload: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     public void createSuccessResponse(CustomResponse response) {
         response.setParams(new RespParam());
         response.getParams().setStatus("SUCCESS");
-        response.setResponseCode(org.springframework.http.HttpStatus.OK);
+        response.setResponseCode(HttpStatus.OK);
     }
 
     public void createErrorResponse(
-            CustomResponse response, String errorMessage, org.springframework.http.HttpStatus httpStatus, String status) {
+            CustomResponse response, String errorMessage, HttpStatus httpStatus, String status) {
         response.setParams(new RespParam());
         response.getParams().setStatus(status);
         response.setResponseCode(httpStatus);
