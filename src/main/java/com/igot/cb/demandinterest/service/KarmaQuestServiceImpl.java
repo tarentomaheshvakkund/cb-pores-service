@@ -1,26 +1,22 @@
 package com.igot.cb.demandinterest.service;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.igot.cb.pores.dto.CustomResponse;
+import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.Constants;
 import com.igot.cb.transactional.cassandrautils.CassandraConnectionManager;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
-import com.igot.cb.pores.exceptions.ProjectCommonException;
-import com.igot.cb.pores.util.Constants;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+
+import java.sql.Timestamp;
+import java.util.*;
 
 /**
  * @author Mahesh RV
@@ -78,8 +74,7 @@ public class KarmaQuestServiceImpl implements KarmaQuestService {
             parameterisedMap.put(Constants.DATA, dataString);
             logger.info(dataString);
         } catch (JsonProcessingException e) {
-            throw new ProjectCommonException("ERROR01", "Exception while mapping JsonNode",
-                500);
+            throw new CustomException("ERROR01", "Exception while mapping JsonNode", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return cassandraOperation.insertRecord(Constants.DATABASE, Constants.TABLE, parameterisedMap);
     }

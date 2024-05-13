@@ -39,6 +39,17 @@
       }
     }
   },
+  "assignedProvider": {
+    "type": "nested",
+    "properties": {
+      "providerId": {
+        "type": "keyword"
+      },
+      "providerName": {
+        "type": "keyword"
+      }
+    }
+  },
   "learningMode": {
     "type": "keyword"
   },

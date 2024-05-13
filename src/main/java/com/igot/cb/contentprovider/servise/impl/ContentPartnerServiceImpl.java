@@ -137,7 +137,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 }
             }
         } catch (JsonMappingException e) {
-            throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            throw new CustomException(Constants.ERROR, "error while processing", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -207,14 +207,14 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
 
             Set<ValidationMessage> validationMessages = schema.validate(payload);
             if (!validationMessages.isEmpty()) {
-                StringBuilder errorMessage = new StringBuilder("Validation error(s): \n");
+                StringBuilder errorMessage = new StringBuilder("Validation error(s): ");
                 for (ValidationMessage message : validationMessages) {
-                    errorMessage.append(message.getMessage()).append("\n");
+                    errorMessage.append(message.getMessage());
                 }
-                throw new CustomException(Constants.ERROR, errorMessage.toString());
+                throw new CustomException(Constants.ERROR, errorMessage.toString(), org.springframework.http.HttpStatus.BAD_REQUEST);
             }
         } catch (CustomException e) {
-            throw new CustomException(Constants.ERROR, "Failed to validate payload: " + e.getMessage());
+            throw new CustomException(Constants.ERROR, "Failed to validate payload: " + e.getMessage(), org.springframework.http.HttpStatus.BAD_REQUEST);
         }
     }
 

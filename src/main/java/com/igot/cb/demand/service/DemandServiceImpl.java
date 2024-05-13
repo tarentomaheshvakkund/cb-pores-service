@@ -25,18 +25,15 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.sql.Timestamp;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -64,7 +61,9 @@ public class DemandServiceImpl implements DemandService {
         validatePayload(Constants.PAYLOAD_VALIDATION_FILE, demandDetails);
         try {
             log.info("DemandService::createDemand:creating demand");
-            String id = String.valueOf(UUID.randomUUID());
+            Random random = new Random();
+            int randomNumber = 1000000 + random.nextInt(8999999);
+            String id = String.valueOf(randomNumber);
             ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
             ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
@@ -92,10 +91,10 @@ public class DemandServiceImpl implements DemandService {
             response.setMessage("Successfully created");
             map.put("demandId", id);
             response.setResult(map);
-            response.setResponseCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.SC_OK));
+            response.setResponseCode(((HttpStatus.OK)));
             return response;
         } catch (Exception e) {
-            throw new CustomException("error while processing", e.getMessage(), HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            throw new CustomException("error while processing", e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -105,7 +104,7 @@ public class DemandServiceImpl implements DemandService {
         log.info("reading demands for content");
         CustomResponse response = new CustomResponse();
         if (StringUtils.isEmpty(id)) {
-            response.setResponseCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+            response.setResponseCode((HttpStatus.INTERNAL_SERVER_ERROR));
             response.setMessage("Id not found");
             return response;
         }
@@ -113,6 +112,7 @@ public class DemandServiceImpl implements DemandService {
             String cachedJson = cacheService.getCache(id);
             if (StringUtils.isNotEmpty(cachedJson)) {
                 log.info("Record coming from redis cache");
+                response.setMessage("successfully reading your data");
                 response
                         .getResult()
                         .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
@@ -123,6 +123,7 @@ public class DemandServiceImpl implements DemandService {
                     DemandEntity demandEntity = entityOptional.get();
                     cacheService.putCache(id, demandEntity.getData());
                     log.info("Record coming from postgres db");
+                    response.setMessage("successfully reading your data");
                     response
                             .getResult()
                             .put(Constants.RESULT,
@@ -130,11 +131,12 @@ public class DemandServiceImpl implements DemandService {
                                             demandEntity.getData(), new TypeReference<Object>() {
                                             }));
                 } else {
-                    response.setResponseCode(org.springframework.http.HttpStatus.BAD_REQUEST);
+                    response.setResponseCode(HttpStatus.NOT_FOUND);
+                    response.setMessage("Invalid Id");
                 }
             }
         } catch (JsonMappingException e) {
-            throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -213,9 +215,9 @@ public class DemandServiceImpl implements DemandService {
                     } else
                         return "demand is already inactive.";
                 } else return "Demand not found.";
-            } else return "Invalid entity ID.";
+            } else return "Invalid demand ID.";
         } catch (Exception e) {
-            return "Error deleting Entity with ID " + id + " " + e.getMessage();
+            return "Error deleting demand with ID " + id + " " + e.getMessage();
         }
     }
 
@@ -224,9 +226,8 @@ public class DemandServiceImpl implements DemandService {
         log.info("DemandServiceImpl::updateDemand");
         CustomResponse response = new CustomResponse();
         if (demandsDetails.get(Constants.DEMAND_ID) == null) {
-            throw new CustomException("ERROR", "demandsDetailsEntity id is required for creating interest");
+            throw new CustomException("ERROR", "demandsDetailsEntity id is required for creating interest",HttpStatus.BAD_REQUEST);
         }
-
         log.info("Creating interest for demand with id : " + demandsDetails.get("id"));
         Optional<DemandEntity> optSchemeDetails = demandRepository.findById(demandsDetails.get(Constants.DEMAND_ID).asText());
         if (optSchemeDetails.isPresent()) {
@@ -243,10 +244,10 @@ public class DemandServiceImpl implements DemandService {
             cacheService.putCache(fetchedEntity.getDemandId(), jsonNode);
             log.info("interest captured");
             response.setMessage("Successfully created");
-            response.setResponseCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.SC_OK));
+            response.setResponseCode(HttpStatus.OK);
             return response;
         } else {
-            throw new CustomException("Error01", "No data found for this demandId");
+            throw new CustomException("Error01", "No data found for this demandId", HttpStatus.NOT_FOUND);
         }
 
     }
@@ -296,10 +297,10 @@ public class DemandServiceImpl implements DemandService {
                 for (ValidationMessage message : validationMessages) {
                     errorMessage.append(message.getMessage()).append("\n");
                 }
-                throw new CustomException("ERROR", "failed to validate payload", HttpStatus.SC_BAD_REQUEST);
+                throw new CustomException("Validation Error", errorMessage.toString(), HttpStatus.BAD_REQUEST);
             }
-        } catch (CustomException e) {
-            throw new CustomException("Failed to validate payload", e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+        } catch (Exception e) {
+            throw new CustomException("Failed to validate payload", e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

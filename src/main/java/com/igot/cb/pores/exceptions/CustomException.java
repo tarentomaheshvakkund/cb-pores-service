@@ -2,26 +2,25 @@ package com.igot.cb.pores.exceptions;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
+@Component
 public class CustomException extends RuntimeException {
-  private String code;
-  private String message;
-  private int httpStatusCode;
+    private String code;
+    private String message;
+    private HttpStatus httpStatusCode;
 
-  public CustomException(String code, String message) {
-    this.code = code;
-    this.message = message;
-  }
+    public CustomException() {
+    }
 
-  public CustomException(String code, String message, int httpStatusCode) {
-    this.code = code;
-    this.message = message;
-    this.httpStatusCode = httpStatusCode;
-  }
+    public CustomException(String code, String message, HttpStatus httpStatusCode) {
+        this.code = code;
+        this.message = message;
+        this.httpStatusCode = httpStatusCode;
+    }
 
-  public CustomException() {
 
-  }
 }
