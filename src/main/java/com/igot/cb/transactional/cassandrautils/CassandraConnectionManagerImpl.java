@@ -2,21 +2,17 @@ package com.igot.cb.transactional.cassandrautils;
 
 import com.datastax.driver.core.*;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
-
-import com.igot.cb.pores.exceptions.ProjectCommonException;
+import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PropertiesCache;
-
-import java.util.Collections;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
-
 import org.apache.logging.log4j.Logger;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-
 import javax.annotation.PostConstruct;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,7 +72,7 @@ public class CassandraConnectionManagerImpl implements CassandraConnectionManage
             logClusterDetails(cluster);
         } catch (Exception e) {
             logger.error("Error creating Cassandra connection", e);
-            throw new ProjectCommonException("Internal Server Error", e.getMessage(), 500);
+            throw new CustomException("Internal Server Error", e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

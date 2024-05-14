@@ -11,6 +11,9 @@
   "competencies": {
     "type": "nested",
     "properties": {
+      "area": {
+        "type": "keyword"
+      },
       "theme": {
         "type": "keyword"
       },
@@ -38,6 +41,9 @@
         "type": "text"
       }
     }
+  },
+  "assignedProvider": {
+    "type": "object"
   },
   "learningMode": {
     "type": "keyword"

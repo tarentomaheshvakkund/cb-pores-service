@@ -2,6 +2,7 @@ package com.igot.cb.pores.elasticsearch.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.igot.cb.pores.elasticsearch.config.EsConfig;
 import com.igot.cb.pores.elasticsearch.dto.FacetDTO;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
@@ -48,10 +49,19 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class EsUtilServiceImpl implements EsUtilService {
 
-  @Autowired
-  private RestHighLevelClient elasticsearchClient;
+  /*@Autowired
+  private RestHighLevelClient elasticsearchClient;*/
+  private final EsConfig esConfig;
+  private final RestHighLevelClient elasticsearchClient;
+
   @Autowired
   private ObjectMapper objectMapper;
+
+  @Autowired
+  public EsUtilServiceImpl(RestHighLevelClient elasticsearchClient, EsConfig esConnection) {
+    this.elasticsearchClient = elasticsearchClient;
+    this.esConfig = esConnection;
+  }
 
   @Value("${elastic.required.field.json.path}")
   private String requiredJsonFilePath;
