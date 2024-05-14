@@ -59,6 +59,33 @@ public class Constants {
     public static final String CONTENT_PROVIDER_ID ="id";
     public static final String INTEREST_COUNT ="demand_search_result";
     public static final String INTERESTS ="demand_search_result";
+    public static final String FETCH_RESULT_CONSTANT = ".fetchResult:";
+    public static final String URI_CONSTANT = "URI: ";
+    public static final String OK = "OK";
+    public static final String RESPONSE_CODE = "responseCode";
+    public static final String CONTENT = "content";
+    public static final String LIVE = "Live";
+    public static final String STATUS = "status";
+    public static final String NAME = "name";
+    public static final String COMPETENCIES_V5 = "competencies_v5";
+    public static final String AVG_RATING = "avgRating";
+    public static final String ORG_ID = "orgId";
+    public static final String CHILDREN = "children";
+    public static final String API_VERSION_1 = "1.0";
+    public static final String API_PLAYLIST_CREATE ="api.playlist.create";
+    public static final String API_PLAYLIST_READ ="api.playlist.read";
+    public static final String ID = "id";
+    public static final Object CREATED = "Created";
+    public static final String IDENTIFIER = "identifier";
+    public static final String DESCRIPTION = "description";
+    public static final String ADDITIONAL_TAGS = "additionalTags";
+    public static final String CONTENT_TYPE_KEY = "contentType";
+    public static final String PRIMARY_CATEGORY = "primaryCategory";
+    public static final String DURATION = "duration";
+    public static final String COURSE_APP_ICON = "appIcon";
+    public static final String POSTER_IMAGE = "posterImage";
+    public static final String ORGANISATION = "organisation";
+    public static final String CREATOR_LOGO = "creatorLogo";
     private Constants() {
     }
 }

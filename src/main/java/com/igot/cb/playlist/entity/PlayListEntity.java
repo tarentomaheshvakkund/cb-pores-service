@@ -24,7 +24,7 @@ import org.hibernate.annotations.TypeDef;
 @Entity
 public class PlayListEntity implements Serializable {
   @Id
-  private String playListId;
+  private String id;
 
   private String orgId;
 
