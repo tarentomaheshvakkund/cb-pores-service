@@ -255,6 +255,7 @@ public class DemandServiceImpl implements DemandService {
             response.setResponseCode(HttpStatus.OK);
             return response;
         } else {
+            logger.error("no data found");
             throw new CustomException(Constants.ERROR, Constants.NO_DATA_FOUND, HttpStatus.NOT_FOUND);
         }
 
@@ -305,9 +306,11 @@ public class DemandServiceImpl implements DemandService {
                 for (ValidationMessage message : validationMessages) {
                     errorMessage.append(message.getMessage()).append("\n");
                 }
+                logger.error("Validation Error", errorMessage.toString());
                 throw new CustomException("Validation Error", errorMessage.toString(), HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
+            logger.error("Failed to validate payload",e);
             throw new CustomException("Failed to validate payload", e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
