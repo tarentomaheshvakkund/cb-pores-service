@@ -1,8 +1,6 @@
 package com.igot.cb.contentprovider.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,8 +21,10 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -47,13 +47,14 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
     private CacheService cacheService;
     @Autowired
     private ObjectMapper objectMapper;
+    private Logger logger = LoggerFactory.getLogger(ContentPartnerServiceImpl.class);
 
     @Override
     public CustomResponse createOrUpdate(JsonNode partnerDetails) {
         CustomResponse response = new CustomResponse();
         validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, partnerDetails);
         try {
-            if (partnerDetails.get("id") == null) {
+            if (partnerDetails.get(Constants.ID) == null) {
                 log.info("ContentPartnerServiceImpl::createOrUpdate:creating content partner provider");
                 String id = String.valueOf(UUID.randomUUID());
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
@@ -69,10 +70,10 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 jsonNode.set(Constants.CONTENT_PROVIDER_ID, new TextNode(saveJsonEntity.getId()));
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-                esUtilService.addDocument(Constants.INDEX_NAME, "_doc", id, map);
+                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
                 cacheService.putCache(jsonNodeEntity.getId(), jsonNode);
                 log.info("Content partner created");
-                response.setMessage("Successfully created");
+                response.setMessage(Constants.SUCCESSFULLY_CREATED);
             } else {
                 log.info("Updating content partner entity");
                 String exitingId = partnerDetails.get("id").asText();
@@ -88,16 +89,17 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                 objectMapper.convertValue(updateJsonEntity.getData(), new TypeReference<Map<String, Object>>() {
                                 });
                         updateJsonEntity.setId(exitingId);
-                        esUtilService.updateDocument(Constants.INDEX_NAME, "_doc", exitingId, jsonMap);
+                        esUtilService.updateDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap);
                         cacheService.putCache(exitingId, updateJsonEntity);
                         log.info("updated the content partner");
-                        response.setMessage("Successfully Updated");
+                        response.setMessage(Constants.SUCCESSFULLY_UPDATED);
                     }
                 }
             }
-            response.setResponseCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.SC_OK));
+            response.setResponseCode(HttpStatus.OK);
             return response;
         } catch (Exception e) {
+            logger.error("error while processing", e);
             throw new RuntimeException(e);
         }
     }
@@ -108,8 +110,8 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         log.info("ContentPartnerServiceImpl::read:reading information about the content partner");
         CustomResponse response = new CustomResponse();
         if (StringUtils.isEmpty(id)) {
-            response.setResponseCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.SC_INTERNAL_SERVER_ERROR));
-            response.setMessage("Id not found");
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            response.setMessage(Constants.ID_NOT_FOUND);
             return response;
         }
         try {
@@ -133,12 +135,11 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                             entity.getData(), new TypeReference<Object>() {
                                             }));
                 } else {
-                    response.setResponseCode(org.springframework.http.HttpStatus.BAD_REQUEST);
+                    response.setResponseCode(HttpStatus.BAD_REQUEST);
                 }
             }
-        } catch (JsonMappingException e) {
-            throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.SC_INTERNAL_SERVER_ERROR);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
+            logger.error("error while processing", e);
             throw new RuntimeException(e);
         }
         return response;
@@ -153,7 +154,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             createErrorResponse(
                     response,
                     "Minimum 3 characters are required to search",
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    HttpStatus.BAD_REQUEST,
                     Constants.FAILED_CONST);
             return response;
         }
@@ -164,8 +165,8 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             createSuccessResponse(response);
             return response;
         } catch (Exception e) {
-            createErrorResponse(
-                    response, e.getMessage(), org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
+            logger.error("Error while processing to search", e);
+            createErrorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
             return response;
         }
     }
@@ -181,20 +182,21 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     JsonNode data = josnEntity.getData();
                     Timestamp currentTime = new Timestamp(System.currentTimeMillis());
                     if (data.get(Constants.IS_ACTIVE).asBoolean()) {
-                        ((ObjectNode) data).put("isActive", false);
+                        ((ObjectNode) data).put(Constants.IS_ACTIVE, false);
                         josnEntity.setData(data);
                         josnEntity.setId(id);
                         josnEntity.setUpdatedOn(currentTime);
                         ContentPartnerEntity updateJsonEntity = entityRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, "_doc", id, map);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
                         cacheService.putCache(id, data);
-                        return "content partner details deleted successfully.";
+                        return Constants.DELETED_SUCCESSFULLY;
                     } else
-                        return "content partner is already inactive.";
-                } else return "content partner not found.";
-            } else return "Invalid content partner ID.";
+                        return Constants.ALREADY_INACTIVE;
+                } else return Constants.CONTENT_PARTNER_NOT_FOUND;
+            } else return Constants.INVALID_ID;
         } catch (Exception e) {
+            logger.error("Error deleting Entity with ID " + id + " " + e.getMessage());
             return "Error deleting Entity with ID " + id + " " + e.getMessage();
         }
     }
@@ -207,25 +209,26 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
 
             Set<ValidationMessage> validationMessages = schema.validate(payload);
             if (!validationMessages.isEmpty()) {
-                StringBuilder errorMessage = new StringBuilder("Validation error(s): \n");
+                StringBuilder errorMessage = new StringBuilder("Validation error(s): ");
                 for (ValidationMessage message : validationMessages) {
-                    errorMessage.append(message.getMessage()).append("\n");
+                    errorMessage.append(message.getMessage());
                 }
-                throw new CustomException(Constants.ERROR, errorMessage.toString());
+                throw new CustomException(Constants.ERROR, errorMessage.toString(), HttpStatus.BAD_REQUEST);
             }
         } catch (CustomException e) {
-            throw new CustomException(Constants.ERROR, "Failed to validate payload: " + e.getMessage());
+            logger.error("Failed to validate payload",e);
+            throw new CustomException(Constants.ERROR, "Failed to validate payload: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     public void createSuccessResponse(CustomResponse response) {
         response.setParams(new RespParam());
-        response.getParams().setStatus("SUCCESS");
-        response.setResponseCode(org.springframework.http.HttpStatus.OK);
+        response.getParams().setStatus(Constants.SUCCESS);
+        response.setResponseCode(HttpStatus.OK);
     }
 
     public void createErrorResponse(
-            CustomResponse response, String errorMessage, org.springframework.http.HttpStatus httpStatus, String status) {
+            CustomResponse response, String errorMessage, HttpStatus httpStatus, String status) {
         response.setParams(new RespParam());
         response.getParams().setStatus(status);
         response.setResponseCode(httpStatus);

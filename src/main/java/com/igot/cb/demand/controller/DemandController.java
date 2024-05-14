@@ -32,7 +32,7 @@ public class DemandController {
     CustomResponse response = demandService.readDemand(id);
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
-  @PostMapping("/filter")
+  @PostMapping("/search")
   public ResponseEntity<?> search(@RequestBody SearchCriteria searchCriteria) {
     CustomResponse response = demandService.searchDemand(searchCriteria);
     return new ResponseEntity<>(response, response.getResponseCode());

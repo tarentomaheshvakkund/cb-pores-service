@@ -66,6 +66,17 @@ public class Constants {
     public static final String SSO_URL = "sso.url";
     public static final String SSO_REALM = "sso.realm";
     public static final String ACCESS_TOKEN_PUBLICKEY_BASEPATH = "accesstoken.publickey.basepath";
+    public static final String NO_DATA_FOUND ="No data found";
+    public static final String SUCCESSFULLY_CREATED ="successfully created";
+    public static final String ID ="id";
+    public static final String SUCCESSFULLY_READING ="successfully reading";
+    public static final String ID_NOT_FOUND="Id not found";
+    public static final String INVALID_ID="Invalid Id";
+    public static final String DELETED_SUCCESSFULLY="deleted successfully";
+    public static final String ALREADY_INACTIVE="already inactive Id";
+    public static final String ERROR_WHILE_DELETING_DEMAND="Error while deleting demand with ID";
+    public static final String SUCCESSFULLY_UPDATED ="successfully updated";
+    public static final String CONTENT_PARTNER_NOT_FOUND ="content partner not found";
     private Constants() {
     }
 }
