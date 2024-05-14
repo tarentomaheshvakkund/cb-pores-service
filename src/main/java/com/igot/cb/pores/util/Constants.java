@@ -59,7 +59,7 @@ public class Constants {
     public static final String CONTENT_PROVIDER_ID ="id";
     public static final String INTEREST_COUNT ="demand_search_result";
     public static final String INTERESTS ="demand_search_result";
-    public static final String No_DATA_FOUND ="No data found";
+    public static final String NO_DATA_FOUND ="No data found";
     public static final String SUCCESSFULLY_CREATED ="Successfully created";
     private Constants() {
     }

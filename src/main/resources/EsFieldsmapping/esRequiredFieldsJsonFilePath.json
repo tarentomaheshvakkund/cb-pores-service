@@ -11,6 +11,9 @@
   "competencies": {
     "type": "nested",
     "properties": {
+      "area": {
+        "type": "keyword"
+      },
       "theme": {
         "type": "keyword"
       },

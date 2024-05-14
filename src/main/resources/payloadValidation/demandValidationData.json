@@ -16,7 +16,10 @@
       "enum": ["self-paced", "instructor-led"]
     },
     "competencies": {
-      "type": "object"
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
     },
     "referenceLink": {
       "type": "string"
@@ -35,7 +38,8 @@
         "type": "object"
     },
     "status": {
-      "type": "string"
+      "type": "string",
+      "enum": ["Unassigned", "Assigned", "In Progress", "Fulfilled", "Invalid"]
     },
     "source": {
       "type": "string"

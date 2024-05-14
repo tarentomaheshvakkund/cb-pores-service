@@ -25,6 +25,8 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -51,6 +53,7 @@ public class DemandServiceImpl implements DemandService {
     private ObjectMapper objectMapper;
     @Autowired
     private RedisTemplate<String, SearchResult> redisTemplate;
+    private Logger logger = LoggerFactory.getLogger(DemandServiceImpl.class);
 
     @Value("${search.result.redis.ttl}")
     private long searchResultRedisTtl;
@@ -94,6 +97,7 @@ public class DemandServiceImpl implements DemandService {
             response.setResponseCode(HttpStatus.OK);
             return response;
         } catch (Exception e) {
+            logger.error("Error occurred while creating demand", e);
             throw new CustomException("error while processing", e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -104,6 +108,7 @@ public class DemandServiceImpl implements DemandService {
         log.info("reading demands for content");
         CustomResponse response = new CustomResponse();
         if (StringUtils.isEmpty(id)) {
+            logger.error("Id not found");
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             response.setMessage("Id not found");
             return response;
@@ -131,14 +136,16 @@ public class DemandServiceImpl implements DemandService {
                                             demandEntity.getData(), new TypeReference<Object>() {
                                             }));
                 } else {
+                    logger.error("Invalid Id: {}", id);
                     response.setResponseCode(HttpStatus.NOT_FOUND);
                     response.setMessage("Invalid Id");
                 }
             }
         } catch (JsonMappingException e) {
+            logger.error("Error while mapping JSON for id {}: {}", id, e.getMessage(), e);
             throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            logger.error("Error while processing JSON for id {}: {}", id, e.getMessage(), e);
         }
         return response;
     }
@@ -186,7 +193,7 @@ public class DemandServiceImpl implements DemandService {
                         .withClaim(Constants.REQUEST_PAYLOAD, reqJsonString)
                         .sign(Algorithm.HMAC256(Constants.JWT_SECRET_KEY));
             } catch (JsonProcessingException e) {
-                log.error("Error occurred while converting json object to json string", e);
+                logger.error("Error occurred while converting json object to json string", e);
             }
         }
         return "";
@@ -194,6 +201,7 @@ public class DemandServiceImpl implements DemandService {
 
     @Override
     public String delete(String id) {
+        log.info("DemandServiceImpl::deleteDemand");
         try {
             if (StringUtils.isNotEmpty(id)) {
                 Optional<DemandEntity> entityOptional = demandRepository.findById(id);
@@ -216,6 +224,7 @@ public class DemandServiceImpl implements DemandService {
                 } else return "Demand not found.";
             } else return "Invalid demand ID.";
         } catch (Exception e) {
+            logger.error("Error deleting demand with ID: {}. Exception: {}", id, e.getMessage(), e);
             return "Error deleting demand with ID " + id + " " + e.getMessage();
         }
     }
@@ -246,7 +255,7 @@ public class DemandServiceImpl implements DemandService {
             response.setResponseCode(HttpStatus.OK);
             return response;
         } else {
-            throw new CustomException(Constants.ERROR, Constants.No_DATA_FOUND, HttpStatus.NOT_FOUND);
+            throw new CustomException(Constants.ERROR, Constants.NO_DATA_FOUND, HttpStatus.NOT_FOUND);
         }
 
     }
