@@ -4,7 +4,6 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -35,7 +34,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -87,12 +89,12 @@ public class DemandServiceImpl implements DemandService {
             jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
 
             Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-            esUtilService.addDocument(Constants.INDEX_NAME, "_doc", id, map);
+            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
 
             cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created");
             response.setMessage(Constants.SUCCESSFULLY_CREATED);
-            map.put("demandId", id);
+            map.put(Constants.DEMAND_ID, id);
             response.setResult(map);
             response.setResponseCode(HttpStatus.OK);
             return response;
@@ -110,14 +112,14 @@ public class DemandServiceImpl implements DemandService {
         if (StringUtils.isEmpty(id)) {
             logger.error("Id not found");
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
-            response.setMessage("Id not found");
+            response.setMessage(Constants.ID_NOT_FOUND);
             return response;
         }
         try {
             String cachedJson = cacheService.getCache(id);
             if (StringUtils.isNotEmpty(cachedJson)) {
                 log.info("Record coming from redis cache");
-                response.setMessage("successfully reading your data");
+                response.setMessage(Constants.SUCCESSFULLY_READING);
                 response
                         .getResult()
                         .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
@@ -128,7 +130,7 @@ public class DemandServiceImpl implements DemandService {
                     DemandEntity demandEntity = entityOptional.get();
                     cacheService.putCache(id, demandEntity.getData());
                     log.info("Record coming from postgres db");
-                    response.setMessage("successfully reading your data");
+                    response.setMessage(Constants.SUCCESSFULLY_READING);
                     response
                             .getResult()
                             .put(Constants.RESULT,
@@ -138,14 +140,12 @@ public class DemandServiceImpl implements DemandService {
                 } else {
                     logger.error("Invalid Id: {}", id);
                     response.setResponseCode(HttpStatus.NOT_FOUND);
-                    response.setMessage("Invalid Id");
+                    response.setMessage(Constants.INVALID_ID);
                 }
             }
-        } catch (JsonMappingException e) {
+        } catch (Exception e) {
             logger.error("Error while mapping JSON for id {}: {}", id, e.getMessage(), e);
             throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (JsonProcessingException e) {
-            logger.error("Error while processing JSON for id {}: {}", id, e.getMessage(), e);
         }
         return response;
     }
@@ -163,9 +163,7 @@ public class DemandServiceImpl implements DemandService {
         }
         String searchString = searchCriteria.getSearchString();
         if (searchString != null && searchString.length() < 2) {
-            createErrorResponse(
-                    response,
-                    "Minimum 3 characters are required to search",
+            createErrorResponse(response, "Minimum 3 characters are required to search",
                     HttpStatus.BAD_REQUEST,
                     Constants.FAILED_CONST);
             return response;
@@ -201,7 +199,7 @@ public class DemandServiceImpl implements DemandService {
 
     @Override
     public String delete(String id) {
-        log.info("DemandServiceImpl::deleteDemand");
+        log.info("DemandServiceImpl::delete Demand");
         try {
             if (StringUtils.isNotEmpty(id)) {
                 Optional<DemandEntity> entityOptional = demandRepository.findById(id);
@@ -210,22 +208,25 @@ public class DemandServiceImpl implements DemandService {
                     JsonNode data = josnEntity.getData();
                     Timestamp currentTime = new Timestamp(System.currentTimeMillis());
                     if (data.get(Constants.IS_ACTIVE).asBoolean()) {
-                        ((ObjectNode) data).put("isActive", false);
+                        ((ObjectNode) data).put(Constants.IS_ACTIVE, false);
                         josnEntity.setData(data);
                         josnEntity.setDemandId(id);
                         josnEntity.setUpdatedOn(currentTime);
                         DemandEntity updateJsonEntity = demandRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, "_doc", id, map);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
                         cacheService.putCache(id, data);
-                        return "Demand details deleted successfully.";
+
+                        logger.debug("Demand details deleted successfully");
+                        return Constants.DELETED_SUCCESSFULLY;
                     } else
-                        return "demand is already inactive.";
-                } else return "Demand not found.";
-            } else return "Invalid demand ID.";
+                        log.info("demand is already inactive.");
+                        return Constants.ALREADY_INACTIVE;
+                } else return Constants.NO_DATA_FOUND;
+            } else return Constants.INVALID_ID;
         } catch (Exception e) {
-            logger.error("Error deleting demand with ID: {}. Exception: {}", id, e.getMessage(), e);
-            return "Error deleting demand with ID " + id + " " + e.getMessage();
+            logger.error("Error while deleting demand with ID: {}. Exception: {}", id, e.getMessage(), e);
+            return Constants.ERROR_WHILE_DELETING_DEMAND + id + " " + e.getMessage();
         }
     }
 
@@ -247,11 +248,11 @@ public class DemandServiceImpl implements DemandService {
             jsonNode.setAll((ObjectNode) fetchedEntity.getData());
 
             Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-            esUtilService.addDocument(Constants.INDEX_NAME, "_doc", fetchedEntity.getDemandId(), map);
+            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, fetchedEntity.getDemandId(), map);
 
             cacheService.putCache(fetchedEntity.getDemandId(), jsonNode);
             log.info("interest captured");
-            response.setMessage("Successfully created");
+            response.setMessage(Constants.SUCCESSFULLY_UPDATED);
             response.setResponseCode(HttpStatus.OK);
             return response;
         } else {
@@ -317,7 +318,7 @@ public class DemandServiceImpl implements DemandService {
 
     public void createSuccessResponse(CustomResponse response) {
         response.setParams(new RespParam());
-        response.getParams().setStatus("SUCCESS");
+        response.getParams().setStatus(Constants.SUCCESS);
         response.setResponseCode(HttpStatus.OK);
     }
 
