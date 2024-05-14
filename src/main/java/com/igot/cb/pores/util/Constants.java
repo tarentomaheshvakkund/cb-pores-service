@@ -92,7 +92,6 @@ public class Constants {
     public static final String API_VERSION_1 = "1.0";
     public static final String API_PLAYLIST_CREATE ="api.playlist.create";
     public static final String API_PLAYLIST_READ ="api.playlist.read";
-    public static final String ID = "id";
     public static final Object CREATED = "Created";
     public static final String IDENTIFIER = "identifier";
     public static final String DESCRIPTION = "description";
