@@ -1,4 +1,4 @@
-package com.igot.cb.contentprovider.servise.impl;
+package com.igot.cb.contentprovider.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.contentprovider.entity.ContentPartnerEntity;
 import com.igot.cb.contentprovider.repository.ContentPartnerRepository;
-import com.igot.cb.contentprovider.servise.ContentPartnerService;
+import com.igot.cb.contentprovider.service.ContentPartnerService;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.dto.RespParam;

@@ -1,7 +1,7 @@
 package com.igot.cb.contentprovider.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.igot.cb.contentprovider.servise.ContentPartnerService;
+import com.igot.cb.contentprovider.service.ContentPartnerService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import org.springframework.beans.factory.annotation.Autowired;
