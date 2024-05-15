@@ -1,5 +1,6 @@
 package com.igot.cb.pores.util;
 
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,5 +25,8 @@ public class CbServerProperties {
 
   @Value("${redis.insights.index}")
   private int redisInsightIndex;
+
+  @Value("#{${playlist.redis.key.mapping}}")
+  private Map<String, String> PlayListRedisKeyMapping;
 
 }

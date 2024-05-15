@@ -23,10 +23,15 @@ import org.hibernate.annotations.TypeDef;
 @TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 @Entity
 public class PlayListEntity implements Serializable {
+
   @Id
   private String id;
 
   private String orgId;
+
+  private String requestType;
+
+  private Boolean isActive;
 
   @Type(type = "jsonb")
   @Column(columnDefinition = "jsonb")

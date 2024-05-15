@@ -20,10 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
 @Service
 @Slf4j
 public class ContentServiceImpl implements ContentService {
-  
+
   @Autowired
   private CbServerProperties serverConfig;
 
@@ -41,6 +42,7 @@ public class ContentServiceImpl implements ContentService {
 
   @Override
   public Map<String, Object> readContentFromCache(String contentId, List<String> fields) {
+    log.info("ContentServiceImpl::readContentFromCache:entering");
     if (CollectionUtils.isEmpty(fields)) {
       fields = Collections.singletonList(serverConfig.getDefaultContentProperties());
     }
@@ -79,28 +81,33 @@ public class ContentServiceImpl implements ContentService {
       // We are going to send the data read from which might have more fields.
       // This is fine for now.
     }
-
+    log.info("ContentServiceImpl::readContentFromCache");
     return responseData;
   }
 
   @Override
   public Map<String, Object> readContent(String contentId, List<String> fields) {
+    log.info("ContentServiceImpl::readContent:inside");
     StringBuilder url = new StringBuilder();
-    url.append(serverConfig.getContentHost()).append(serverConfig.getContentReadEndPoint()).append("/" + contentId)
+    url.append(serverConfig.getContentHost()).append(serverConfig.getContentReadEndPoint())
+        .append("/" + contentId)
         .append(serverConfig.getContentReadEndPointFields());
     if (CollectionUtils.isNotEmpty(fields)) {
       StringBuffer stringBuffer = new StringBuffer(String.join(",", fields));
       url.append(",").append(stringBuffer);
     }
     Map<String, Object> response = (Map<String, Object>) fetchResult(url.toString());
-    if (null != response && Constants.OK.equalsIgnoreCase((String) response.get(Constants.RESPONSE_CODE))) {
+    if (null != response && Constants.OK.equalsIgnoreCase(
+        (String) response.get(Constants.RESPONSE_CODE))) {
       Map<String, Object> contentResult = (Map<String, Object>) response.get(Constants.RESULT);
+      log.info("ContentServiceImpl::readContent:read the content");
       return (Map<String, Object>) contentResult.get(Constants.CONTENT);
     }
     return null;
   }
 
   public Object fetchResult(String uri) {
+    log.info("ContentServiceImpl::fetchResult:inside");
     ObjectMapper mapper = new ObjectMapper();
     mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     Object response = null;
@@ -110,6 +117,7 @@ public class ContentServiceImpl implements ContentService {
             .append(Constants.FETCH_RESULT_CONSTANT).append(System.lineSeparator());
         str.append(Constants.URI_CONSTANT).append(uri).append(System.lineSeparator());
         log.debug(str.toString());
+        log.info("ContentServiceImpl::fetchResult:fetched");
       }
       response = restTemplate.getForObject(uri, Map.class);
     } catch (HttpClientErrorException e) {
@@ -129,8 +137,10 @@ public class ContentServiceImpl implements ContentService {
     }
     return response;
   }
+
   @Override
   public Map<String, Object> readContent(String contentId) {
+    log.info("ContentServiceImpl::readContent:inside");
     return readContent(contentId, Collections.emptyList());
   }
 }
