@@ -10,7 +10,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class PlayListEntityRedisConfig {
   @Bean
-  public RedisTemplate<String, PlayListEntity> redisTemplateForSidJobEntity(
+  public RedisTemplate<String, PlayListEntity> redisTemplateForPlayListEntity(
       RedisConnectionFactory connectionFactory) {
     RedisTemplate<String, PlayListEntity> redisTemplate = new RedisTemplate<>();
     redisTemplate.setConnectionFactory(connectionFactory);
