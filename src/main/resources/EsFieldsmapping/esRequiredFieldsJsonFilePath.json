@@ -1,0 +1,110 @@
+{
+  "demand_id": {
+    "type": "keyword"
+  },
+  "title": {
+    "type": "keyword"
+  },
+  "objective": {
+    "type": "keyword"
+  },
+  "competencies": {
+    "type": "nested",
+    "properties": {
+      "area": {
+        "type": "keyword"
+      },
+      "theme": {
+        "type": "keyword"
+      },
+      "sub_theme": {
+        "type": "keyword"
+      }
+    }
+  },
+  "referenceLink": {
+    "type": "keyword"
+  },
+  "typeOfUser": {
+    "type": "keyword"
+  },
+  "requestType": {
+    "type": "keyword"
+  },
+  "preferredProvider": {
+    "type": "nested",
+    "properties": {
+      "providerId": {
+        "type": "keyword"
+      },
+      "providerName": {
+        "type": "text"
+      }
+    }
+  },
+  "assignedProvider": {
+    "type": "object"
+  },
+  "learningMode": {
+    "type": "keyword"
+  },
+  "source": {
+    "type": "keyword"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "isActive": {
+    "type": "keyword"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "interestCount": {
+    "type": "integer"
+  },
+  "interests": {
+    "type": "object",
+    "properties": {
+      "orgId1": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "keyword"
+          },
+          "description": {
+            "type": "text"
+          },
+          "orgName": {
+            "type": "text"
+          }
+        }
+      },
+      "orgId2": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "keyword"
+          },
+          "description": {
+            "type": "text"
+          },
+          "orgName": {
+            "type": "text"
+          }
+        }
+      }
+    }
+  }
+}
