@@ -108,7 +108,7 @@ public class Constants {
   public static final String FILTERS = "filters";
   public static final String REQUEST_TYPE = "requestType";
   public static final String RQST_CONTENT_TYPE = "type";
-
+  public static final String PLAY_LIST_VALIDATION_FILE_JSON = "/payloadValidation/playListValidationFile.json";
   private Constants() {
   }
 }
