@@ -109,6 +109,9 @@ public class Constants {
   public static final String REQUEST_TYPE = "requestType";
   public static final String RQST_CONTENT_TYPE = "type";
   public static final String PLAY_LIST_VALIDATION_FILE_JSON = "/payloadValidation/playListValidationFile.json";
+  public static final String ORG_FEATURED_COURSE_KEY = "ORG_FEATURED_COURSES";
+  public static final String ORG_COURSE_NOT_FOUND = "Not found course for this org";
+
   private Constants() {
   }
 }
