@@ -48,4 +48,15 @@ public class RedisCacheMngr {
     }
   }
 
+  // Method to delete a field from a hash
+  public Long hdel(String key, String field, int index) {
+    try (Jedis jedis = jedisPool.getResource()) {
+      jedis.select(index);
+      return jedis.hdel(key, field);
+    } catch (Exception e) {
+      log.error(e.toString());
+      return null;
+    }
+  }
+
 }

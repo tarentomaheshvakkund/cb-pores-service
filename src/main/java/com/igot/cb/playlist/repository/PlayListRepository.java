@@ -12,4 +12,6 @@ public interface PlayListRepository extends JpaRepository<PlayListEntity, String
   PlayListEntity findByOrgId(String orgId);
 
   List<PlayListEntity> findByOrgIdAndRequestType(String orgId, String requestType);
+
+  PlayListEntity findByOrgIdAndIsActive(String orgId, Boolean isActive);
 }
