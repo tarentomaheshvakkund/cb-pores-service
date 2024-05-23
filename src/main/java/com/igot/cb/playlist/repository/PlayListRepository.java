@@ -11,6 +11,5 @@ public interface PlayListRepository extends JpaRepository<PlayListEntity, String
 
   PlayListEntity findByOrgId(String orgId);
 
-  //  @Query("SELECT * FROM playlist WHERE org_id = ?0 AND request_type = ?1")
   List<PlayListEntity> findByOrgIdAndRequestType(String orgId, String requestType);
 }

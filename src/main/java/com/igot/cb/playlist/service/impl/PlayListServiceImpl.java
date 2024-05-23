@@ -73,7 +73,7 @@ public class PlayListServiceImpl implements PlayListSerive {
   public ApiResponse createPlayList(JsonNode playListDetails) {
     log.info("PlayListService::createPlayList:inside the method");
     payloadValidation.validatePayload(Constants.PLAY_LIST_VALIDATION_FILE_JSON,playListDetails);
-    log.info("PlayListService::createPlayList:validated the payload");
+    log.debug("PlayListService::createPlayList:validated the payload");
     ApiResponse response = new ApiResponse();
     try {
       Optional<PlayListEntity> optionalJsonNodeEntity = Optional.ofNullable(
@@ -279,7 +279,7 @@ public class PlayListServiceImpl implements PlayListSerive {
     try {
       log.info("PlayListService::updatePlayList");
       payloadValidation.validatePayload(Constants.PLAY_LIST_VALIDATION_FILE_JSON,playListDetails);
-      log.info("PlayListService::updatePlayList:validated the payload");
+      log.debug("PlayListService::updatePlayList:validated the payload");
       List<PlayListEntity> optionalJsonNodeEntity = playListRepository.findByOrgIdAndRequestType(
           playListDetails.get(Constants.ORG_ID).asText(),
           playListDetails.get(Constants.RQST_CONTENT_TYPE).asText()
