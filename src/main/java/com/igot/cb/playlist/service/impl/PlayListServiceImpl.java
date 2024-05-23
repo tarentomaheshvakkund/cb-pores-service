@@ -166,7 +166,6 @@ public class PlayListServiceImpl implements PlayListSerive {
         if (MapUtils.isNotEmpty(contentResponse)) {
           if (Constants.LIVE.equalsIgnoreCase((String) contentResponse.get(Constants.STATUS))) {
             Map<String, Object> enrichContentMap = new HashMap<>();
-            enrichContentMap.put("do_id", childId);
             enrichContentMap.put(Constants.NAME, contentResponse.get(Constants.NAME));
             enrichContentMap.put(Constants.COMPETENCIES_V5,
                 contentResponse.get(Constants.COMPETENCIES_V5));
@@ -221,7 +220,7 @@ public class PlayListServiceImpl implements PlayListSerive {
         playListStringFromRedis =
             redisCacheMngr.hget(cbServerProperties.getPlayListRedisKeyMapping().get(contextType),
                 redisInsightIndex, orgId).toString();
-        log.info("Cached PlayList: " + playListStringFromRedis);
+        log.info("Cached PlayList for orgId: " + orgId);
 
       }
       if (playListStringFromRedis == null || "[null]".equals(playListStringFromRedis)

@@ -8,10 +8,9 @@ import com.igot.cb.playlist.util.DataCacheManager;
 import com.igot.cb.playlist.util.RedisCacheMngr;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -44,7 +43,7 @@ public class ContentServiceImpl implements ContentService {
   public Map<String, Object> readContentFromCache(String contentId, List<String> fields) {
     log.info("ContentServiceImpl::readContentFromCache:entering");
     if (CollectionUtils.isEmpty(fields)) {
-      fields = Collections.singletonList(serverConfig.getDefaultContentProperties());
+      fields = Arrays.asList(serverConfig.getDefaultContentProperties().split(",", -1));
     }
     Map<String, Object> responseData = null;
 
