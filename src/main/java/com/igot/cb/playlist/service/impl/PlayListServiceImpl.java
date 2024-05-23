@@ -307,10 +307,10 @@ public class PlayListServiceImpl implements PlayListSerive {
         enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
         enrichedContentJson.put(Constants.ID, playListEntity.getOrgId());
         persistInRedis(enrichedContentJson, playListEntity);
-        response = ProjectUtil.createDefaultResponse(Constants.API_PLAYLIST_CREATE);
+        response = ProjectUtil.createDefaultResponse(Constants.API_PLAYLIST_UPDATED);
         response.put(Constants.RESPONSE, Constants.SUCCESS);
         response.setResponseCode(HttpStatus.OK);
-        response.getResult().put(Constants.STATUS, Constants.CREATED);
+        response.getResult().put(Constants.STATUS, Constants.UPDATED);
         response.getResult().put(Constants.ID, optionalJsonNodeEntity.get(0).getId());
         return response;
       }
