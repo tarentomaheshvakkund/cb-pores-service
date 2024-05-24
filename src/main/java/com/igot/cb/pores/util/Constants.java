@@ -70,7 +70,7 @@ public class Constants {
   public static final String NO_DATA_FOUND = "No data found";
   public static final String SUCCESSFULLY_CREATED = "successfully created";
   public static final String ID = "id";
-  public static final String SUCCESSFULLY_READING = "successfully reading";
+  public static final String SUCCESSFULLY_READING = "successfully read";
   public static final String ID_NOT_FOUND = "Id not found";
   public static final String INVALID_ID = "Invalid Id";
   public static final String DELETED_SUCCESSFULLY = "deleted successfully";
