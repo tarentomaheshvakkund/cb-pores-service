@@ -11,4 +11,6 @@ public interface InterestService {
   CustomResponse searchDemand(SearchCriteria searchCriteria);
 
   CustomResponse assignInterestToDemand(JsonNode interestDetails);
+
+  CustomResponse read(String id);
 }

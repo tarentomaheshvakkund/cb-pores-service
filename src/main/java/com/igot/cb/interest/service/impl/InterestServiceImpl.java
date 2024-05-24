@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.datastax.driver.core.utils.UUIDs;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -206,6 +208,51 @@ public class InterestServiceImpl implements InterestService {
       logger.error("no data found");
       throw new CustomException(Constants.ERROR, Constants.NO_DATA_FOUND, HttpStatus.NOT_FOUND);
     }
+  }
+
+  @Override
+  public CustomResponse read(String id) {
+    log.info("InterestServiceImpl::read:inside the method");
+    CustomResponse response = new CustomResponse();
+    if (StringUtils.isEmpty(id)) {
+      logger.error("InterestServiceImpl::read:Id not found");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.setMessage(Constants.ID_NOT_FOUND);
+      return response;
+    }
+    try {
+      String cachedJson = cacheService.getCache(id);
+      if (StringUtils.isNotEmpty(cachedJson)) {
+        log.info("InterestServiceImpl::read:Record coming from redis cache");
+        response.setMessage(Constants.SUCCESSFULLY_READING);
+        response
+            .getResult()
+            .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
+            }));
+      } else {
+        Optional<Interests> entityOptional = interestRepository.findById(id);
+        if (entityOptional.isPresent()) {
+          Interests interests = entityOptional.get();
+          cacheService.putCache(id, interests.getData());
+          log.info("InterestServiceImpl::read:Record coming from postgres db");
+          response.setMessage(Constants.SUCCESSFULLY_READING);
+          response
+              .getResult()
+              .put(Constants.RESULT,
+                  objectMapper.convertValue(
+                      interests.getData(), new TypeReference<Object>() {
+                      }));
+        } else {
+          logger.error("Invalid Id: {}", id);
+          response.setResponseCode(HttpStatus.NOT_FOUND);
+          response.setMessage(Constants.INVALID_ID);
+        }
+      }
+    } catch (Exception e) {
+      logger.error("Error while mapping JSON for id {}: {}", id, e.getMessage(), e);
+      throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return response;
   }
 
   private void updateCountAndStatusOfDemand(DemandEntity demand, Timestamp currentTime, JsonNode fetchedDemandDetails) {
