@@ -22,25 +22,25 @@ public class InterestController {
   @Autowired
   private InterestService interestService;
 
-  @PostMapping("/create")
+  @PostMapping("/v1/create")
   public ResponseEntity<CustomResponse> create(@RequestBody JsonNode interestDetails) {
     CustomResponse response = interestService.createInterest(interestDetails);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 
-  @PostMapping("/search")
+  @PostMapping("/v1/search")
   public ResponseEntity<?> search(@RequestBody SearchCriteria searchCriteria) {
     CustomResponse response = interestService.searchDemand(searchCriteria);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 
-  @PutMapping("/assign")
+  @PutMapping("/v1/assign")
   public ResponseEntity<CustomResponse> assign(@RequestBody JsonNode interestDetails) {
     CustomResponse response = interestService.assignInterestToDemand(interestDetails);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 
-  @GetMapping("/read/{id}")
+  @GetMapping("/v1/read/{id}")
   public ResponseEntity<?> read(@PathVariable String id) {
     CustomResponse response = interestService.read(id);
     return new ResponseEntity<>(response, HttpStatus.OK);
