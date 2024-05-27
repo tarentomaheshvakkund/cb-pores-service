@@ -48,7 +48,10 @@
   "learningMode": {
     "type": "keyword"
   },
-  "source": {
+  "owner": {
+    "type": "keyword"
+  },
+  "rootOrgId": {
     "type": "keyword"
   },
   "status": {
@@ -73,38 +76,5 @@
   },
   "interestCount": {
     "type": "integer"
-  },
-  "interests": {
-    "type": "object",
-    "properties": {
-      "orgId1": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "keyword"
-          },
-          "description": {
-            "type": "text"
-          },
-          "orgName": {
-            "type": "text"
-          }
-        }
-      },
-      "orgId2": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "keyword"
-          },
-          "description": {
-            "type": "text"
-          },
-          "orgName": {
-            "type": "text"
-          }
-        }
-      }
-    }
   }
 }

@@ -58,7 +58,7 @@ public class Constants {
   public static final String JWT_SECRET_KEY = "demand_search_result";
   public static final String PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER = "/payloadValidation/contentProviderValidation.json";
   public static final String CONTENT_PROVIDER_ID = "id";
-  public static final String INTEREST_COUNT = "demand_search_result";
+  public static final String INTEREST_COUNT = "interestCount";
   public static final String INTERESTS = "demand_search_result";
   public static final String DOT_SEPARATOR = ".";
   public static final String SHA_256_WITH_RSA = "SHA256withRSA";
@@ -107,8 +107,23 @@ public class Constants {
   public static final String NOT_FOUND = "Not found";
   public static final String FILTERS = "filters";
   public static final String REQUEST_TYPE = "requestType";
+  public static final String NEW_STATUS ="newStatus";
+  public static final String MISSING_ID_OR_NEW_STATUS="demand id and newStatus are required for updating demand";
+  public static final String CANNOT_UPDATE_INACTIVE_DEMAND="Cannot update inactive demand";
   public static final String RQST_CONTENT_TYPE = "type";
-
+  public static final String X_AUTH_USER_ORG_ID = "x-authenticated-user-orgid";
+  public static final String X_AUTH_TOKEN = "x-authenticated-user-token";
+  public static final String USER_ID_DOESNT_EXIST = "User Id doesn't exist! Please supply a valid auth token";
+  public static final String TABLE_USER = "user";
+  public static final String ROOT_ORG_ID= "rootOrgId";
+  public static final String USER_ROOT_ORG_ID ="rootorgid";
+  public static final String ROOT_ORG_ID_DOESNT_MATCH = "Unauthorized User.";
+  public static final String OWNER = "owner";
+  public static final String STATUS_TRANSITION_PATH= "/payloadValidation/status-transitions.json";
+  public static final String BROADCAST ="Broadcast";
+  public static final String UNASSIGNED ="Unassigned";
+  public static final String ASSIGNED ="Assigned";
+  public static final String INVALID_STATUS_TRANSITION = "Requesting with invalid status";
   private Constants() {
   }
 }
