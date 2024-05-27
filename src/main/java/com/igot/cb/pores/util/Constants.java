@@ -111,6 +111,11 @@ public class Constants {
   public static final String MISSING_ID_OR_NEW_STATUS="demand id and newStatus are required for updating demand";
   public static final String CANNOT_UPDATE_INACTIVE_DEMAND="Cannot update inactive demand";
   public static final String RQST_CONTENT_TYPE = "type";
+  public static final String PLAY_LIST_VALIDATION_FILE_JSON = "/payloadValidation/playListValidationFile.json";
+  public static final String ORG_FEATURED_COURSE_KEY = "ORG_FEATURED_COURSES";
+  public static final String ORG_COURSE_NOT_FOUND = "Not found course for this org";
+  public static final String API_PLAYLIST_UPDATED = "api.playlist.updated";
+  public static final Object UPDATED = "Updated";
   public static final String X_AUTH_USER_ORG_ID = "x-authenticated-user-orgid";
   public static final String X_AUTH_TOKEN = "x-authenticated-user-token";
   public static final String USER_ID_DOESNT_EXIST = "User Id doesn't exist! Please supply a valid auth token";

@@ -11,24 +11,18 @@
     "ownerId": {
       "type": "string"
     },
-    "children":{
+    "children": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "do_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "do_id"
-        ]
-      }
+        "type": "string"
+      },
+      "minItems": 1
     }
   },
   "required": [
-    "title",
-    "objective",
-    "request_type"
+    "type",
+    "orgId",
+    "ownerId",
+    "children"
   ]
 }
