@@ -131,7 +131,7 @@ public class Constants {
   public static final String USER_ROOT_ORG_ID ="rootorgid";
   public static final String ROOT_ORG_ID_DOESNT_MATCH = "Unauthorized User.";
   public static final String OWNER = "owner";
-  public static final String STATUS_TRANSITION_PATH= "/payloadValidation/status-transitions.json";
+  public static final String STATUS_TRANSITION_PATH= "/payloadValidation/statusTransitions.json";
   public static final String BROADCAST ="Broadcast";
   public static final String UNASSIGNED ="Unassigned";
   public static final String INVALID_STATUS_TRANSITION = "Requesting with invalid status";
