@@ -146,7 +146,8 @@ public class EsUtilServiceImpl implements EsUtilService {
       if (searchSourceBuilder != null) {
         int pageNumber = searchCriteria.getPageNumber();
         int pageSize = searchCriteria.getPageSize();
-        searchSourceBuilder.from(pageNumber);
+        int from = pageNumber * pageSize;
+        searchSourceBuilder.from(from);
         if (pageSize != 0) {
           searchSourceBuilder.size(pageSize);
         }

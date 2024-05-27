@@ -48,7 +48,10 @@
   "learningMode": {
     "type": "keyword"
   },
-  "source": {
+  "owner": {
+    "type": "keyword"
+  },
+  "rootOrgId": {
     "type": "keyword"
   },
   "status": {

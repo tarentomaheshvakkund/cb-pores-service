@@ -5,7 +5,7 @@ import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 
 public interface DemandService {
-  CustomResponse createDemand(JsonNode demandDetails);
+  CustomResponse createDemand(JsonNode demandDetails,String token, String rootOrgId);
 
   CustomResponse readDemand(String id);
 
@@ -13,5 +13,6 @@ public interface DemandService {
 
   String delete(String id);
 
-  CustomResponse updateDemand(JsonNode demandsDetails);
+  CustomResponse updateDemandStatus(JsonNode updateDetails, String token, String rootOrgId);
+
 }
