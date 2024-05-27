@@ -58,7 +58,7 @@ public class Constants {
   public static final String JWT_SECRET_KEY = "demand_search_result";
   public static final String PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER = "/payloadValidation/contentProviderValidation.json";
   public static final String CONTENT_PROVIDER_ID = "id";
-  public static final String INTEREST_COUNT = "demand_search_result";
+  public static final String INTEREST_COUNT = "interestCount";
   public static final String INTERESTS = "demand_search_result";
   public static final String DOT_SEPARATOR = ".";
   public static final String SHA_256_WITH_RSA = "SHA256withRSA";
@@ -70,7 +70,7 @@ public class Constants {
   public static final String NO_DATA_FOUND = "No data found";
   public static final String SUCCESSFULLY_CREATED = "successfully created";
   public static final String ID = "id";
-  public static final String SUCCESSFULLY_READING = "successfully reading";
+  public static final String SUCCESSFULLY_READING = "successfully read";
   public static final String ID_NOT_FOUND = "Id not found";
   public static final String INVALID_ID = "Invalid Id";
   public static final String DELETED_SUCCESSFULLY = "deleted successfully";
@@ -113,6 +113,16 @@ public class Constants {
   public static final String ORG_COURSE_NOT_FOUND = "Not found course for this org";
   public static final String API_PLAYLIST_UPDATED = "api.playlist.updated";
   public static final Object UPDATED = "Updated";
+  public static final String INTEREST_VALIDATION_FILE_JSON = "/payloadValidation/interestPayloadValidation.json";
+  public static final String REQUESTED = "Requested";
+  public static final String INTEREST_INDEX_NAME = "interests";
+  public static final String INTEREST_ID_RQST = "interestId";
+  public static final String ASSIGNED_PROVIDER = "assignedProvider";
+  public static final String ASSIGNED_BY = "assignedBy";
+  public static final String GRANTED = "Granted";
+  public static final String ASSIGNED = "Assigned";
+  public static final String SUCCESSFULLY_ASSIGNED = "Successfully Assigned interest with demand";
+  public static final String OWNERID = "ownerId";
 
   private Constants() {
   }
