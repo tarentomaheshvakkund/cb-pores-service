@@ -290,9 +290,7 @@ public class DemandServiceImpl implements DemandService {
                 ((ObjectNode) data).put(Constants.STATUS, newStatus);
                 demandDbData.setData(data);
                 Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                String formattedDate = dateFormat.format(new Date(currentTime.getTime()));
-                ((ObjectNode) data).put(Constants.UPDATED_ON, formattedDate);
+                ((ObjectNode) data).put(Constants.UPDATED_ON, String.valueOf(currentTime));
                 demandDbData.setUpdatedOn(currentTime);
 
                 DemandEntity saveJsonEntity = demandRepository.save(demandDbData);
