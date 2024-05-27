@@ -70,7 +70,7 @@ public class Constants {
   public static final String NO_DATA_FOUND = "No data found";
   public static final String SUCCESSFULLY_CREATED = "successfully created";
   public static final String ID = "id";
-  public static final String SUCCESSFULLY_READING = "successfully reading";
+  public static final String SUCCESSFULLY_READING = "successfully read";
   public static final String ID_NOT_FOUND = "Id not found";
   public static final String INVALID_ID = "Invalid Id";
   public static final String DELETED_SUCCESSFULLY = "deleted successfully";
@@ -107,10 +107,22 @@ public class Constants {
   public static final String NOT_FOUND = "Not found";
   public static final String FILTERS = "filters";
   public static final String REQUEST_TYPE = "requestType";
-  public static final String NEW_STATUS ="newStatus";
-  public static final String MISSING_ID_OR_NEW_STATUS="demand id and newStatus are required for updating demand";
-  public static final String CANNOT_UPDATE_INACTIVE_DEMAND="Cannot update inactive demand";
   public static final String RQST_CONTENT_TYPE = "type";
+  public static final String PLAY_LIST_VALIDATION_FILE_JSON = "/payloadValidation/playListValidationFile.json";
+  public static final String ORG_FEATURED_COURSE_KEY = "ORG_FEATURED_COURSES";
+  public static final String ORG_COURSE_NOT_FOUND = "Not found course for this org";
+  public static final String API_PLAYLIST_UPDATED = "api.playlist.updated";
+  public static final Object UPDATED = "Updated";
+  public static final String INTEREST_VALIDATION_FILE_JSON = "/payloadValidation/interestPayloadValidation.json";
+  public static final String REQUESTED = "Requested";
+  public static final String INTEREST_INDEX_NAME = "interests";
+  public static final String INTEREST_ID_RQST = "interestId";
+  public static final String ASSIGNED_PROVIDER = "assignedProvider";
+  public static final String ASSIGNED_BY = "assignedBy";
+  public static final String GRANTED = "Granted";
+  public static final String ASSIGNED = "Assigned";
+  public static final String SUCCESSFULLY_ASSIGNED = "Successfully Assigned interest with demand";
+  public static final String OWNERID = "ownerId";
   public static final String X_AUTH_USER_ORG_ID = "x-authenticated-user-orgid";
   public static final String X_AUTH_TOKEN = "x-authenticated-user-token";
   public static final String USER_ID_DOESNT_EXIST = "User Id doesn't exist! Please supply a valid auth token";
@@ -122,8 +134,10 @@ public class Constants {
   public static final String STATUS_TRANSITION_PATH= "/payloadValidation/status-transitions.json";
   public static final String BROADCAST ="Broadcast";
   public static final String UNASSIGNED ="Unassigned";
-  public static final String ASSIGNED ="Assigned";
   public static final String INVALID_STATUS_TRANSITION = "Requesting with invalid status";
+  public static final String NEW_STATUS ="newStatus";
+  public static final String MISSING_ID_OR_NEW_STATUS="demand id and newStatus are required for updating demand";
+  public static final String CANNOT_UPDATE_INACTIVE_DEMAND="Cannot update inactive demand";
   private Constants() {
   }
 }

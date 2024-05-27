@@ -76,5 +76,60 @@
   },
   "interestCount": {
     "type": "integer"
+  },
+  "interests": {
+    "type": "object",
+    "properties": {
+      "orgId1": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "keyword"
+          },
+          "description": {
+            "type": "text"
+          },
+          "orgName": {
+            "type": "text"
+          }
+        }
+      },
+      "orgId2": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "keyword"
+          },
+          "description": {
+            "type": "text"
+          },
+          "orgName": {
+            "type": "text"
+          }
+        }
+      }
+    }
+  },
+  "interestId": {
+    "type": "keyword"
+  },
+  "demandId": {
+    "type": "keyword"
+  },
+  "ownerId": {
+    "type": "keyword"
+  },
+  "assignedBy": {
+    "type": "keyword"
+  },
+  "orgId": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "turnAroundTime": {
+    "type": "date",
+    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"]
   }
 }

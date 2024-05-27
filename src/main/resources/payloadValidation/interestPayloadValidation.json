@@ -2,27 +2,26 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "type": {
-      "type": "string"
-    },
-    "orgId": {
+    "demandId": {
       "type": "string"
     },
     "ownerId": {
       "type": "string"
     },
-    "children": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1
+    "orgId": {
+      "type": "string"
+    },
+    "assignedBy": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["Requested", "Granted"]
     }
   },
   "required": [
-    "type",
+    "demandId",
     "orgId",
-    "ownerId",
-    "children"
+    "ownerId"
   ]
 }
