@@ -343,7 +343,7 @@ public class DemandServiceImpl implements DemandService {
         log.info("Validating the user with rootOrgId: {} and userId: {}", rootOrgId, userId);
         try {
             Map<String, Object> propertyMap = new HashMap<>();
-            propertyMap.put(Constants.USER_ID, userId);
+            propertyMap.put(Constants.ID, userId);
 
             List<Map<String, Object>> userDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
                     Constants.KEYSPACE_SUNBIRD, Constants.TABLE_USER, propertyMap,
