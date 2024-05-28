@@ -76,16 +76,12 @@ public class PlayListServiceImpl implements PlayListSerive {
     log.debug("PlayListService::createPlayList:validated the payload");
     ApiResponse response = new ApiResponse();
     try {
-      Optional<PlayListEntity> optionalJsonNodeEntity = Optional.ofNullable(
-          (PlayListEntity) playListRepository.findByOrgId(
-              playListDetails.get(Constants.ORG_ID).asText()));
-      PlayListEntity playListEntity = optionalJsonNodeEntity.orElse(null);
-
-      if (optionalJsonNodeEntity.isPresent()) {
+      List<PlayListEntity> optionalJsonNodeEntity = playListRepository.findByOrgIdAndRequestType(playListDetails.get(Constants.ORG_ID).asText(),playListDetails.get(Constants.RQST_CONTENT_TYPE).asText());
+      if (!optionalJsonNodeEntity.isEmpty()) {
         response.getParams().setStatus(Constants.FAILED);
-        response.getParams().setErrMsg("Already orgId is present so update");
+        response.getParams().setErrMsg("For the type "+ playListDetails.get(Constants.RQST_CONTENT_TYPE).asText()+"this  orgId is present so update");
         response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
-        response.getResult().put(Constants.ID, optionalJsonNodeEntity.get().getId());
+        response.getResult().put(Constants.ID, optionalJsonNodeEntity.get(0).getId());
         return response;
       }
       //create playlIst method
@@ -116,7 +112,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       log.info("PlayListService::createPlayList:created playList");
       return response;
     } catch (Exception errMsg) {
-      logger.error("Failed to Create PalyList: " + playListDetails.get(Constants.ORG_ID), errMsg);
+      logger.error("Failed to Create PlayList: " + playListDetails.get(Constants.ORG_ID), errMsg);
       response.getParams().setStatus(Constants.FAILED);
       response.getParams().setErrMsg(errMsg.getMessage());
       response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
