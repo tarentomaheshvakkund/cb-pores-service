@@ -23,10 +23,14 @@ import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
+import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -71,11 +75,19 @@ public class InterestServiceImpl implements InterestService {
   @Value("${search.result.redis.ttl}")
   private long searchResultRedisTtl;
 
+  @Autowired
+  private CassandraOperation cassandraOperation;
+
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
     log.info("InterestServiceImpl::createInterest:entered the method: "+interestDetails);
     CustomResponse response = new CustomResponse();
     payloadValidation.validatePayload(Constants.INTEREST_VALIDATION_FILE_JSON,interestDetails);
+    Map<String, Object> propertyMap = new HashMap<>();
+    propertyMap.put(Constants.ID,interestDetails.get(Constants.ORG_ID).asText());
+    List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
+        Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
+    String orgName = (String) orgDetails.get(0).get(Constants.USER_ROOT_ORG_NAME);
     log.debug("InterestServiceImpl::createInterest:validated the payload");
     try {
       log.info("InterestServiceImpl::createInterest:creating interest");
@@ -84,6 +96,7 @@ public class InterestServiceImpl implements InterestService {
       String interestId = String.valueOf(interestIdUuid);
       interest.setInterestId(interestId);
       ((ObjectNode) interestDetails).put(Constants.INTEREST_ID_RQST, String.valueOf(interestId));
+      ((ObjectNode) interestDetails).put(Constants.ORG_NAME, orgName);
       ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.REQUESTED);
       Timestamp currentTime = new Timestamp(System.currentTimeMillis());
       Optional<DemandEntity> demandEntity = demandRepository.findById(interestDetails.get(Constants.DEMAND_ID_RQST).asText());
@@ -173,8 +186,8 @@ public class InterestServiceImpl implements InterestService {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
         ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
         JsonNode assignedProvider = objectMapper.createObjectNode();
-        ((ObjectNode) assignedProvider).put(Constants.ORG_ID, interestDetails.get(Constants.ORG_ID));
-        ((ObjectNode) assignedProvider).put(Constants.USER_ID_RQST, interestDetails.get(Constants.OWNERID));
+        ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID, interestDetails.get(Constants.ORG_ID));
+        ((ObjectNode) assignedProvider).put(Constants.PROVIDER_NAME, interestDetails.get(Constants.ORG_NAME));
         ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST, interestDetails.get(Constants.INTEREST_ID_RQST));
         ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY, interestDetails.get(Constants.ASSIGNED_BY));
         ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
