@@ -19,13 +19,17 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
+import com.igot.cb.producer.Producer;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
+import com.igot.cb.transactional.service.RequestHandlerServiceImpl;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +77,15 @@ public class DemandServiceImpl implements DemandService {
     @Value("${search.result.redis.ttl}")
     private long searchResultRedisTtl;
 
+    @Autowired
+    private Producer kafkaProducer;
+
+    @Autowired
+    private CbServerProperties propertiesConfig;
+
+    @Autowired
+    private RequestHandlerServiceImpl requestHandlerService;
+
     @Override
     public CustomResponse createDemand(JsonNode demandDetails, String token, String rootOrgId) {
         log.info("DemandService::createDemand:creating demand");
@@ -88,6 +101,8 @@ public class DemandServiceImpl implements DemandService {
         if (response.getResponseCode() != HttpStatus.OK) {
             return response;
         }
+        Map<String, Object> userDetails = response.getResult();
+        response.setResult(new HashMap<>());
         try {
             String id = generateUniqueDemandId();
             ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
@@ -121,6 +136,9 @@ public class DemandServiceImpl implements DemandService {
 
             cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created successfully");
+            if (map.get(Constants.REQUEST_TYPE).equals(Constants.BROADCAST) && ObjectUtils.isNotEmpty(map.get(Constants.PREFERRED_PROVIDER))) {
+               sendNotification(userDetails,map,id,userId);
+            }
             response.setMessage(Constants.SUCCESSFULLY_CREATED);
             map.put(Constants.DEMAND_ID, id);
             response.setResult(map);
@@ -344,15 +362,16 @@ public class DemandServiceImpl implements DemandService {
         log.info("Validating the user with rootOrgId: {} and userId: {}", rootOrgId, userId);
         try {
             Map<String, Object> propertyMap = new HashMap<>();
-            propertyMap.put(Constants.USER_ID, userId);
+            propertyMap.put(Constants.ID, userId);
 
             List<Map<String, Object>> userDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
                     Constants.KEYSPACE_SUNBIRD, Constants.TABLE_USER, propertyMap,
-                    Arrays.asList(Constants.ROOT_ORG_ID), 2);
+                    null, 2);
 
             String userRootOrgId = null;
             if (!CollectionUtils.isEmpty(userDetails)) {
                 userRootOrgId = (String) userDetails.get(0).get(Constants.USER_ROOT_ORG_ID);
+                response.setResult((Map<String, Object>) userDetails.get(0));
             } else {
                 log.error("User details not found in Cassandra for validating user{}", userId);
                 response.getParams().setErrmsg("User details not found with userId");
@@ -416,5 +435,60 @@ public class DemandServiceImpl implements DemandService {
         //response.getParams().setErrorMsg(errorMessage);
         response.getParams().setStatus(status);
         response.setResponseCode(httpStatus);
+    }
+    public void sendNotification(Map<String, Object> userDetails,Map<String, Object> map, String id, String userId){
+        List<Map<String, Object>> recipientsList = (List<Map<String, Object>>) map.get(Constants.PREFERRED_PROVIDER);
+        List<String> providerIds = new ArrayList<>();
+        for (Map<String, Object> recipient : recipientsList) {
+            providerIds.add((String) recipient.get(Constants.PROVIDER_ID));
+        }
+
+        Map<String, Object> requestObject = new HashMap<>();
+        Map<String, Object> req = new HashMap<>();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put(Constants.USER_ID_RQST, providerIds);
+        List<String> userFields = Arrays.asList(Constants.USER_ID_RQST, Constants.PROFILE_DETAILS);
+        req.put(Constants.FILTERS, filters);
+        req.put(Constants.FIELDS, userFields);
+        requestObject.put(Constants.REQUEST, req);
+        HashMap<String, String> headersValue = new HashMap<>();
+        headersValue.put(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
+        StringBuilder url = new StringBuilder(propertiesConfig.getSbUrl()).append(propertiesConfig.getUserSearchEndPoint());
+        Map<String, Object> searchProfileApiResp = requestHandlerService.fetchResultUsingPost(url.toString(), requestObject, headersValue);
+        List<String> emailIds = new ArrayList<>();
+        if (searchProfileApiResp != null
+                && Constants.OK.equalsIgnoreCase((String) searchProfileApiResp.get(Constants.RESPONSE_CODE))) {
+            Map<String, Object> Map = (Map<String, Object>) searchProfileApiResp.get(Constants.RESULT);
+            Map<String, Object> resp = (Map<String, Object>) Map.get(Constants.RESPONSE);
+            List<Map<String, Object>> contents = (List<Map<String, Object>>) resp.get(Constants.CONTENT);
+            for (Map<String, Object> content : contents) {
+                Map<String, Object> profileDetails = (Map<String, Object>) content.get(Constants.PROFILE_DETAILS);
+                Map<String, Object> personalDetails = (Map<String, Object>) profileDetails.get(Constants.PERSONAL_DETAILS);
+                String email = (String) personalDetails.get(Constants.PRIMARY_EMAIL);
+                emailIds.add(email);
+            }
+        }
+
+        List<Map<String, String>> competencies = (List<Map<String, String>>) map.get(Constants.COMPETENCIES);
+
+        StringBuilder allArea = new StringBuilder();
+        StringBuilder allThemes = new StringBuilder();
+        StringBuilder allSubThemes = new StringBuilder();
+        for (Map<String, String> theme : competencies) {
+            allArea.append(theme.get(Constants.AREA)).append(", ");
+            allThemes.append(theme.get(Constants.THEME)).append(", ");
+            allSubThemes.append(theme.get(Constants.SUB_THEME)).append(", ");
+        }
+        Map<String, Object> mp = new HashMap<>();
+        mp.put(Constants.MDO_NAME, userDetails.get(Constants.FIRST_NAME));
+        mp.put(Constants.TITLE,map.get(Constants.TITLE));
+        mp.put(Constants.DESCRIPTION, map.get(Constants.OBJECTIVE));
+        mp.put(Constants.COMPETENCY_AREA, allArea.replace(allArea.length() - 2, allArea.length() - 1, "."));
+        mp.put(Constants.COMPETENCY_THEMES, allThemes.replace(allThemes.length() - 2, allThemes.length() - 1, "."));
+        mp.put(Constants.COMPETENCY_SUB_THEMES, allSubThemes.replace(allSubThemes.length() - 2, allSubThemes.length() - 1, "."));
+        mp.put(Constants.PROVIDER_EMAIL_ID_LIST, emailIds);
+        mp.put(Constants.CREATED_BY, userId);
+        mp.put(Constants.DEMAND_ID,id);
+        kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), mp);
     }
 }

@@ -29,4 +29,25 @@ public class CbServerProperties {
   @Value("#{${playlist.redis.key.mapping}}")
   private Map<String, String> PlayListRedisKeyMapping;
 
+  @Value("${notify.service.host}")
+  private String notifyServiceHost;
+
+  @Value("${notify.service.path.async}")
+  private String notificationAsyncPath;
+
+  @Value("${kafka.topic.demand.request}")
+  private String demandRequestKafkaTopic;
+
+  @Value("${notification.support.mail}")
+  private String supportEmail;
+
+  @Value("${demand.request.notification.template}")
+  private String demandRequestTemplate;
+
+  @Value("${sb.service.url}")
+  private String sbUrl;
+
+  @Value("${sunbird.user.search.endpoint}")
+  private String userSearchEndPoint;
+
 }
