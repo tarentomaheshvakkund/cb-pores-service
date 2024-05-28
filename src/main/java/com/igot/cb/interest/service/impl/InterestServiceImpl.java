@@ -258,6 +258,7 @@ public class InterestServiceImpl implements InterestService {
   private void updateCountAndStatusOfDemand(DemandEntity demand, Timestamp currentTime, JsonNode fetchedDemandDetails) {
     log.info("InterestServiceImpl::updateCountAndStatusOfDemand:inside the method");
     ((ObjectNode) fetchedDemandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+    ((ObjectNode) fetchedDemandDetails).put(Constants.DEMAND_ID, demand.getDemandId());
     demand.setData(fetchedDemandDetails);
     demand.setUpdatedOn(currentTime);
     demandRepository.save(demand);
