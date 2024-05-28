@@ -89,6 +89,7 @@ public class InterestServiceImpl implements InterestService {
       Optional<DemandEntity> demandEntity = demandRepository.findById(interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       if(demandEntity.isPresent()){
         JsonNode fetchedDemandJson = demandEntity.get().getData();
+        ((ObjectNode) fetchedDemandJson).put(Constants.DEMAND_ID, interestDetails.get(Constants.DEMAND_ID_RQST));
         ((ObjectNode) fetchedDemandJson).put(Constants.INTEREST_COUNT, fetchedDemandJson.get(Constants.INTEREST_COUNT).asInt()+1);
         updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
         log.info("InterestServiceImpl::createInterest:updated the interestCount in demand");
