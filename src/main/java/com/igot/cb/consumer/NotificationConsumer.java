@@ -39,12 +39,13 @@ public class NotificationConsumer {
 
     @KafkaListener(groupId = "${kafka.topic.demand.content.group}",topics = "${kafka.topic.demand.request}")
     public void demandContentConsumer(ConsumerRecord<String, String> data) {
+        Map<String, Object> demandRequest = new HashMap<>();
         try {
-            Map<String, Object> demandRequest = mapper.readValue(data.value(), HashMap.class);
-            processNotification(demandRequest);
-        } catch(Exception e) {
-            logger.error("Failed to process demand request. Message received : " + data.value(), e);
+            demandRequest = mapper.readValue(data.value(), HashMap.class);
+        } catch (Exception e) {
+            logger.error("Failed to read demand request. Message received : " + data.value(), e);
         }
+            processNotification(demandRequest);
     }
 
     public void processNotification(Map<String,Object> demandRequest){
