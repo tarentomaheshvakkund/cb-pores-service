@@ -41,7 +41,7 @@ public class DemandController {
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
-  @PostMapping("/update/status")
+  @PostMapping("/v1/update/status")
   public ResponseEntity<CustomResponse> updateStatus(@RequestBody JsonNode updateDetails,
                                                      @RequestHeader(Constants.X_AUTH_TOKEN) String token,
                                                      @RequestHeader(Constants.X_AUTH_USER_ORG_ID) String rootOrgId) {

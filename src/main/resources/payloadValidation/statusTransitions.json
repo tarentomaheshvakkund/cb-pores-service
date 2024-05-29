@@ -1,7 +1,7 @@
 {
   "Broadcast": {
     "Unassigned": ["Assigned", "Invalid"],
-    "Assigned": ["In Progress"],
+    "Assigned": ["In Progress", "Invalid"],
     "In Progress": ["Fulfill"],
     "Fulfill": []
   },
