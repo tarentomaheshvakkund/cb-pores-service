@@ -169,7 +169,6 @@ public class Constants {
   public static final String CBP_ADMIN = "CBP_Admin";
   public static final String MDO_NAME_PARAM = "mdo_name";
   public static final String FROM_EMAIL = "fromEmail";
-  public static final String ORG_NAME = "orgName";
   public static final String CONFIG = "config";
   public static final String TYPE = "type";
   public static final String PARAMS = "params";
@@ -186,7 +185,6 @@ public class Constants {
   public static final String THEME = "theme";
   public static final String SUB_THEME = "sub_theme";
   public static final String PREFERRED_PROVIDER = "preferredProvider";
-  public static final String PROVIDER_ID = "providerId";
   private Constants() {
   }
 }
