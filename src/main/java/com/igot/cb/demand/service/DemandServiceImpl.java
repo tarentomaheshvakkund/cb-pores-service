@@ -91,6 +91,7 @@ public class DemandServiceImpl implements DemandService {
             String id = generateUniqueDemandId();
             ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+            ((ObjectNode) demandDetails).put(Constants.DEMAND_ID, id);
             ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.INTEREST_COUNT, 0);
