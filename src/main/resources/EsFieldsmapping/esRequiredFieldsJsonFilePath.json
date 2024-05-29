@@ -134,5 +134,8 @@
   },
   "orgName": {
     "type": "text"
+  },
+  "previousAssignedProvider": {
+    "type": "object"
   }
 }

@@ -143,6 +143,8 @@ public class Constants {
   public static final String ORG_NAME = "orgName";
   public static final String PROVIDER_ID = "providerId";
   public static final String PROVIDER_NAME = "providerName";
+  public static final String PREV_ASSIGNED_PROVIDER = "previousAssignedProvider";
+
   private Constants() {
   }
 }

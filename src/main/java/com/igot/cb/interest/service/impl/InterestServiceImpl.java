@@ -203,20 +203,41 @@ public class InterestServiceImpl implements InterestService {
           interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
-        ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
-        JsonNode assignedProvider = objectMapper.createObjectNode();
-        ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID,
-            interestDetails.get(Constants.ORG_ID));
-        ((ObjectNode) assignedProvider).put(Constants.PROVIDER_NAME,
-            interestDetails.get(Constants.ORG_NAME));
-        ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST,
-            interestDetails.get(Constants.INTEREST_ID_RQST));
-        ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY,
-            interestDetails.get(Constants.ASSIGNED_BY));
-        ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
-        updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
-        log.info(
-            "InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
+        if (!fetchedDemandJson.isEmpty()) {
+          if (fetchedDemandJson.get(Constants.STATUS).asText()
+              .equalsIgnoreCase(Constants.UNASSIGNED)) {
+            ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
+          } else {
+            if (!fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER).isEmpty()) {
+              JsonNode fetchedAssignedProvider = fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER);
+              JsonNode orgIdNode = fetchedAssignedProvider.get(Constants.PROVIDER_ID);
+              String fetchedOrgId = orgIdNode.asText();
+              if (!fetchedOrgId.equalsIgnoreCase(interestDetails.get(Constants.ORG_ID).asText())) {
+                ((ObjectNode) fetchedDemandJson).put(Constants.PREV_ASSIGNED_PROVIDER,
+                    fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER));
+              } else {
+                response.setMessage("Assigning to the same org please reassign");
+                response.setResponseCode(HttpStatus.BAD_REQUEST);
+                return response;
+              }
+
+            }
+          }
+          JsonNode assignedProvider = objectMapper.createObjectNode();
+          ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID,
+              interestDetails.get(Constants.ORG_ID));
+          ((ObjectNode) assignedProvider).put(Constants.PROVIDER_NAME,
+              interestDetails.get(Constants.ORG_NAME));
+          ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST,
+              interestDetails.get(Constants.INTEREST_ID_RQST));
+          ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY,
+              interestDetails.get(Constants.ASSIGNED_BY));
+          ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
+          updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
+          log.info(
+              "InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
+        }
+
       }
       Interests fetchedEntity = optSchemeDetails.get();
       ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.GRANTED);
