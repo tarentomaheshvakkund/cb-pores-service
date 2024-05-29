@@ -203,7 +203,7 @@ public class InterestServiceImpl implements InterestService {
           interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
-        if (!fetchedDemandJson.isEmpty()){
+        if (!fetchedDemandJson.isEmpty()) {
           if (fetchedDemandJson.get(Constants.STATUS).asText()
               .equalsIgnoreCase(Constants.UNASSIGNED)) {
             ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
@@ -223,20 +223,21 @@ public class InterestServiceImpl implements InterestService {
 
             }
           }
+          JsonNode assignedProvider = objectMapper.createObjectNode();
+          ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID,
+              interestDetails.get(Constants.ORG_ID));
+          ((ObjectNode) assignedProvider).put(Constants.PROVIDER_NAME,
+              interestDetails.get(Constants.ORG_NAME));
+          ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST,
+              interestDetails.get(Constants.INTEREST_ID_RQST));
+          ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY,
+              interestDetails.get(Constants.ASSIGNED_BY));
+          ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
+          updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
+          log.info(
+              "InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
         }
-        JsonNode assignedProvider = objectMapper.createObjectNode();
-        ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID,
-            interestDetails.get(Constants.ORG_ID));
-        ((ObjectNode) assignedProvider).put(Constants.PROVIDER_NAME,
-            interestDetails.get(Constants.ORG_NAME));
-        ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST,
-            interestDetails.get(Constants.INTEREST_ID_RQST));
-        ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY,
-            interestDetails.get(Constants.ASSIGNED_BY));
-        ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
-        updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
-        log.info(
-            "InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
+
       }
       Interests fetchedEntity = optSchemeDetails.get();
       ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.GRANTED);
