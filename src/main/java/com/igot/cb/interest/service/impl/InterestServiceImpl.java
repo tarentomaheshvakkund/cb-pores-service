@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +88,11 @@ public class InterestServiceImpl implements InterestService {
     propertyMap.put(Constants.ID,interestDetails.get(Constants.ORG_ID).asText());
     List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
         Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
+    if(ObjectUtils.isEmpty(orgDetails)){
+      response.setMessage("OrgDetails are not fetched for given orgId");
+      response.setResponseCode(HttpStatus.NOT_FOUND);
+      return response;
+    }
     String orgName = (String) orgDetails.get(0).get(Constants.USER_ROOT_ORG_NAME);
     log.debug("InterestServiceImpl::createInterest:validated the payload");
     try {
