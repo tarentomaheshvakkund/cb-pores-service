@@ -36,7 +36,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +44,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 @Service
 @Slf4j
@@ -88,7 +88,7 @@ public class InterestServiceImpl implements InterestService {
     propertyMap.put(Constants.ID, interestDetails.get(Constants.ORG_ID).asText());
     List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
         Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
-    if (ObjectUtils.isEmpty(orgDetails)) {
+    if (CollectionUtils.isEmpty(orgDetails)) {
       response.setMessage("OrgDetails are not fetched for given orgId");
       response.setResponseCode(HttpStatus.NOT_FOUND);
       return response;
