@@ -138,6 +138,11 @@ public class Constants {
   public static final String NEW_STATUS ="newStatus";
   public static final String MISSING_ID_OR_NEW_STATUS="demand id and newStatus are required for updating demand";
   public static final String CANNOT_UPDATE_INACTIVE_DEMAND="Cannot update inactive demand";
+  public static final String USER_ROOT_ORG_NAME="orgname";
+  public static final String ORG_TABLE = "organisation";
+  public static final String ORG_NAME = "orgName";
+  public static final String PROVIDER_ID = "providerId";
+  public static final String PROVIDER_NAME = "providerName";
   public static final String TABLE_EMAIL_TEMPLATE ="email_template";
   public static final String TEMPLATE = "template";
   public static final String EMAIL = "email";
