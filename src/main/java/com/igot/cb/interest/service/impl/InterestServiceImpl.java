@@ -203,7 +203,24 @@ public class InterestServiceImpl implements InterestService {
           interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
-        ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
+        if (fetchedDemandJson.get(Constants.STATUS).asText().equalsIgnoreCase(Constants.UNASSIGNED)){
+          ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
+        }
+        else {
+          if (!fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER).isEmpty()){
+            JsonNode fetchedAssignedProvider = fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER);
+            JsonNode orgIdNode = fetchedAssignedProvider.get(Constants.PROVIDER_ID);
+            String fetchedOrgId = orgIdNode.asText();
+            if(!fetchedOrgId.equalsIgnoreCase(interestDetails.get(Constants.ORG_ID).asText())){
+              ((ObjectNode) fetchedDemandJson).put(Constants.PREV_ASSIGNED_PROVIDER, fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER));
+            }else {
+              response.setMessage("Assigning to the same org please reassign");
+              response.setResponseCode(HttpStatus.BAD_REQUEST);
+              return response;
+            }
+
+          }
+        }
         JsonNode assignedProvider = objectMapper.createObjectNode();
         ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID,
             interestDetails.get(Constants.ORG_ID));
