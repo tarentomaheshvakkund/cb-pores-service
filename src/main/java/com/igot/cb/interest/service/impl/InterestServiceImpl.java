@@ -79,6 +79,8 @@ public class InterestServiceImpl implements InterestService {
   @Autowired
   private CassandraOperation cassandraOperation;
 
+  private String requiredJsonFilePath = "/EsFieldsmapping/interstEsRequiredFieldJsonFilePath.json";
+
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
     log.info("InterestServiceImpl::createInterest:entered the method: " + interestDetails);
@@ -126,7 +128,7 @@ public class InterestServiceImpl implements InterestService {
         jsonNode.setAll((ObjectNode) interestDetails);
         Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
         esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
-            String.valueOf(interestId), map);
+            String.valueOf(interestId), map, requiredJsonFilePath);
         cacheService.putCache(interestId, jsonNode);
         response.setMessage(Constants.SUCCESSFULLY_CREATED);
         map.put(Constants.INTEREST_ID_RQST, interestId);
@@ -255,7 +257,7 @@ public class InterestServiceImpl implements InterestService {
 
       Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
       esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
-          interestDetails.get(Constants.INTEREST_ID_RQST).asText(), map);
+          interestDetails.get(Constants.INTEREST_ID_RQST).asText(), map, requiredJsonFilePath);
 
       cacheService.putCache(fetchedEntity.getInterestId(), jsonNode);
       log.info("assigned interest");
@@ -326,7 +328,7 @@ public class InterestServiceImpl implements InterestService {
     demandRepository.save(demand);
     Map<String, Object> esMap = objectMapper.convertValue(fetchedDemandDetails, Map.class);
     esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, demand.getDemandId(),
-        esMap);
+        esMap, requiredJsonFilePath);
     cacheService.putCache(demand.getDemandId(), fetchedDemandDetails);
     log.info("InterestServiceImpl::updateCountAndStatusOfDemand:updated the demand");
   }

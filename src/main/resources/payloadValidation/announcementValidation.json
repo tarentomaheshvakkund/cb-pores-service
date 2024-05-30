@@ -27,6 +27,20 @@
         "type": "string"
       },
       "minItems": 1
+    },
+    "createdOn": {
+      "type": "date",
+      "format": [
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "epoch_millis"
+      ]
+    },
+    "updatedOn": {
+      "type": "date",
+      "format": [
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "epoch_millis"
+      ]
     }
   },
   "required": [

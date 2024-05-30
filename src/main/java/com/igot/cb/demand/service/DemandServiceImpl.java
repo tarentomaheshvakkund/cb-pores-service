@@ -72,6 +72,8 @@ public class DemandServiceImpl implements DemandService {
     @Value("${search.result.redis.ttl}")
     private long searchResultRedisTtl;
 
+    private String requiredJsonFilePath = "/EsFieldsmapping/esRequiredFieldsJsonFilePath.json";
+
     @Override
     public CustomResponse createDemand(JsonNode demandDetails, String token, String rootOrgId) {
         log.info("DemandService::createDemand:creating demand");
@@ -117,7 +119,7 @@ public class DemandServiceImpl implements DemandService {
             jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
 
             Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
 
             cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created successfully");
@@ -233,7 +235,7 @@ public class DemandServiceImpl implements DemandService {
                         josnEntity.setUpdatedOn(currentTime);
                         DemandEntity updateJsonEntity = demandRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
                         cacheService.putCache(id, data);
 
                         logger.debug("Demand details deleted successfully");
@@ -300,7 +302,7 @@ public class DemandServiceImpl implements DemandService {
                 jsonNode.set(Constants.DEMAND_ID, new TextNode(saveJsonEntity.getDemandId()));
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map);
+                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map, requiredJsonFilePath);
 
                 cacheService.putCache(saveJsonEntity.getDemandId(), jsonNode);
                 log.info("demand updated");

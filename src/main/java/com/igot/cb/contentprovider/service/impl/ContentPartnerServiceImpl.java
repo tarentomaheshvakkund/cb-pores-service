@@ -49,6 +49,8 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
     private ObjectMapper objectMapper;
     private Logger logger = LoggerFactory.getLogger(ContentPartnerServiceImpl.class);
 
+    private String requiredJsonFilePath = "/EsFieldsmapping/cpEsRequiredFieldsJsonFilePath.json";
+
     @Override
     public CustomResponse createOrUpdate(JsonNode partnerDetails) {
         CustomResponse response = new CustomResponse();
@@ -70,7 +72,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 jsonNode.set(Constants.CONTENT_PROVIDER_ID, new TextNode(saveJsonEntity.getId()));
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
                 cacheService.putCache(jsonNodeEntity.getId(), jsonNode);
                 log.info("Content partner created");
                 response.setMessage(Constants.SUCCESSFULLY_CREATED);
@@ -89,7 +91,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                 objectMapper.convertValue(updateJsonEntity.getData(), new TypeReference<Map<String, Object>>() {
                                 });
                         updateJsonEntity.setId(exitingId);
-                        esUtilService.updateDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap);
+                        esUtilService.updateDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap,requiredJsonFilePath);
                         cacheService.putCache(exitingId, updateJsonEntity);
                         log.info("updated the content partner");
                         response.setMessage(Constants.SUCCESSFULLY_UPDATED);
@@ -188,7 +190,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                         josnEntity.setUpdatedOn(currentTime);
                         ContentPartnerEntity updateJsonEntity = entityRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
                         cacheService.putCache(id, data);
                         return Constants.DELETED_SUCCESSFULLY;
                     } else

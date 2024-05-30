@@ -51,7 +51,7 @@ public class Constants {
   public static final String RESULT = "result";
   public static final String FAILED_CONST = "FAILED";
   public static final String ERROR = "ERROR";
-  public static final String REDIS_KEY_PREFIX = "demand_";
+  public static final String REDIS_KEY_PREFIX = "cbpores_";
   public static final String KEYWORD = ".keyword";
   public static final String ASC = "asc";
   public static final String REQUEST_PAYLOAD = "requestPayload";

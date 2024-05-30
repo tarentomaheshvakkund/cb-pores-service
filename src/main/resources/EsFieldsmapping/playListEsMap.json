@@ -1,31 +1,24 @@
 {
-  "interestId": {
+  "imgSource": {
+    "type": "text"
+  },
+  "title": {
     "type": "keyword"
   },
-  "demandId": {
+  "children": {
     "type": "keyword"
   },
-  "ownerId": {
-    "type": "keyword"
+  "type": {
+    "type": "text"
   },
-  "assignedBy": {
+  "playListKey": {
     "type": "keyword"
   },
   "orgId": {
     "type": "keyword"
   },
-  "status": {
-    "type": "keyword"
-  },
   "description": {
     "type": "text"
-  },
-  "orgName": {
-    "type": "text"
-  },
-  "turnAroundTime": {
-    "type": "date",
-    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"]
   },
   "createdOn": {
     "type": "date",
@@ -40,5 +33,8 @@
       "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
       "epoch_millis"
     ]
+  },
+  "ownerId": {
+    "type": "keyword"
   }
 }
