@@ -225,6 +225,20 @@ public class EsUtilServiceImpl implements EsUtilService {
                       field + Constants.KEYWORD, ((ArrayList<?>) value).toArray()));
             } else if (value instanceof String) {
               boolQueryBuilder.must(QueryBuilders.termsQuery(field + Constants.KEYWORD, value));
+            }else if (value instanceof Map) {
+              Map<String, Object> nestedMap = (Map<String, Object>) value;
+              nestedMap.forEach((nestedField, nestedValue) -> {
+                String fullPath = field + "." + nestedField;
+                if (nestedValue instanceof Boolean) {
+                  boolQueryBuilder.must(QueryBuilders.termQuery(fullPath, nestedValue));
+                } else if (nestedValue instanceof String) {
+                  boolQueryBuilder.must(QueryBuilders.termQuery(fullPath + Constants.KEYWORD, nestedValue));
+                } else if (nestedValue instanceof ArrayList) {
+                  boolQueryBuilder.must(
+                          QueryBuilders.termsQuery(
+                                  fullPath + Constants.KEYWORD, ((ArrayList<?>) nestedValue).toArray()));
+                }
+              });
             }
           });
     }
