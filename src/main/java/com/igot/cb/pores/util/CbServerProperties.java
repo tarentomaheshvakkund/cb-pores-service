@@ -26,7 +26,7 @@ public class CbServerProperties {
   @Value("${redis.insights.index}")
   private int redisInsightIndex;
 
-  @Value("#{${playlist.redis.key.mapping}}")
-  private Map<String, String> PlayListRedisKeyMapping;
+//  @Value("#{${playlist.redis.key.mapping}}")
+//  private Map<String, String> PlayListRedisKeyMapping;
 
 }
