@@ -144,6 +144,11 @@ public class Constants {
   public static final String PROVIDER_ID = "providerId";
   public static final String PROVIDER_NAME = "providerName";
   public static final String PREV_ASSIGNED_PROVIDER = "previousAssignedProvider";
+  public static final String ANNOUNCEMENT_VALIDATION_FILE_JSON = "/payloadValidation/announcementValidation.json";
+  public static final String ANNOUNCEMENT_ID = "announcementId";
+  public static final String ANNOUNCEMENT_INDEX = "announcement_entity";
+  public static final String PLAYLIST_INDEX_NAME = "playlist";
+  public static final String KEY_PLAYLIST = "playListKey";
 
   private Constants() {
   }
