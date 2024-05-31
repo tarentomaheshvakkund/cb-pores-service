@@ -149,7 +149,8 @@ public class Constants {
   public static final String ANNOUNCEMENT_INDEX = "announcement_entity";
   public static final String PLAYLIST_INDEX_NAME = "playlist";
   public static final String KEY_PLAYLIST = "playListKey";
-
+  public static final String ACTIVE = "Active";
+  public static final String IN_ACTIVE = "Inactive";
   private Constants() {
   }
 }
