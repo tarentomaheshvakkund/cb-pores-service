@@ -12,8 +12,6 @@ import com.igot.cb.announcement.entity.AnnouncementEntity;
 import com.igot.cb.announcement.repository.AnnouncementRepository;
 import com.igot.cb.announcement.service.AnnouncementService;
 import com.igot.cb.contentprovider.service.impl.ContentPartnerServiceImpl;
-import com.igot.cb.demand.entity.DemandEntity;
-import com.igot.cb.interest.entity.Interests;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.dto.RespParam;
@@ -149,7 +147,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
     }
     try {
       searchResult =
-          esUtilService.searchDocuments(Constants.INTEREST_INDEX_NAME, searchCriteria);
+          esUtilService.searchDocuments(Constants.ANNOUNCEMENT_INDEX, searchCriteria);
       response.getResult().put(Constants.RESULT, searchResult);
       createSuccessResponse(response);
       return response;
@@ -204,15 +202,15 @@ public class AnnouncementServiceImpl implements AnnouncementService {
     ((ObjectNode) announcementDetails).put(Constants.STATUS, Constants.ACTIVE);
     if (optSchemeDetails.isPresent()) {
       AnnouncementEntity fetchedEntity = optSchemeDetails.get();
-      JsonNode persistUpdatedInterest = fetchedEntity.getData();
+      JsonNode fetchedEntityData = fetchedEntity.getData();
       ((ObjectNode) announcementDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-      ((ObjectNode) announcementDetails).put(Constants.CREATED_ON, persistUpdatedInterest.get(Constants.CREATED_ON));
+      ((ObjectNode) announcementDetails).put(Constants.CREATED_ON, fetchedEntityData.get(Constants.CREATED_ON));
       fetchedEntity.setData(announcementDetails);
       fetchedEntity.setUpdatedOn(currentTime);
       announcementRepository.save(fetchedEntity);
       ObjectNode jsonNode = objectMapper.createObjectNode();
       jsonNode.set(Constants.ANNOUNCEMENT_ID, new TextNode(fetchedEntity.getAnnouncementId()));
-      jsonNode.setAll((ObjectNode) persistUpdatedInterest);
+      jsonNode.setAll((ObjectNode) fetchedEntityData);
 
       Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
       esUtilService.addDocument(Constants.ANNOUNCEMENT_INDEX, Constants.INDEX_TYPE,
