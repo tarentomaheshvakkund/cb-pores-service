@@ -1,31 +1,27 @@
 {
-  "interestId": {
-    "type": "keyword"
-  },
-  "demandId": {
-    "type": "keyword"
-  },
-  "ownerId": {
-    "type": "keyword"
-  },
-  "assignedBy": {
-    "type": "keyword"
-  },
-  "orgId": {
-    "type": "keyword"
-  },
-  "status": {
+  "name": {
     "type": "keyword"
   },
   "description": {
     "type": "text"
   },
-  "orgName": {
+  "category": {
+    "type": "keyword"
+  },
+  "sourceName": {
     "type": "text"
   },
-  "turnAroundTime": {
-    "type": "date",
-    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"]
+  "channel": {
+    "type": "keyword"
+  },
+  "imgUrl": {
+    "type": "text"
+  },
+  "orgId": {
+    "type": "keyword"
+  },
+  "createdFor": {
+    "type": "keyword"
   },
   "createdOn": {
     "type": "date",
@@ -40,5 +36,8 @@
       "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
       "epoch_millis"
     ]
+  },
+  "ownerId": {
+    "type": "keyword"
   }
 }

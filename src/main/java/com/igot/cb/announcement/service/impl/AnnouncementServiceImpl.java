@@ -8,8 +8,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.announcement.entity.AnnouncementEntity;
 import com.igot.cb.announcement.repository.AnnouncementRepository;
 import com.igot.cb.announcement.service.AnnouncementService;
-import com.igot.cb.contentprovider.entity.ContentPartnerEntity;
-import com.igot.cb.contentprovider.repository.ContentPartnerRepository;
 import com.igot.cb.contentprovider.service.impl.ContentPartnerServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.dto.CustomResponse;
@@ -47,6 +45,9 @@ public class AnnouncementServiceImpl implements AnnouncementService {
   @Autowired
   private ObjectMapper objectMapper;
 
+  private String requiredJsonFilePath = "/EsFieldsmapping/announcementEsMapping.json";
+
+
   @Override
   public CustomResponse createAnnouncement(JsonNode announcementEntity) {
     log.info("AnnouncementServiceImpl::createAnnouncement:inside");
@@ -70,7 +71,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         jsonNode.set(Constants.ANNOUNCEMENT_ID, new TextNode(saveJsonEntity.getAnnouncementId()));
         jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
         Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-        esUtilService.addDocument(Constants.ANNOUNCEMENT_INDEX, Constants.INDEX_TYPE, id, map);
+        esUtilService.addDocument(Constants.ANNOUNCEMENT_INDEX, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
         cacheService.putCache(jsonNodeEntity.getAnnouncementId(), jsonNode);
         map.put(Constants.ANNOUNCEMENT_ID, id);
         response.setResult(map);
@@ -91,7 +92,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
                 objectMapper.convertValue(updateJsonEntity.getData(), new TypeReference<Map<String, Object>>() {
                 });
             updateJsonEntity.setAnnouncementId(exitingId);
-            esUtilService.updateDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap);
+            esUtilService.updateDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap, requiredJsonFilePath);
             cacheService.putCache(exitingId, updateJsonEntity);
             log.info("updated the announcement");
             jsonMap.put(Constants.ANNOUNCEMENT_ID, exitingId);

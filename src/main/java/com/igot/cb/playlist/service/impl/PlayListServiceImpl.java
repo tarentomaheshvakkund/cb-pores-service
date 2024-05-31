@@ -84,6 +84,8 @@ public class PlayListServiceImpl implements PlayListSerive {
   @Value("${search.result.redis.ttl}")
   private long searchResultRedisTtl;
 
+  private String requiredJsonFilePath = "/EsFieldsmapping/playListEsMap.json";
+
 
   @Override
   public ApiResponse createPlayList(JsonNode playListDetails) {
@@ -127,7 +129,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       Map<String, Object> map = objectMapper.convertValue(playListJson, Map.class);
       //put it in es jsonNodeEntiy along with enrichedContentMap
       esUtilService.addDocument(Constants.PLAYLIST_INDEX_NAME, Constants.INDEX_TYPE,
-          String.valueOf(playListId), map);
+          String.valueOf(playListId), map, requiredJsonFilePath);
       response = ProjectUtil.createDefaultResponse(Constants.API_PLAYLIST_CREATE);
       response.put(Constants.RESPONSE, Constants.SUCCESS);
       response.setResponseCode(HttpStatus.OK);
@@ -334,7 +336,7 @@ public class PlayListServiceImpl implements PlayListSerive {
         Map<String, Object> map = objectMapper.convertValue(playListJson, Map.class);
         //put it in es jsonNodeEntiy along with enrichedContentMap
         esUtilService.addDocument(Constants.PLAYLIST_INDEX_NAME, Constants.INDEX_TYPE,
-            String.valueOf(playListEntity.getId()), map);
+            String.valueOf(playListEntity.getId()), map, requiredJsonFilePath);
         response = ProjectUtil.createDefaultResponse(Constants.API_PLAYLIST_UPDATED);
         response.put(Constants.RESPONSE, Constants.SUCCESS);
         response.setResponseCode(HttpStatus.OK);

@@ -63,12 +63,11 @@ public class EsUtilServiceImpl implements EsUtilService {
     this.esConfig = esConnection;
   }
 
-  @Value("${elastic.required.field.json.path}")
-  private String requiredJsonFilePath;
+
 
   @Override
   public RestStatus addDocument(
-      String esIndexName, String type, String id, Map<String, Object> document) {
+      String esIndexName, String type, String id, Map<String, Object> document, String requiredJsonFilePath) {
     try {
       JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance();
       InputStream schemaStream = schemaFactory.getClass().getResourceAsStream(requiredJsonFilePath);
@@ -95,7 +94,7 @@ public class EsUtilServiceImpl implements EsUtilService {
 
   @Override
   public RestStatus updateDocument(
-      String index, String indexType, String entityId, Map<String, Object> updatedDocument) {
+      String index, String indexType, String entityId, Map<String, Object> updatedDocument, String requiredJsonFilePath) {
     try {
       JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance();
       InputStream schemaStream = schemaFactory.getClass().getResourceAsStream(requiredJsonFilePath);
