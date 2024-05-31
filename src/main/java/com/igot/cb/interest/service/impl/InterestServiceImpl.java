@@ -21,20 +21,10 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -45,6 +35,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.sql.Timestamp;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -70,6 +64,8 @@ public class InterestServiceImpl implements InterestService {
 
   @Autowired
   private RedisTemplate<String, SearchResult> redisTemplate;
+  @Autowired
+  private CbServerProperties cbServerProperties;
 
   private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
 
@@ -78,8 +74,6 @@ public class InterestServiceImpl implements InterestService {
 
   @Autowired
   private CassandraOperation cassandraOperation;
-
-  private String requiredJsonFilePath = "/EsFieldsmapping/interstEsRequiredFieldJsonFilePath.json";
 
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
@@ -128,7 +122,7 @@ public class InterestServiceImpl implements InterestService {
         jsonNode.setAll((ObjectNode) interestDetails);
         Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
         esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
-            String.valueOf(interestId), map, requiredJsonFilePath);
+            String.valueOf(interestId), map, cbServerProperties.getElasticInterestJsonPath());
         cacheService.putCache(interestId, jsonNode);
         response.setMessage(Constants.SUCCESSFULLY_CREATED);
         map.put(Constants.INTEREST_ID_RQST, interestId);
@@ -257,7 +251,7 @@ public class InterestServiceImpl implements InterestService {
 
       Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
       esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
-          interestDetails.get(Constants.INTEREST_ID_RQST).asText(), map, requiredJsonFilePath);
+          interestDetails.get(Constants.INTEREST_ID_RQST).asText(), map, cbServerProperties.getElasticInterestJsonPath());
 
       cacheService.putCache(fetchedEntity.getInterestId(), jsonNode);
       log.info("assigned interest");
@@ -328,7 +322,7 @@ public class InterestServiceImpl implements InterestService {
     demandRepository.save(demand);
     Map<String, Object> esMap = objectMapper.convertValue(fetchedDemandDetails, Map.class);
     esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, demand.getDemandId(),
-        esMap, requiredJsonFilePath);
+        esMap, cbServerProperties.getElasticInterestJsonPath());
     cacheService.putCache(demand.getDemandId(), fetchedDemandDetails);
     log.info("InterestServiceImpl::updateCountAndStatusOfDemand:updated the demand");
   }

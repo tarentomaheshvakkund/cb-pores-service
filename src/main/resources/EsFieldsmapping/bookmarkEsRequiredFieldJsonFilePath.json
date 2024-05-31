@@ -1,0 +1,49 @@
+{
+  "orgBookmarkId": {
+    "type": "keyword"
+  },
+  "orgId": {
+    "type": "keyword"
+  },
+  "title": {
+    "type": "text"
+  },
+  "description": {
+    "type": "text"
+  },
+  "imageUrl": {
+    "type": "text"
+  },
+  "createdBy": {
+    "type": "keyword"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "orgList": {
+    "type": "text"
+  },
+  "category": {
+    "type": "keyword"
+  },
+  "isActive": {
+    "type": "Boolean"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "dd-MM-yyyy'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "dd-MM-yyyy'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  }
+}

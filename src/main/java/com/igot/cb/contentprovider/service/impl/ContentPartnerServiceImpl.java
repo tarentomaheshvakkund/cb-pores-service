@@ -15,6 +15,7 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -47,9 +48,10 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
     private CacheService cacheService;
     @Autowired
     private ObjectMapper objectMapper;
-    private Logger logger = LoggerFactory.getLogger(ContentPartnerServiceImpl.class);
+    @Autowired
+    private CbServerProperties cbServerProperties;
 
-    private String requiredJsonFilePath = "/EsFieldsmapping/cpEsRequiredFieldsJsonFilePath.json";
+    private Logger logger = LoggerFactory.getLogger(ContentPartnerServiceImpl.class);
 
     @Override
     public CustomResponse createOrUpdate(JsonNode partnerDetails) {
@@ -72,7 +74,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 jsonNode.set(Constants.CONTENT_PROVIDER_ID, new TextNode(saveJsonEntity.getId()));
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
+                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());
                 cacheService.putCache(jsonNodeEntity.getId(), jsonNode);
                 log.info("Content partner created");
                 response.setMessage(Constants.SUCCESSFULLY_CREATED);
@@ -91,7 +93,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                 objectMapper.convertValue(updateJsonEntity.getData(), new TypeReference<Map<String, Object>>() {
                                 });
                         updateJsonEntity.setId(exitingId);
-                        esUtilService.updateDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap,requiredJsonFilePath);
+                        esUtilService.updateDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
                         cacheService.putCache(exitingId, updateJsonEntity);
                         log.info("updated the content partner");
                         response.setMessage(Constants.SUCCESSFULLY_UPDATED);
@@ -190,7 +192,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                         josnEntity.setUpdatedOn(currentTime);
                         ContentPartnerEntity updateJsonEntity = entityRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());
                         cacheService.putCache(id, data);
                         return Constants.DELETED_SUCCESSFULLY;
                     } else

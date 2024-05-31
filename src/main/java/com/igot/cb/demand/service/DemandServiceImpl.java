@@ -19,6 +19,7 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import com.networknt.schema.JsonSchema;
@@ -60,6 +61,8 @@ public class DemandServiceImpl implements DemandService {
     private Logger logger = LoggerFactory.getLogger(DemandServiceImpl.class);
     @Autowired
     private AccessTokenValidator accessTokenValidator;
+    @Autowired
+    private CbServerProperties cbServerProperties;
     private StatusTransitionConfig statusTransitionConfig;
 
     @Autowired
@@ -71,8 +74,6 @@ public class DemandServiceImpl implements DemandService {
     private CassandraOperation cassandraOperation;
     @Value("${search.result.redis.ttl}")
     private long searchResultRedisTtl;
-
-    private String requiredJsonFilePath = "/EsFieldsmapping/esRequiredFieldsJsonFilePath.json";
 
     @Override
     public CustomResponse createDemand(JsonNode demandDetails, String token, String rootOrgId) {
@@ -119,7 +120,7 @@ public class DemandServiceImpl implements DemandService {
             jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
 
             Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
+            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticDemandJsonPath());
 
             cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created successfully");
@@ -235,7 +236,7 @@ public class DemandServiceImpl implements DemandService {
                         josnEntity.setUpdatedOn(currentTime);
                         DemandEntity updateJsonEntity = demandRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, requiredJsonFilePath);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticDemandJsonPath());
                         cacheService.putCache(id, data);
 
                         logger.debug("Demand details deleted successfully");
@@ -302,7 +303,7 @@ public class DemandServiceImpl implements DemandService {
                 jsonNode.set(Constants.DEMAND_ID, new TextNode(saveJsonEntity.getDemandId()));
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map, requiredJsonFilePath);
+                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map, cbServerProperties.getElasticDemandJsonPath());
 
                 cacheService.putCache(saveJsonEntity.getDemandId(), jsonNode);
                 log.info("demand updated");

@@ -1,5 +1,7 @@
 package com.igot.cb.pores.util;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,4 +31,38 @@ public class CbServerProperties {
 //  @Value("#{${playlist.redis.key.mapping}}")
 //  private Map<String, String> PlayListRedisKeyMapping;
 
+  @Value("${search.result.redis.ttl}")
+  private long searchResultRedisTtl;
+
+  @Value("${sb.api.key}")
+  private String sbApiKey;
+
+  @Value("${learner.service.url}")
+  private String learnerServiceUrl;
+
+  @Value("${sb.org.search.path}")
+  private String orgSearchPath;
+
+  @Value("${elastic.required.field.demand.json.path}")
+  private String elasticDemandJsonPath;
+
+  @Value("${elastic.required.field.content.json.path}")
+  private String elasticContentJsonPath;
+
+  @Value("${elastic.required.field.interest.json.path}")
+  private String elasticInterestJsonPath;
+
+  @Value("${elastic.required.field.bookmark.json.path}")
+  private String elasticBookmarkJsonPath;
+
+  @Value("${bookmark.duplicate.not.allowed.category}")
+  private String bookmarkDuplicateNotAllowedCategory;
+
+  public List<String> getBookmarkDuplicateNotAllowedCategory() {
+    return Arrays.asList(bookmarkDuplicateNotAllowedCategory.split(","));
+  }
+
+  public void setBookmarkDuplicateNotAllowedCategory(String bookmarkDuplicateNotAllowedCategory) {
+    this.bookmarkDuplicateNotAllowedCategory = bookmarkDuplicateNotAllowedCategory;
+  }
 }
