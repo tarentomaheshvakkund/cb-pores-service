@@ -74,7 +74,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
       if (announcementEntity.get(Constants.ID) == null) {
         log.info("AnnouncementServiceImpl::createAnnouncement:creating announcement");
         String id = String.valueOf(UUID.randomUUID());
-        ((ObjectNode) announcementEntity).put(Constants.IS_ACTIVE, Constants.ACTIVE);
+        ((ObjectNode) announcementEntity).put(Constants.STATUS, Constants.ACTIVE);
         ((ObjectNode) announcementEntity).put(Constants.ANNOUNCEMENT_ID, id);
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         ((ObjectNode) announcementEntity).put(Constants.UPDATED_ON, String.valueOf(currentTime));
@@ -151,7 +151,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
     try {
       searchResult =
           esUtilService.searchDocuments(Constants.ANNOUNCEMENT_INDEX, searchCriteria);
-      response.getResult().put(Constants.RESULT, searchResult);
+      response.getResult().putAll(objectMapper.convertValue(searchResult, Map.class));
       createSuccessResponse(response);
       return response;
     } catch (Exception e) {
@@ -213,7 +213,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
       announcementRepository.save(fetchedEntity);
       ObjectNode jsonNode = objectMapper.createObjectNode();
       jsonNode.set(Constants.ANNOUNCEMENT_ID, new TextNode(fetchedEntity.getAnnouncementId()));
-      jsonNode.setAll((ObjectNode) fetchedEntityData);
+      jsonNode.setAll((ObjectNode) announcementDetails);
 
       Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
       esUtilService.addDocument(Constants.ANNOUNCEMENT_INDEX, Constants.INDEX_TYPE,

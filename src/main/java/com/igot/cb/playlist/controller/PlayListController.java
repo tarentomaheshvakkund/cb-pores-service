@@ -9,6 +9,7 @@ import com.igot.cb.pores.util.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -53,7 +54,7 @@ public class PlayListController {
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 
-  @PostMapping("/read/{id}/{orgId}")
+  @GetMapping("/read/{id}/{orgId}")
   public Object playListRead(@PathVariable String id, @PathVariable String orgId) {
     ApiResponse response = playListSerive.readPlaylist(id, orgId);
     return new ResponseEntity<>(response, response.getResponseCode());

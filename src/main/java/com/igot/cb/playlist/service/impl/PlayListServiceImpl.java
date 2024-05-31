@@ -415,7 +415,7 @@ public class PlayListServiceImpl implements PlayListSerive {
     try {
       searchResult =
           esUtilService.searchDocuments(Constants.PLAYLIST_INDEX_NAME, searchCriteria);
-      response.getResult().put(Constants.RESULT, searchResult);
+      response.getResult().putAll(objectMapper.convertValue(searchResult, Map.class));
       createSuccessResponse(response);
       return response;
     } catch (Exception e) {
