@@ -147,12 +147,12 @@ public class Constants {
   public static final String TEMPLATE = "template";
   public static final String EMAIL = "email";
   public static final String MDO_NAME="mdoName";
-  public static final String PROVIDER_EMAIL_ID_LIST = "providerEmailIdList";
+  public static final String EMAIL_ID_LIST = "emailIdList";
   public static final String COMPETENCY_AREA = "competency area";
   public static final String COMPETENCY_AREA_PARAM = "competency_area";
   public static final String COMPETENCY_THEME_PARAM = "competency_theme";
   public static final String COMPETENCY_SUB_THEME_PARAM = "competency_subtheme";
-  public static final String REQUEST_CONTENT_SUBJECT = "Request to create content .";
+  public static final String REQUEST_CONTENT_SUBJECT = "Request to create content #demandId .";
   public static final String COMPETENCY_THEMES = "competencyThemes";
   public static final String COMPETENCY_SUB_THEMES = "competencySubThemes";
   public static final String CREATED_BY = "createdBy";
@@ -185,6 +185,20 @@ public class Constants {
   public static final String THEME = "theme";
   public static final String SUB_THEME = "sub_theme";
   public static final String PREFERRED_PROVIDER = "preferredProvider";
+  public static final String DEMAND_TAG = "#demandId";
+  public static final String MDO_NAME_TAG= "#mdoName";
+  public static final String DEMAND_ASSIGNED_MAIL_BODY = "You have been assigned to create content for the request with ID #demandId from #mdoName. Please review the request details and proceed with the content creation process.";
+  public static final String PREFERRED_MAIL_BODY = "You have been preferred to create content for the request with ID #demandId from #mdoName. Please review the request details and show your interest.";
+  public static final String INVALID_DEMAND_MAIL_BODY_MDO = "Your recent request with ID #demandId has been marked as invalid. Please reach out for further clarification.";
+  public static final String DEMAND_INVALID_SUB ="Invalid Request #demandId.";
+  public static final String DEMAND_ASSIGNED_SUB ="Request Assigned #demandId.";
+  public static final String SINGLE ="single";
+  public static final String BODY = "body";
+  public static final String INVALID = "Invalid";
+  public static final String ASSIGNED_MAIL_BODY_TO_MDO  = "Your request with ID #demandId has been assigned to #contentProviderName. They will be handling your content needs.";
+  public static final String ASSIGNED_MAIL_BODY_TO_CBP = "You have been assigned to create content for the request with ID #demandId from #mdoName. Please review the request details and proceed with the content creation process.";
+  public static final String IS_SPV_REQUEST = "isSpvRequest";
+  public static final String CONTENT_PROVIDER_NAME_TAG = "#contentProviderName";
   private Constants() {
   }
 }

@@ -21,8 +21,10 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
+import com.igot.cb.producer.Producer;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import java.sql.Timestamp;
 import java.text.ParseException;
@@ -78,6 +80,12 @@ public class InterestServiceImpl implements InterestService {
 
   @Autowired
   private CassandraOperation cassandraOperation;
+
+  @Autowired
+  private Producer kafkaProducer;
+
+  @Autowired
+  private CbServerProperties properties;
 
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
@@ -239,6 +247,7 @@ public class InterestServiceImpl implements InterestService {
       cacheService.putCache(fetchedEntity.getInterestId(), jsonNode);
       log.info("assigned interest");
       map.put(Constants.INTEREST_ID_RQST, fetchedEntity.getInterestId());
+      kafkaProducer.push(properties.getDemandRequestKafkaTopic(),map);
       response.setResult(map);
       response.setMessage(Constants.SUCCESSFULLY_ASSIGNED);
       response.setResponseCode(HttpStatus.OK);

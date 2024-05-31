@@ -44,10 +44,13 @@ public class CbServerProperties {
   @Value("${demand.request.notification.template}")
   private String demandRequestTemplate;
 
-  @Value("${sb.service.url}")
+  @Value("${sunbird.course.service.host}")
   private String sbUrl;
 
   @Value("${sunbird.user.search.endpoint}")
   private String userSearchEndPoint;
+
+  @Value("${lms.user.read.path}")
+  private String userReadEndPoint;
 
 }
