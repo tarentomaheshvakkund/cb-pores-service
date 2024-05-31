@@ -82,12 +82,12 @@ public class InterestServiceImpl implements InterestService {
   private String requiredJsonFilePath = "/EsFieldsmapping/interstEsRequiredFieldJsonFilePath.json";
 
   @Override
-  public CustomResponse createInterest(JsonNode announcementdetails) {
-    log.info("InterestServiceImpl::createInterest:entered the method: " + announcementdetails);
+  public CustomResponse createInterest(JsonNode interestDetails) {
+    log.info("InterestServiceImpl::createInterest:entered the method: " + interestDetails);
     CustomResponse response = new CustomResponse();
-    payloadValidation.validatePayload(Constants.INTEREST_VALIDATION_FILE_JSON, announcementdetails);
+    payloadValidation.validatePayload(Constants.INTEREST_VALIDATION_FILE_JSON, interestDetails);
     Map<String, Object> propertyMap = new HashMap<>();
-    propertyMap.put(Constants.ID, announcementdetails.get(Constants.ORG_ID).asText());
+    propertyMap.put(Constants.ID, interestDetails.get(Constants.ORG_ID).asText());
     List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
         Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
     if (CollectionUtils.isEmpty(orgDetails)) {
@@ -103,29 +103,29 @@ public class InterestServiceImpl implements InterestService {
       UUID interestIdUuid = UUIDs.timeBased();
       String interestId = String.valueOf(interestIdUuid);
       interest.setInterestId(interestId);
-      ((ObjectNode) announcementdetails).put(Constants.INTEREST_ID_RQST, String.valueOf(interestId));
-      ((ObjectNode) announcementdetails).put(Constants.ORG_NAME, orgName);
-      ((ObjectNode) announcementdetails).put(Constants.STATUS, Constants.REQUESTED);
+      ((ObjectNode) interestDetails).put(Constants.INTEREST_ID_RQST, String.valueOf(interestId));
+      ((ObjectNode) interestDetails).put(Constants.ORG_NAME, orgName);
+      ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.REQUESTED);
       Timestamp currentTime = new Timestamp(System.currentTimeMillis());
       Optional<DemandEntity> demandEntity = demandRepository.findById(
-          announcementdetails.get(Constants.DEMAND_ID_RQST).asText());
+          interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
         ((ObjectNode) fetchedDemandJson).put(Constants.INTEREST_COUNT,
             fetchedDemandJson.get(Constants.INTEREST_COUNT).asInt() + 1);
         updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
         log.info("InterestServiceImpl::createInterest:updated the interestCount in demand");
-        ((ObjectNode) announcementdetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
-        ((ObjectNode) announcementdetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-        interest.setData(announcementdetails);
+        ((ObjectNode) interestDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) interestDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        interest.setData(interestDetails);
         interest.setCreatedOn(currentTime);
         interest.setUpdatedOn(currentTime);
         interestRepository.save(interest);
         log.info("InterestServiceImpl::createInterest::persited interest in postgres");
         ObjectNode jsonNode = objectMapper.createObjectNode();
         jsonNode.set(Constants.INTEREST_ID_RQST,
-            new TextNode(announcementdetails.get(Constants.INTEREST_ID_RQST).asText()));
-        jsonNode.setAll((ObjectNode) announcementdetails);
+            new TextNode(interestDetails.get(Constants.INTEREST_ID_RQST).asText()));
+        jsonNode.setAll((ObjectNode) interestDetails);
         Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
         esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
             String.valueOf(interestId), map, requiredJsonFilePath);
@@ -184,25 +184,25 @@ public class InterestServiceImpl implements InterestService {
   }
 
   @Override
-  public CustomResponse assignInterestToDemand(JsonNode announcementDetails) {
+  public CustomResponse assignInterestToDemand(JsonNode interestDetails) {
     log.info("InterestServiceImpl::assignInterestToDemand:inside the method");
     CustomResponse response = new CustomResponse();
-    if (announcementDetails.get(Constants.INTEREST_ID_RQST) == null) {
+    if (interestDetails.get(Constants.INTEREST_ID_RQST) == null) {
       throw new CustomException(Constants.ERROR,
           "interestDetailsEntity id is required for assigning the interest",
           HttpStatus.BAD_REQUEST);
     }
-    if (announcementDetails.get(Constants.ASSIGNED_BY) == null) {
+    if (interestDetails.get(Constants.ASSIGNED_BY) == null) {
       throw new CustomException(Constants.ERROR,
           "interestDetailsEntity id is required for assigning the interest",
           HttpStatus.BAD_REQUEST);
     }
     Optional<Interests> optSchemeDetails = interestRepository.findById(
-        announcementDetails.get(Constants.INTEREST_ID_RQST).asText());
+        interestDetails.get(Constants.INTEREST_ID_RQST).asText());
     Timestamp currentTime = new Timestamp(System.currentTimeMillis());
     if (optSchemeDetails.isPresent()) {
       Optional<DemandEntity> demandEntity = demandRepository.findById(
-          announcementDetails.get(Constants.DEMAND_ID_RQST).asText());
+          interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
         if (!fetchedDemandJson.isEmpty()) {
@@ -214,7 +214,7 @@ public class InterestServiceImpl implements InterestService {
               JsonNode fetchedAssignedProvider = fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER);
               JsonNode orgIdNode = fetchedAssignedProvider.get(Constants.PROVIDER_ID);
               String fetchedOrgId = orgIdNode.asText();
-              if (!fetchedOrgId.equalsIgnoreCase(announcementDetails.get(Constants.ORG_ID).asText())) {
+              if (!fetchedOrgId.equalsIgnoreCase(interestDetails.get(Constants.ORG_ID).asText())) {
                 ((ObjectNode) fetchedDemandJson).put(Constants.PREV_ASSIGNED_PROVIDER,
                     fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER));
               } else {
@@ -227,13 +227,13 @@ public class InterestServiceImpl implements InterestService {
           }
           JsonNode assignedProvider = objectMapper.createObjectNode();
           ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID,
-              announcementDetails.get(Constants.ORG_ID));
+              interestDetails.get(Constants.ORG_ID));
           ((ObjectNode) assignedProvider).put(Constants.PROVIDER_NAME,
-              announcementDetails.get(Constants.ORG_NAME));
+              interestDetails.get(Constants.ORG_NAME));
           ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST,
-              announcementDetails.get(Constants.INTEREST_ID_RQST));
+              interestDetails.get(Constants.INTEREST_ID_RQST));
           ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY,
-              announcementDetails.get(Constants.ASSIGNED_BY));
+              interestDetails.get(Constants.ASSIGNED_BY));
           ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
           updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
           log.info(
@@ -242,11 +242,11 @@ public class InterestServiceImpl implements InterestService {
 
       }
       Interests fetchedEntity = optSchemeDetails.get();
-      ((ObjectNode) announcementDetails).put(Constants.STATUS, Constants.GRANTED);
+      ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.GRANTED);
       JsonNode persistUpdatedInterest = fetchedEntity.getData();
       ((ObjectNode) persistUpdatedInterest).put(Constants.STATUS, Constants.GRANTED);
       ((ObjectNode) persistUpdatedInterest).put(Constants.ASSIGNED_BY,
-          announcementDetails.get(Constants.ASSIGNED_BY));
+          interestDetails.get(Constants.ASSIGNED_BY));
       ((ObjectNode) persistUpdatedInterest).put(Constants.UPDATED_ON, String.valueOf(currentTime));
       fetchedEntity.setData(persistUpdatedInterest);
       fetchedEntity.setUpdatedOn(currentTime);
@@ -257,7 +257,7 @@ public class InterestServiceImpl implements InterestService {
 
       Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
       esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
-          announcementDetails.get(Constants.INTEREST_ID_RQST).asText(), map, requiredJsonFilePath);
+          interestDetails.get(Constants.INTEREST_ID_RQST).asText(), map, requiredJsonFilePath);
 
       cacheService.putCache(fetchedEntity.getInterestId(), jsonNode);
       log.info("assigned interest");

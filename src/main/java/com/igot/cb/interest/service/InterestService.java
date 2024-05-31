@@ -6,11 +6,11 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 
 public interface InterestService {
 
-  CustomResponse createInterest(JsonNode announcementdetails);
+  CustomResponse createInterest(JsonNode interestDetails);
 
   CustomResponse searchDemand(SearchCriteria searchCriteria);
 
-  CustomResponse assignInterestToDemand(JsonNode announcementDetails);
+  CustomResponse assignInterestToDemand(JsonNode interestDetails);
 
   CustomResponse read(String id);
 }
