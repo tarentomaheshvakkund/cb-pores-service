@@ -75,7 +75,10 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         log.info("AnnouncementServiceImpl::createAnnouncement:creating announcement");
         String id = String.valueOf(UUID.randomUUID());
         ((ObjectNode) announcementEntity).put(Constants.IS_ACTIVE, Constants.ACTIVE);
+        ((ObjectNode) announcementEntity).put(Constants.ANNOUNCEMENT_ID, id);
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        ((ObjectNode) announcementEntity).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) announcementEntity).put(Constants.CREATED_ON, String.valueOf(currentTime));
         AnnouncementEntity jsonNodeEntity = new AnnouncementEntity();
         jsonNodeEntity.setAnnouncementId(id);
         jsonNodeEntity.setData(announcementEntity);
