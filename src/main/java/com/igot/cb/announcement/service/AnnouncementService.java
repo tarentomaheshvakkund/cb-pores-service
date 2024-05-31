@@ -10,7 +10,7 @@ public interface AnnouncementService {
 
   CustomResponse searchAnnouncement(SearchCriteria searchCriteria);
 
-  CustomResponse updateAnnouncement(JsonNode interestDetails);
+  CustomResponse updateAnnouncement(JsonNode announcementDetails);
 
   CustomResponse readAnnouncement(String id);
 
