@@ -249,7 +249,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         response.setMessage(Constants.SUCCESSFULLY_READING);
         response
             .getResult()
-            .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
+            .put(Constants.DATA, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
             }));
       } else {
         Optional<AnnouncementEntity> entityOptional = announcementRepository.findById(id);
@@ -260,7 +260,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
           response.setMessage(Constants.SUCCESSFULLY_READING);
           response
               .getResult()
-              .put(Constants.RESULT,
+              .put(Constants.DATA,
                   objectMapper.convertValue(
                       announcements.getData(), new TypeReference<Object>() {
                       }));
