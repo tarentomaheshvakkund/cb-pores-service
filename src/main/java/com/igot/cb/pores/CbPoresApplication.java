@@ -43,5 +43,4 @@ public class CbPoresApplication {
         cRequestFactory.setReadTimeout(timeout);
         return cRequestFactory;
     }
-    
 }
