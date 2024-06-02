@@ -2,37 +2,37 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "type": {
+    "title": {
       "type": "string"
+    },
+    "orgBookmarkId": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "imageUrl": {
+      "type": "string",
+      "format": "uri"
     },
     "orgId": {
       "type": "string"
     },
-    "ownerId": {
+    "description": {
       "type": "string"
     },
-    "children": {
+    "orgList": {
       "type": "array",
       "items": {
         "type": "string"
       },
       "minItems": 1
-    },
-    "imgSource": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "format": "uri"
-      }
-    },
-    "description": {
-      "type": "string"
     }
   },
   "required": [
-    "type",
+    "category",
+    "orgList",
     "orgId",
-    "ownerId",
-    "children"
+    "orgBookmarkId"
   ]
 }

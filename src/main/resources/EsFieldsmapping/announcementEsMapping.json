@@ -1,0 +1,49 @@
+{
+  "name": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "category": {
+    "type": "keyword"
+  },
+  "sourceName": {
+    "type": "text"
+  },
+  "channel": {
+    "type": "keyword"
+  },
+  "imgUrl": {
+    "type": "text"
+  },
+  "orgId": {
+    "type": "keyword"
+  },
+  "createdFor": {
+    "type": "keyword"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "ownerId": {
+    "type": "keyword"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "announcementId": {
+    "type": "keyword"
+  }
+}

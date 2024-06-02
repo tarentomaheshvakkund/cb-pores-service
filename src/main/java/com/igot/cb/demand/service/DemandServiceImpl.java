@@ -70,6 +70,8 @@ public class DemandServiceImpl implements DemandService {
     private Logger logger = LoggerFactory.getLogger(DemandServiceImpl.class);
     @Autowired
     private AccessTokenValidator accessTokenValidator;
+    @Autowired
+    private CbServerProperties cbServerProperties;
     private StatusTransitionConfig statusTransitionConfig;
 
     @Autowired
@@ -110,6 +112,7 @@ public class DemandServiceImpl implements DemandService {
             String id = generateUniqueDemandId();
             ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+            ((ObjectNode) demandDetails).put(Constants.DEMAND_ID, id);
             ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.INTEREST_COUNT, 0);
@@ -135,9 +138,9 @@ public class DemandServiceImpl implements DemandService {
             jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
 
             Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-            //esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticDemandJsonPath());
 
-            //cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
+            cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created successfully");
             boolean isSpvReq = false;
             Map<String, Object> dataMap = new HashMap<>();
@@ -265,7 +268,7 @@ public class DemandServiceImpl implements DemandService {
                         josnEntity.setUpdatedOn(currentTime);
                         DemandEntity updateJsonEntity = demandRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticDemandJsonPath());
                         cacheService.putCache(id, data);
 
                         logger.debug("Demand details deleted successfully");
@@ -290,10 +293,10 @@ public class DemandServiceImpl implements DemandService {
             response.setResponseCode(HttpStatus.BAD_REQUEST);
             return response;
         }
-        //validateUser(rootOrgId, response, userId);
-        /*if (response.getResponseCode() != HttpStatus.OK) {
+        validateUser(rootOrgId, response, userId);
+        if (response.getResponseCode() != HttpStatus.OK) {
             return response;
-        }*/
+        }
         if (!updateDetails.has(Constants.DEMAND_ID) || StringUtils.isEmpty(updateDetails.get(Constants.DEMAND_ID).asText(null))
                 || !updateDetails.has(Constants.NEW_STATUS) || StringUtils.isEmpty(updateDetails.get(Constants.NEW_STATUS).asText(null))) {
             logger.error("demand id and newStatus are required for updating demand");
@@ -314,10 +317,10 @@ public class DemandServiceImpl implements DemandService {
                     logger.error("You are trying to update an inactive demand");
                     throw new CustomException(Constants.ERROR, Constants.CANNOT_UPDATE_INACTIVE_DEMAND, HttpStatus.BAD_REQUEST);
                 }
-                /*if (!statusTransitionConfig.isValidTransition(requestType, currentStatus, newStatus)) {
+                if (!statusTransitionConfig.isValidTransition(requestType, currentStatus, newStatus)) {
                     logger.error("Invalid Status transition", newStatus);
                     throw new CustomException(Constants.ERROR, Constants.INVALID_STATUS_TRANSITION, HttpStatus.BAD_REQUEST);
-                }*/
+                }
                 // Update the status
                 ((ObjectNode) data).put(Constants.STATUS, newStatus);
                 demandDbData.setData(data);
@@ -332,7 +335,7 @@ public class DemandServiceImpl implements DemandService {
                 jsonNode.set(Constants.DEMAND_ID, new TextNode(saveJsonEntity.getDemandId()));
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map);
+                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map, cbServerProperties.getElasticDemandJsonPath());
 
                 cacheService.putCache(saveJsonEntity.getDemandId(), jsonNode);
                 log.info("demand updated");
@@ -340,10 +343,9 @@ public class DemandServiceImpl implements DemandService {
                 notifcationMap.put(Constants.DATA,map);
                 notifcationMap.put(Constants.USER_ID_RQST,userId);
                 notifcationMap.put(Constants.IS_SPV_REQUEST,false);
-                if(map.get(Constants.STATUS).equals(Constants.INVALID)){
-                    notifcationMap.put(Constants.IS_SPV_REQUEST,true); //isSpvRequest(userId)
-                    processNotification(notifcationMap);
-                    //kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(),notifcationMap);
+                if(map.get(Constants.STATUS).equals(Constants.INVALID) && isSpvRequest(userId)){
+                    notifcationMap.put(Constants.IS_SPV_REQUEST,true);
+                    kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(),notifcationMap);
                 }
                 response.setMessage(Constants.SUCCESSFULLY_UPDATED);
                 map.put(Constants.DEMAND_ID, saveJsonEntity.getDemandId());
@@ -458,6 +460,7 @@ public class DemandServiceImpl implements DemandService {
         response.getParams().setStatus(status);
         response.setResponseCode(httpStatus);
     }
+
     public boolean isSpvRequest(String userId) {
         Map<String, String> header = new HashMap<>();
         Map<String, Object> readData = (Map<String, Object>) requestHandlerService
@@ -465,300 +468,10 @@ public class DemandServiceImpl implements DemandService {
                         header);
         Map<String, Object> result = (Map<String, Object>) readData.get(Constants.RESULT);
         Map<String, Object> responseMap = (Map<String, Object>) result.get(Constants.RESPONSE);
-        List roles = (List) responseMap.get("roles");
+        List roles = (List) responseMap.get(Constants.ROLES);
 
-        if(roles.contains("SPV_ADMIN")){
+        if (roles.contains(Constants.SPV_ADMIN)) {
             return true;
-        }else return false;
-    }
-
-    public void processNotification(Map<String,Object> demandRequest){
-        try {
-            long startTime = System.currentTimeMillis();
-            Map<String,Object> request = (Map<String, Object>) demandRequest.get(Constants.DATA);
-            String status = (String) request.get(Constants.STATUS);
-            boolean isSpvRequest = (boolean) (demandRequest.get(Constants.IS_SPV_REQUEST));
-            /*if(!(request.get(Constants.OWNER).equals(demandRequest.get(Constants.USER_ID_RQST)))){
-
-            }*/
-
-            Map<String, Object> propertyMap = new HashMap<>();
-            propertyMap.put(Constants.ID, (String)request.get(Constants.ROOT_ORG_ID));
-            List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
-                    Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
-            String mdoName = "Shankar Mdo"; //(String) orgDetails.get(0).get(Constants.USER_ROOT_ORG_NAME);
-
-            String subjectLine = "";
-            String body = "";
-            Map<String, Object> mailNotificationDetails = new HashMap<>();
-            switch (status){
-                case Constants.UNASSIGNED:
-                    subjectLine = Constants.REQUEST_CONTENT_SUBJECT.replace(Constants.DEMAND_TAG,(String)request.get(Constants.DEMAND_ID));
-                    body = Constants.PREFERRED_MAIL_BODY.replace(Constants.DEMAND_TAG,(String)request.get(Constants.DEMAND_ID)).replace(Constants.MDO_NAME_TAG,mdoName);
-                    break;
-                case Constants.ASSIGNED:
-                    subjectLine = Constants.DEMAND_ASSIGNED_SUB.replace(Constants.DEMAND_TAG,(String)request.get(Constants.DEMAND_ID));
-                    body = Constants.ASSIGNED_MAIL_BODY_TO_CBP.replace(Constants.DEMAND_TAG,(String)((String) request.get(Constants.DEMAND_ID)).replace(Constants.MDO_NAME_TAG,mdoName));
-                    break;
-            }
-
-            List<String> emails = new ArrayList<>();
-            if(status.equals(Constants.UNASSIGNED)) {
-                List<Map<String, Object>> recipientsList = (List<Map<String, Object>>) request.get(Constants.PREFERRED_PROVIDER);
-                List<String> providerIds = new ArrayList<>();
-                for (Map<String, Object> recipient : recipientsList) {
-                    providerIds.add((String) recipient.get(Constants.PROVIDER_ID));
-                }
-                emails = getCBPAdminDetails((Set<String>) providerIds);
-            }
-            if(status.equals(Constants.ASSIGNED)){
-                Map<String, Object> assignedProvider = (Map<String, Object>) request.get(Constants.ASSIGNED_PROVIDER);
-                emails =  getCBPAdminDetails((Set<String>) assignedProvider.get(Constants.PROVIDER_ID));
-
-            }/*if(status.equals(Constants.INVALID)){
-
-            }*/
-
-            List<Map<String, String>> competencies = (List<Map<String, String>>) request.get(Constants.COMPETENCIES);
-            StringBuilder allArea = new StringBuilder();
-            StringBuilder allThemes = new StringBuilder();
-            StringBuilder allSubThemes = new StringBuilder();
-            for (Map<String, String> theme : competencies) {
-                allArea.append(theme.get(Constants.AREA)).append(", ");
-                allThemes.append(theme.get(Constants.THEME)).append(", ");
-                allSubThemes.append(theme.get(Constants.SUB_THEME)).append(", ");
-            }
-
-            mailNotificationDetails.put(Constants.EMAIL_ID_LIST, emails);
-            mailNotificationDetails.put(Constants.MDO_NAME, request.get(Constants.MDO_NAME));
-            mailNotificationDetails.put(Constants.COMPETENCY_AREA, allArea.replace(allArea.length() - 2, allArea.length() - 1, "."));
-            mailNotificationDetails.put(Constants.COMPETENCY_THEMES, allThemes.replace(allThemes.length() - 2, allThemes.length() - 1, "."));
-            mailNotificationDetails.put(Constants.COMPETENCY_SUB_THEMES, allSubThemes.replace(allSubThemes.length() - 2, allSubThemes.length() - 1, "."));
-            mailNotificationDetails.put(Constants.DESCRIPTION , request.get(Constants.DESCRIPTION));
-            mailNotificationDetails.put(Constants.CREATED_BY, mdoName);
-            mailNotificationDetails.put(Constants.DEMAND_ID, request.get(Constants.DEMAND_ID));
-            mailNotificationDetails.put(Constants.SUB,subjectLine);
-            mailNotificationDetails.put(Constants.BODY, body);
-            if (request.get(Constants.STATUS).equals(Constants.ASSIGNED) ||
-                    request.get(Constants.STATUS).equals(Constants.UNASSIGNED)) {
-                sendNotificationToProvidersAsync(mailNotificationDetails);
-            }
-
-            if(status.equals(Constants.ASSIGNED)&& isSpvRequest){
-                Map<String, Object> assignedProvider = (Map<String, Object>) request.get(Constants.ASSIGNED_PROVIDER);
-                emails = fetchEmailFromUserId(Collections.singletonList((String) request.get(Constants.OWNER)));
-                subjectLine = Constants.REQUEST_CONTENT_SUBJECT.replace(Constants.DEMAND_TAG,(String)request.get(Constants.DEMAND_ID));
-                body = Constants.ASSIGNED_MAIL_BODY_TO_MDO.replace(Constants.DEMAND_TAG,(String)request.get(Constants.DEMAND_ID)).replace(Constants.CONTENT_PROVIDER_NAME_TAG,(String) assignedProvider.get(Constants.PROVIDER_NAME));
-                mailNotificationDetails.put(Constants.SUB,subjectLine);
-                mailNotificationDetails.put(Constants.BODY, body);
-                mailNotificationDetails.put(Constants.EMAIL_ID_LIST, emails);
-                sendNotificationToProvidersAsync(mailNotificationDetails);
-            }
-            if (status.equals(Constants.INVALID)&&isSpvRequest){
-                emails = fetchEmailFromUserId(Collections.singletonList((String) request.get(Constants.OWNER))); //Collections.singletonList("useradarsh@yopmail.com");
-                subjectLine = Constants.DEMAND_INVALID_SUB.replace(Constants.DEMAND_TAG,(String)request.get(Constants.DEMAND_ID));
-                body = Constants.INVALID_DEMAND_MAIL_BODY_MDO.replace(Constants.DEMAND_TAG,(String)request.get(Constants.DEMAND_ID));
-                mailNotificationDetails.put(Constants.EMAIL_ID_LIST, emails);
-                mailNotificationDetails.put(Constants.SUB,subjectLine);
-                mailNotificationDetails.put(Constants.BODY, body);
-                sendNotificationToProvidersAsync(mailNotificationDetails);
-            }
-            logger.info(String.format("Completed request for content. Time taken: ", (System.currentTimeMillis() - startTime)));
-        } catch (Exception e) {
-            logger.error("Exception occurred while sending email : " + e.getMessage(), e);
-        }
-    }
-
-    private String constructEmailTemplate(String templateName, Map<String, Object> params) {
-        String replacedHTML = new String();
-        try {
-            Map<String, Object> propertyMap = new HashMap<>();
-            propertyMap.put(Constants.NAME, templateName);
-            List<Map<String, Object>> templateMap = cassandraOperation.getRecordsByPropertiesByKey(Constants.KEYSPACE_SUNBIRD, Constants.TABLE_EMAIL_TEMPLATE, propertyMap, Collections.singletonList(Constants.TEMPLATE),null);
-            String htmlTemplate = templateMap.stream()
-                    .findFirst()
-                    .map(template -> (String) template.get(Constants.TEMPLATE))
-                    .orElse(null);
-            VelocityEngine velocityEngine = new VelocityEngine();
-            velocityEngine.init();
-            VelocityContext context = new VelocityContext();
-            for (Map.Entry<String, Object> entry : params.entrySet()) {
-                context.put(entry.getKey(), entry.getValue());
-            }
-            StringWriter writer = new StringWriter();
-            velocityEngine.evaluate(context, writer, "HTMLTemplate", htmlTemplate);
-            replacedHTML = writer.toString();
-        } catch (Exception e) {
-            logger.error("Unable to create template ", e);
-        }
-        return replacedHTML;
-    }
-
-    private void sendNotificationToProvidersAsync(Map<String, Object> mailNotificationDetails){
-        Map<String, Object> params = new HashMap<>();
-        NotificationAsyncRequest notificationAsyncRequest = new NotificationAsyncRequest();
-        notificationAsyncRequest.setPriority(1);
-        notificationAsyncRequest.setType(Constants.EMAIL);
-        notificationAsyncRequest.setIds((List<String>) mailNotificationDetails.get(Constants.EMAIL_ID_LIST));
-
-        params.put(Constants.MDO_NAME_PARAM, (String) mailNotificationDetails.get(Constants.MDO_NAME));
-        params.put(Constants.NAME, (String) mailNotificationDetails.get(Constants.MDO_NAME));
-        params.put(Constants.COMPETENCY_AREA_PARAM, mailNotificationDetails.get(Constants.COMPETENCY_AREA));
-        params.put(Constants.COMPETENCY_THEME_PARAM, mailNotificationDetails.get(Constants.COMPETENCY_THEMES));
-        params.put(Constants.COMPETENCY_SUB_THEME_PARAM, mailNotificationDetails.get(Constants.COMPETENCY_SUB_THEMES));
-        params.put(Constants.DESCRIPTION, mailNotificationDetails.get(Constants.DESCRIPTION));
-        params.put(Constants.FROM_EMAIL, propertiesConfig.getSupportEmail());
-        params.put(Constants.ORG_NAME, (String) mailNotificationDetails.get(Constants.MDO_NAME));
-        params.put(Constants.BODY,mailNotificationDetails.get(Constants.BODY));
-        Template template = new Template(constructEmailTemplate(propertiesConfig.getDemandRequestTemplate(), params),propertiesConfig.getDemandRequestTemplate(), params);
-
-        Config config = new Config();
-        config.setSubject((String) mailNotificationDetails.get(Constants.SUB));
-        config.setSender(propertiesConfig.getSupportEmail());
-
-        Map<String, Object> templateMap = new HashMap<>();
-        templateMap.put(Constants.CONFIG, config);
-        templateMap.put(Constants.TYPE, Constants.EMAIL);
-        templateMap.put(Constants.DATA, template.getData());
-        templateMap.put(Constants.ID, propertiesConfig.getDemandRequestTemplate());
-        templateMap.put(Constants.PARAMS, params);
-
-        Map<String, Object> action = new HashMap<>();
-        action.put(Constants.TEMPLATE, templateMap);
-        action.put(Constants.TYPE, Constants.EMAIL);
-        action.put(Constants.CATEGORY, Constants.EMAIL);
-
-        Map<String, Object> createdBy = new HashMap<>();
-        createdBy.put(Constants.ID, mailNotificationDetails.get(Constants.CREATED_BY));
-        createdBy.put(Constants.TYPE, Constants.MDO);
-        action.put(Constants.CREATED_BY, createdBy);
-        notificationAsyncRequest.setAction(action);
-
-        Map<String, Object> req = new HashMap<>();
-        Map<String, List<NotificationAsyncRequest>> notificationMap = new HashMap<>();
-        notificationMap.put(Constants.NOTIFICATIONS, Collections.singletonList(notificationAsyncRequest));
-        req.put(Constants.REQUEST, notificationMap);
-        sendNotification(req, propertiesConfig.getNotificationAsyncPath());
-    }
-
-    private void sendNotification(Map<String, Object> request, String urlPath) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(propertiesConfig.getNotifyServiceHost()).append(urlPath);
-        try {
-            logger.info(objectMapper.writeValueAsString(request));
-            Map<String, Object> response = requestHandlerService.fetchResultUsingPost(builder.toString(), request, null);
-            logger.debug("The email notification is successfully sent, response is: " + response);
-        } catch (Exception e) {
-            logger.error("Exception while posting the data in notification service: ", e);
-        }
-    }
-
-    public List<String> fetchEmails(List<String> ids){
-
-        Map<String, Object> requestObject = new HashMap<>();
-        Map<String, Object> req = new HashMap<>();
-        Map<String, Object> filters = new HashMap<>();
-        filters.put(Constants.USER_ID_RQST, ids);
-        List<String> userFields = Arrays.asList(Constants.USER_ID_RQST, Constants.PROFILE_DETAILS);
-        req.put(Constants.FILTERS, filters);
-        req.put(Constants.FIELDS, userFields);
-        requestObject.put(Constants.REQUEST, req);
-        HashMap<String, String> headersValue = new HashMap<>();
-        headersValue.put(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
-        StringBuilder url = new StringBuilder(propertiesConfig.getSbUrl()).append(propertiesConfig.getUserSearchEndPoint());
-        Map<String, Object> searchProfileApiResp = requestHandlerService.fetchResultUsingPost(url.toString(), requestObject, headersValue);
-        List<String> emailIds = new ArrayList<>();
-        if (searchProfileApiResp != null
-                && Constants.OK.equalsIgnoreCase((String) searchProfileApiResp.get(Constants.RESPONSE_CODE))) {
-            Map<String, Object> Map = (Map<String, Object>) searchProfileApiResp.get(Constants.RESULT);
-            Map<String, Object> resp = (Map<String, Object>) Map.get(Constants.RESPONSE);
-            List<Map<String, Object>> contents = (List<Map<String, Object>>) resp.get(Constants.CONTENT);
-            for (Map<String, Object> content : contents) {
-                Map<String, Object> profileDetails = (Map<String, Object>) content.get(Constants.PROFILE_DETAILS);
-                Map<String, Object> personalDetails = (Map<String, Object>) profileDetails.get(Constants.PERSONAL_DETAILS);
-                String email = (String) personalDetails.get(Constants.PRIMARY_EMAIL);
-                emailIds.add(email);
-            }
-        }
-        return emailIds;
-    }
-
-    private Map<String, Object> getSearchObject(Set<String> rootOrgIds) {
-        Map<String, Object> requestObject = new HashMap<>();
-        Map<String, Object> request = new HashMap<>();
-        Map<String, Object> filters = new HashMap<>();
-        filters.put(Constants.ROOT_ORG_ID, rootOrgIds);
-        filters.put(Constants.ORGANIZATIONS_ROLES, Collections.singletonList(Constants.CBP_ADMIN));
-        request.put(Constants.FILTERS, filters);
-        request.put(Constants.FIELDS_CONSTANT, Arrays.asList("profileDetails.personalDetails.primaryEmail", Constants.ROOT_ORG_ID));
-        requestObject.put(Constants.REQUEST, request);
-        return requestObject;
-    }
-
-    public List<String> getCBPAdminDetails(Set<String> rootOrgIds) throws Exception {
-        Map<String, Object> request = getSearchObject(rootOrgIds);
-        HashMap<String, String> headersValue = new HashMap<>();
-        headersValue.put("Content-Type", "application/json");
-        List<String> providerIdEmails = new ArrayList<>();
-        StringBuilder url = new StringBuilder(propertiesConfig.getSbUrl())
-                .append(propertiesConfig.getUserSearchEndPoint());
-        Map<String, Object> searchProfileApiResp = requestHandlerService.fetchResultUsingPost(url.toString(), request,
-                headersValue);
-        if (searchProfileApiResp != null
-                && "OK".equalsIgnoreCase((String) searchProfileApiResp.get(Constants.RESPONSE_CODE))) {
-            Map<String, Object> map = (Map<String, Object>) searchProfileApiResp.get(Constants.RESULT);
-            Map<String, Object> response = (Map<String, Object>) map.get(Constants.RESPONSE);
-            List<Map<String, Object>> contents = (List<Map<String, Object>>) response.get(Constants.CONTENT);
-            if (!org.springframework.util.CollectionUtils.isEmpty(contents)) {
-                for (Map<String, Object> content : contents) {
-                    String rootOrgId = (String) content.get(Constants.ROOT_ORG_ID);
-                    HashMap<String, Object> profileDetails = (HashMap<String, Object>) content
-                            .get(Constants.PROFILE_DETAILS);
-                    if (!org.springframework.util.CollectionUtils.isEmpty(profileDetails)) {
-                        HashMap<String, Object> personalDetails = (HashMap<String, Object>) profileDetails
-                                .get(Constants.PERSONAL_DETAILS);
-                        if (!org.springframework.util.CollectionUtils.isEmpty(personalDetails)
-                                && personalDetails.get(Constants.PRIMARY_EMAIL) != null) {
-                            if (rootOrgIds.contains(rootOrgId))
-                                providerIdEmails.add((String) personalDetails.get(Constants.PRIMARY_EMAIL));
-                        }
-                    }
-                }
-            }
-        }
-        if (org.springframework.util.CollectionUtils.isEmpty(providerIdEmails)) {
-            throw new Exception("Failed to find CBP Admin for OrgIds: " + rootOrgIds);
-        }
-        logger.info("CBP Admin emails fetched successfully: " + providerIdEmails);
-        return providerIdEmails;
-    }
-
-    public List<String> fetchEmailFromUserId (List<String> userIds) {
-        Map<String, Object> requestObject = new HashMap<>();
-        Map<String, Object> req = new HashMap<>();
-        Map<String, Object> filters = new HashMap<>();
-        filters.put(Constants.USER_ID_RQST, userIds);
-        List<String> userFields = Arrays.asList(Constants.PROFILE_DETAILS_PRIMARY_EMAIL);
-        req.put(Constants.FILTERS, filters);
-        req.put(Constants.FIELDS, userFields);
-        requestObject.put(Constants.REQUEST, req);
-        HashMap<String, String> headersValue = new HashMap<>();
-        headersValue.put(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
-        StringBuilder url = new StringBuilder(propertiesConfig.getSbUrl()).append(propertiesConfig.getUserSearchEndPoint());
-        Map<String, Object> searchProfileApiResp = requestHandlerService.fetchResultUsingPost(url.toString(), requestObject, headersValue);
-        List<String> emailResponseList = new ArrayList<>();
-        if (searchProfileApiResp != null
-                && Constants.OK.equalsIgnoreCase((String) searchProfileApiResp.get(Constants.RESPONSE_CODE))) {
-            Map<String, Object> map = (Map<String, Object>) searchProfileApiResp.get(Constants.RESULT);
-            Map<String, Object> resp = (Map<String, Object>) map.get(Constants.RESPONSE);
-            List<Map<String, Object>> contents = (List<Map<String, Object>>) resp.get(Constants.CONTENT);
-            for (Map<String, Object> content : contents) {
-                Map<String, Object> profileDetails = (Map<String, Object>) content.get(Constants.PROFILE_DETAILS);
-                Map<String, Object> personalDetails = (Map<String, Object>) profileDetails.get(Constants.PERSONAL_DETAILS);
-                String email = (String) personalDetails.get(Constants.PRIMARY_EMAIL);
-                emailResponseList.add(email);
-            }
-        }
-        return emailResponseList;
+        } else return false;
     }
 }
