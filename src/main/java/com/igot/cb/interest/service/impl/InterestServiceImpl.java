@@ -24,7 +24,6 @@ import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
-import com.igot.cb.producer.Producer;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -75,12 +74,6 @@ public class InterestServiceImpl implements InterestService {
 
   @Autowired
   private CassandraOperation cassandraOperation;
-
-  @Autowired
-  private Producer kafkaProducer;
-
-  @Autowired
-  private CbServerProperties properties;
 
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
