@@ -80,7 +80,7 @@ public class CbServerProperties {
   @Value("${demand.request.notification.template}")
   private String demandRequestTemplate;
 
-  @Value("${sunbird.course.service.host}")
+  @Value("${learner.service.url}")
   private String sbUrl;
 
   @Value("${sunbird.user.search.endpoint}")
