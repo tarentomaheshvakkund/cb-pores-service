@@ -65,4 +65,28 @@ public class CbServerProperties {
   public void setBookmarkDuplicateNotAllowedCategory(String bookmarkDuplicateNotAllowedCategory) {
     this.bookmarkDuplicateNotAllowedCategory = bookmarkDuplicateNotAllowedCategory;
   }
+  @Value("${notify.service.host}")
+  private String notifyServiceHost;
+
+  @Value("${notify.service.path.async}")
+  private String notificationAsyncPath;
+
+  @Value("${kafka.topic.demand.request}")
+  private String demandRequestKafkaTopic;
+
+  @Value("${notification.support.mail}")
+  private String supportEmail;
+
+  @Value("${demand.request.notification.template}")
+  private String demandRequestTemplate;
+
+  @Value("${learner.service.url}")
+  private String sbUrl;
+
+  @Value("${sunbird.user.search.endpoint}")
+  private String userSearchEndPoint;
+
+  @Value("${lms.user.read.path}")
+  private String userReadEndPoint;
+
 }
