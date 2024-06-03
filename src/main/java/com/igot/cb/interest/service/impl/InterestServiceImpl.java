@@ -21,16 +21,10 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -40,6 +34,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import java.sql.Timestamp;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -65,17 +64,32 @@ public class InterestServiceImpl implements InterestService {
 
   @Autowired
   private RedisTemplate<String, SearchResult> redisTemplate;
+  @Autowired
+  private CbServerProperties cbServerProperties;
 
   private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
 
   @Value("${search.result.redis.ttl}")
   private long searchResultRedisTtl;
 
+  @Autowired
+  private CassandraOperation cassandraOperation;
+
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
-    log.info("InterestServiceImpl::createInterest:entered the method: "+interestDetails);
+    log.info("InterestServiceImpl::createInterest:entered the method: " + interestDetails);
     CustomResponse response = new CustomResponse();
-    payloadValidation.validatePayload(Constants.INTEREST_VALIDATION_FILE_JSON,interestDetails);
+    payloadValidation.validatePayload(Constants.INTEREST_VALIDATION_FILE_JSON, interestDetails);
+    Map<String, Object> propertyMap = new HashMap<>();
+    propertyMap.put(Constants.ID, interestDetails.get(Constants.ORG_ID).asText());
+    List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
+        Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
+    if (CollectionUtils.isEmpty(orgDetails)) {
+      response.setMessage("OrgDetails are not fetched for given orgId");
+      response.setResponseCode(HttpStatus.NOT_FOUND);
+      return response;
+    }
+    String orgName = (String) orgDetails.get(0).get(Constants.USER_ROOT_ORG_NAME);
     log.debug("InterestServiceImpl::createInterest:validated the payload");
     try {
       log.info("InterestServiceImpl::createInterest:creating interest");
@@ -84,12 +98,15 @@ public class InterestServiceImpl implements InterestService {
       String interestId = String.valueOf(interestIdUuid);
       interest.setInterestId(interestId);
       ((ObjectNode) interestDetails).put(Constants.INTEREST_ID_RQST, String.valueOf(interestId));
+      ((ObjectNode) interestDetails).put(Constants.ORG_NAME, orgName);
       ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.REQUESTED);
       Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-      Optional<DemandEntity> demandEntity = demandRepository.findById(interestDetails.get(Constants.DEMAND_ID_RQST).asText());
-      if(demandEntity.isPresent()){
+      Optional<DemandEntity> demandEntity = demandRepository.findById(
+          interestDetails.get(Constants.DEMAND_ID_RQST).asText());
+      if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
-        ((ObjectNode) fetchedDemandJson).put(Constants.INTEREST_COUNT, fetchedDemandJson.get(Constants.INTEREST_COUNT).asInt()+1);
+        ((ObjectNode) fetchedDemandJson).put(Constants.INTEREST_COUNT,
+            fetchedDemandJson.get(Constants.INTEREST_COUNT).asInt() + 1);
         updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
         log.info("InterestServiceImpl::createInterest:updated the interestCount in demand");
         ((ObjectNode) interestDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
@@ -100,10 +117,12 @@ public class InterestServiceImpl implements InterestService {
         interestRepository.save(interest);
         log.info("InterestServiceImpl::createInterest::persited interest in postgres");
         ObjectNode jsonNode = objectMapper.createObjectNode();
-        jsonNode.set(Constants.INTEREST_ID_RQST, new TextNode(interestDetails.get(Constants.INTEREST_ID_RQST).asText()));
+        jsonNode.set(Constants.INTEREST_ID_RQST,
+            new TextNode(interestDetails.get(Constants.INTEREST_ID_RQST).asText()));
         jsonNode.setAll((ObjectNode) interestDetails);
         Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-        esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,String.valueOf(interestId), map);
+        esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
+            String.valueOf(interestId), map, cbServerProperties.getElasticDemandJsonPath());
         cacheService.putCache(interestId, jsonNode);
         response.setMessage(Constants.SUCCESSFULLY_CREATED);
         map.put(Constants.INTEREST_ID_RQST, interestId);
@@ -111,14 +130,15 @@ public class InterestServiceImpl implements InterestService {
         response.setResponseCode(HttpStatus.OK);
         log.info("InterestServiceImpl::createInterest::persited interest in Pores");
         return response;
-      }else {
+      } else {
         response.setMessage("Data for the provided demandId is not present to show interest");
         response.setResponseCode(HttpStatus.NOT_FOUND);
         return response;
       }
     } catch (Exception e) {
       logger.error("Error occurred while creating Interest", e);
-      throw new CustomException("error while processing", e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomException("error while processing", e.getMessage(),
+          HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -126,7 +146,8 @@ public class InterestServiceImpl implements InterestService {
   public CustomResponse searchDemand(SearchCriteria searchCriteria) {
     log.info("InterestServiceImpl::searchDemand");
     CustomResponse response = new CustomResponse();
-    SearchResult searchResult = redisTemplate.opsForValue().get(generateRedisJwtTokenKey(searchCriteria));
+    SearchResult searchResult = redisTemplate.opsForValue()
+        .get(generateRedisJwtTokenKey(searchCriteria));
     if (searchResult != null) {
       log.info("InterestServiceImpl::searchInterest: interest search result fetched from redis");
       response.getResult().put(Constants.RESULT, searchResult);
@@ -147,7 +168,8 @@ public class InterestServiceImpl implements InterestService {
       createSuccessResponse(response);
       return response;
     } catch (Exception e) {
-      createErrorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, Constants.FAILED_CONST);
+      createErrorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR,
+          Constants.FAILED_CONST);
       redisTemplate.opsForValue()
           .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
               TimeUnit.SECONDS);
@@ -160,32 +182,65 @@ public class InterestServiceImpl implements InterestService {
     log.info("InterestServiceImpl::assignInterestToDemand:inside the method");
     CustomResponse response = new CustomResponse();
     if (interestDetails.get(Constants.INTEREST_ID_RQST) == null) {
-      throw new CustomException(Constants.ERROR,"interestDetailsEntity id is required for assigning the interest",HttpStatus.BAD_REQUEST);
+      throw new CustomException(Constants.ERROR,
+          "interestDetailsEntity id is required for assigning the interest",
+          HttpStatus.BAD_REQUEST);
     }
     if (interestDetails.get(Constants.ASSIGNED_BY) == null) {
-      throw new CustomException(Constants.ERROR,"interestDetailsEntity id is required for assigning the interest",HttpStatus.BAD_REQUEST);
+      throw new CustomException(Constants.ERROR,
+          "interestDetailsEntity id is required for assigning the interest",
+          HttpStatus.BAD_REQUEST);
     }
-    Optional<Interests> optSchemeDetails = interestRepository.findById(interestDetails.get(Constants.INTEREST_ID_RQST).asText());
+    Optional<Interests> optSchemeDetails = interestRepository.findById(
+        interestDetails.get(Constants.INTEREST_ID_RQST).asText());
     Timestamp currentTime = new Timestamp(System.currentTimeMillis());
     if (optSchemeDetails.isPresent()) {
-      Optional<DemandEntity> demandEntity = demandRepository.findById(interestDetails.get(Constants.DEMAND_ID_RQST).asText());
-      if (demandEntity.isPresent()){
+      Optional<DemandEntity> demandEntity = demandRepository.findById(
+          interestDetails.get(Constants.DEMAND_ID_RQST).asText());
+      if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
-        ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
-        JsonNode assignedProvider = objectMapper.createObjectNode();
-        ((ObjectNode) assignedProvider).put(Constants.ORG_ID, interestDetails.get(Constants.ORG_ID));
-        ((ObjectNode) assignedProvider).put(Constants.USER_ID_RQST, interestDetails.get(Constants.OWNERID));
-        ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST, interestDetails.get(Constants.INTEREST_ID_RQST));
-        ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY, interestDetails.get(Constants.ASSIGNED_BY));
-        ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
-        updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
-        log.info("InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
+        if (!fetchedDemandJson.isEmpty()) {
+          if (fetchedDemandJson.get(Constants.STATUS).asText()
+              .equalsIgnoreCase(Constants.UNASSIGNED)) {
+            ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
+          } else {
+            if (!fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER).isEmpty()) {
+              JsonNode fetchedAssignedProvider = fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER);
+              JsonNode orgIdNode = fetchedAssignedProvider.get(Constants.PROVIDER_ID);
+              String fetchedOrgId = orgIdNode.asText();
+              if (!fetchedOrgId.equalsIgnoreCase(interestDetails.get(Constants.ORG_ID).asText())) {
+                ((ObjectNode) fetchedDemandJson).put(Constants.PREV_ASSIGNED_PROVIDER,
+                    fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER));
+              } else {
+                response.setMessage("Assigning to the same org please reassign");
+                response.setResponseCode(HttpStatus.BAD_REQUEST);
+                return response;
+              }
+
+            }
+          }
+          JsonNode assignedProvider = objectMapper.createObjectNode();
+          ((ObjectNode) assignedProvider).put(Constants.PROVIDER_ID,
+              interestDetails.get(Constants.ORG_ID));
+          ((ObjectNode) assignedProvider).put(Constants.PROVIDER_NAME,
+              interestDetails.get(Constants.ORG_NAME));
+          ((ObjectNode) assignedProvider).put(Constants.INTEREST_ID_RQST,
+              interestDetails.get(Constants.INTEREST_ID_RQST));
+          ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY,
+              interestDetails.get(Constants.ASSIGNED_BY));
+          ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
+          updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
+          log.info(
+              "InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
+        }
+
       }
       Interests fetchedEntity = optSchemeDetails.get();
       ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.GRANTED);
       JsonNode persistUpdatedInterest = fetchedEntity.getData();
       ((ObjectNode) persistUpdatedInterest).put(Constants.STATUS, Constants.GRANTED);
-      ((ObjectNode) persistUpdatedInterest).put(Constants.ASSIGNED_BY, interestDetails.get(Constants.ASSIGNED_BY));
+      ((ObjectNode) persistUpdatedInterest).put(Constants.ASSIGNED_BY,
+          interestDetails.get(Constants.ASSIGNED_BY));
       ((ObjectNode) persistUpdatedInterest).put(Constants.UPDATED_ON, String.valueOf(currentTime));
       fetchedEntity.setData(persistUpdatedInterest);
       fetchedEntity.setUpdatedOn(currentTime);
@@ -195,7 +250,8 @@ public class InterestServiceImpl implements InterestService {
       jsonNode.setAll((ObjectNode) persistUpdatedInterest);
 
       Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-      esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,interestDetails.get(Constants.INTEREST_ID_RQST).asText() , map);
+      esUtilService.addDocument(Constants.INTEREST_INDEX_NAME, Constants.INDEX_TYPE,
+          interestDetails.get(Constants.INTEREST_ID_RQST).asText(), map, cbServerProperties.getElasticInterestJsonPath());
 
       cacheService.putCache(fetchedEntity.getInterestId(), jsonNode);
       log.info("assigned interest");
@@ -250,12 +306,14 @@ public class InterestServiceImpl implements InterestService {
       }
     } catch (Exception e) {
       logger.error("Error while mapping JSON for id {}: {}", id, e.getMessage(), e);
-      throw new CustomException(Constants.ERROR, "error while processing", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new CustomException(Constants.ERROR, "error while processing",
+          HttpStatus.INTERNAL_SERVER_ERROR);
     }
     return response;
   }
 
-  private void updateCountAndStatusOfDemand(DemandEntity demand, Timestamp currentTime, JsonNode fetchedDemandDetails) {
+  private void updateCountAndStatusOfDemand(DemandEntity demand, Timestamp currentTime,
+      JsonNode fetchedDemandDetails) {
     log.info("InterestServiceImpl::updateCountAndStatusOfDemand:inside the method");
     ((ObjectNode) fetchedDemandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
     ((ObjectNode) fetchedDemandDetails).put(Constants.DEMAND_ID, demand.getDemandId());
@@ -263,7 +321,8 @@ public class InterestServiceImpl implements InterestService {
     demand.setUpdatedOn(currentTime);
     demandRepository.save(demand);
     Map<String, Object> esMap = objectMapper.convertValue(fetchedDemandDetails, Map.class);
-    esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, demand.getDemandId(), esMap);
+    esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, demand.getDemandId(),
+        esMap, cbServerProperties.getElasticDemandJsonPath());
     cacheService.putCache(demand.getDemandId(), fetchedDemandDetails);
     log.info("InterestServiceImpl::updateCountAndStatusOfDemand:updated the demand");
   }

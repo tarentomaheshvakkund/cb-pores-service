@@ -19,14 +19,23 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
+import com.igot.cb.producer.Producer;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
+import com.igot.cb.transactional.model.Config;
+import com.igot.cb.transactional.model.NotificationAsyncRequest;
+import com.igot.cb.transactional.model.Template;
+import com.igot.cb.transactional.service.RequestHandlerServiceImpl;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +46,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -60,6 +70,8 @@ public class DemandServiceImpl implements DemandService {
     private Logger logger = LoggerFactory.getLogger(DemandServiceImpl.class);
     @Autowired
     private AccessTokenValidator accessTokenValidator;
+    @Autowired
+    private CbServerProperties cbServerProperties;
     private StatusTransitionConfig statusTransitionConfig;
 
     @Autowired
@@ -71,6 +83,15 @@ public class DemandServiceImpl implements DemandService {
     private CassandraOperation cassandraOperation;
     @Value("${search.result.redis.ttl}")
     private long searchResultRedisTtl;
+
+    @Autowired
+    private Producer kafkaProducer;
+
+    @Autowired
+    private CbServerProperties propertiesConfig;
+
+    @Autowired
+    private RequestHandlerServiceImpl requestHandlerService;
 
     @Override
     public CustomResponse createDemand(JsonNode demandDetails, String token, String rootOrgId) {
@@ -117,10 +138,24 @@ public class DemandServiceImpl implements DemandService {
             jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
 
             Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+            esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticDemandJsonPath());
 
             cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created successfully");
+            boolean isSpvReq = false;
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put(Constants.DATA,map);
+            dataMap.put(Constants.IS_SPV_REQUEST,isSpvReq);
+            dataMap.put(Constants.USER_ID_RQST,userId);
+            if(isSpvRequest(userId)){
+                dataMap.put(Constants.IS_SPV_REQUEST,true);
+            }
+            if (map.get(Constants.REQUEST_TYPE).equals(Constants.BROADCAST) && ObjectUtils.isNotEmpty(map.get(Constants.PREFERRED_PROVIDER))) {
+                kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
+            }
+            if(map.get(Constants.REQUEST_TYPE).equals(Constants.SINGLE)){
+                kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
+            }
             response.setMessage(Constants.SUCCESSFULLY_CREATED);
             map.put(Constants.DEMAND_ID, id);
             response.setResult(map);
@@ -233,7 +268,7 @@ public class DemandServiceImpl implements DemandService {
                         josnEntity.setUpdatedOn(currentTime);
                         DemandEntity updateJsonEntity = demandRepository.save(josnEntity);
                         Map<String, Object> map = objectMapper.convertValue(data, Map.class);
-                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map);
+                        esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticDemandJsonPath());
                         cacheService.putCache(id, data);
 
                         logger.debug("Demand details deleted successfully");
@@ -300,10 +335,18 @@ public class DemandServiceImpl implements DemandService {
                 jsonNode.set(Constants.DEMAND_ID, new TextNode(saveJsonEntity.getDemandId()));
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map);
+                esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map, cbServerProperties.getElasticDemandJsonPath());
 
                 cacheService.putCache(saveJsonEntity.getDemandId(), jsonNode);
                 log.info("demand updated");
+                Map<String,Object> notifcationMap = new HashMap<>();
+                notifcationMap.put(Constants.DATA,map);
+                notifcationMap.put(Constants.USER_ID_RQST,userId);
+                notifcationMap.put(Constants.IS_SPV_REQUEST,false);
+                if(map.get(Constants.STATUS).equals(Constants.INVALID) && isSpvRequest(userId)){
+                    notifcationMap.put(Constants.IS_SPV_REQUEST,true);
+                    kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(),notifcationMap);
+                }
                 response.setMessage(Constants.SUCCESSFULLY_UPDATED);
                 map.put(Constants.DEMAND_ID, saveJsonEntity.getDemandId());
                 response.setResult(map);
@@ -416,5 +459,19 @@ public class DemandServiceImpl implements DemandService {
         //response.getParams().setErrorMsg(errorMessage);
         response.getParams().setStatus(status);
         response.setResponseCode(httpStatus);
+    }
+
+    public boolean isSpvRequest(String userId) {
+        Map<String, String> header = new HashMap<>();
+        Map<String, Object> readData = (Map<String, Object>) requestHandlerService
+                .fetchUsingGetWithHeadersProfile(propertiesConfig.getSbUrl() + propertiesConfig.getUserReadEndPoint() + userId,
+                        header);
+        Map<String, Object> result = (Map<String, Object>) readData.get(Constants.RESULT);
+        Map<String, Object> responseMap = (Map<String, Object>) result.get(Constants.RESPONSE);
+        List roles = (List) responseMap.get(Constants.ROLES);
+
+        if (roles.contains(Constants.SPV_ADMIN)) {
+            return true;
+        } else return false;
     }
 }

@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "sourceName": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "imgUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "createdFor": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "createdOn": {
+      "type": "date",
+      "format": [
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "epoch_millis"
+      ]
+    },
+    "updatedOn": {
+      "type": "date",
+      "format": [
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "epoch_millis"
+      ]
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "category",
+    "sourceName",
+    "channel",
+    "createdFor"
+  ]
+}
