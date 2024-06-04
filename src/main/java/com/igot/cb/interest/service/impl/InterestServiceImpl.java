@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.igot.cb.authentication.util.AccessTokenValidator;
 import com.igot.cb.demand.entity.DemandEntity;
 import com.igot.cb.demand.repository.DemandRepository;
 import com.igot.cb.interest.entity.Interests;
@@ -74,6 +75,9 @@ public class InterestServiceImpl implements InterestService {
 
   @Autowired
   private CassandraOperation cassandraOperation;
+
+  @Autowired
+  private AccessTokenValidator accessTokenValidator;
 
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
@@ -178,7 +182,7 @@ public class InterestServiceImpl implements InterestService {
   }
 
   @Override
-  public CustomResponse assignInterestToDemand(JsonNode interestDetails) {
+  public CustomResponse assignInterestToDemand(JsonNode interestDetails, String token) {
     log.info("InterestServiceImpl::assignInterestToDemand:inside the method");
     CustomResponse response = new CustomResponse();
     if (interestDetails.get(Constants.INTEREST_ID_RQST) == null) {
@@ -186,11 +190,15 @@ public class InterestServiceImpl implements InterestService {
           "interestDetailsEntity id is required for assigning the interest",
           HttpStatus.BAD_REQUEST);
     }
-    if (interestDetails.get(Constants.ASSIGNED_BY) == null) {
-      throw new CustomException(Constants.ERROR,
-          "interestDetailsEntity id is required for assigning the interest",
-          HttpStatus.BAD_REQUEST);
+    String userId = accessTokenValidator.verifyUserToken(token);
+    if (StringUtils.isBlank(userId) || userId.equalsIgnoreCase(Constants.UNAUTHORIZED)) {
+      response.getParams().setErrmsg(Constants.USER_ID_DOESNT_EXIST);
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      return response;
+    }else {
+      ((ObjectNode) interestDetails).put(Constants.ASSIGNED_BY, userId);
     }
+
     Optional<Interests> optSchemeDetails = interestRepository.findById(
         interestDetails.get(Constants.INTEREST_ID_RQST).asText());
     Timestamp currentTime = new Timestamp(System.currentTimeMillis());
