@@ -194,10 +194,15 @@ public class InterestServiceImpl implements InterestService {
   public CustomResponse assignInterestToDemand(JsonNode interestDetails, String token) {
     log.info("InterestServiceImpl::assignInterestToDemand:inside the method");
     CustomResponse response = new CustomResponse();
-    if (interestDetails.get(Constants.INTEREST_ID_RQST) == null) {
-      throw new CustomException(Constants.ERROR,
-          "interestDetailsEntity id is required for assigning the interest",
-          HttpStatus.BAD_REQUEST);
+    if (interestDetails.get(Constants.INTEREST_ID_RQST) == null || interestDetails.get(Constants.INTEREST_ID_RQST).asText().isEmpty()) {
+      response.getParams().setErrmsg(Constants.INTEREST_ID_MISSING);
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      return response;
+    }
+    if (interestDetails.get(Constants.DEMAND_ID_RQST) == null || interestDetails.get(Constants.DEMAND_ID_RQST).asText().isEmpty()) {
+      response.getParams().setErrmsg(Constants.DEMAND_ID_MISSING);
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      return response;
     }
     String userId = accessTokenValidator.verifyUserToken(token);
     if (StringUtils.isBlank(userId) || userId.equalsIgnoreCase(Constants.UNAUTHORIZED)) {
@@ -212,15 +217,27 @@ public class InterestServiceImpl implements InterestService {
         interestDetails.get(Constants.INTEREST_ID_RQST).asText());
     Timestamp currentTime = new Timestamp(System.currentTimeMillis());
     if (optSchemeDetails.isPresent()) {
+      String demandIdPayload = interestDetails.get(Constants.DEMAND_ID_RQST).asText();
+      interestDetails = optSchemeDetails.get().getData();
+      String fetchedDemandID = interestDetails.get(Constants.DEMAND_ID_RQST).asText();
+      if (!fetchedDemandID.equalsIgnoreCase(demandIdPayload)) {
+        log.info("InterestServiceImpl::assignInterestToDemand:demandId passed and fetched are not matching");
+        response.getParams().setErrmsg("DemandId passed is not matching with the fetched demandId");
+        response.setResponseCode(HttpStatus.BAD_REQUEST);
+        return response;
+      }
+      log.info("InterestServiceImpl::assignInterestToDemand:fetched interest for the given interestId");
       Optional<DemandEntity> demandEntity = demandRepository.findById(
           interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       Map<String, Object> demandMap = new HashMap<>();
       if (demandEntity.isPresent()) {
+        log.info("InterestServiceImpl::assignInterestToDemand:fetched interest for the given demandId");
         JsonNode fetchedDemandJson = demandEntity.get().getData();
         if (!fetchedDemandJson.isEmpty()) {
           if (fetchedDemandJson.get(Constants.STATUS).asText()
               .equalsIgnoreCase(Constants.UNASSIGNED)) {
             ((ObjectNode) fetchedDemandJson).put(Constants.STATUS, Constants.ASSIGNED);
+            log.info("InterestServiceImpl::assignInterestToDemand:changed the status of demand ot assigned");
           } else {
             if (!fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER).isEmpty()) {
               JsonNode fetchedAssignedProvider = fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER);
@@ -252,13 +269,17 @@ public class InterestServiceImpl implements InterestService {
               "InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
         }
 
+      }else {
+        response.getParams().setErrmsg("No data found for this demand");
+        response.setResponseCode(HttpStatus.NOT_FOUND);
+        return response;
       }
       Interests fetchedEntity = optSchemeDetails.get();
       ((ObjectNode) interestDetails).put(Constants.STATUS, Constants.GRANTED);
       JsonNode persistUpdatedInterest = fetchedEntity.getData();
       ((ObjectNode) persistUpdatedInterest).put(Constants.STATUS, Constants.GRANTED);
       ((ObjectNode) persistUpdatedInterest).put(Constants.ASSIGNED_BY,
-          interestDetails.get(Constants.ASSIGNED_BY));
+          userId);
       ((ObjectNode) persistUpdatedInterest).put(Constants.UPDATED_ON, String.valueOf(currentTime));
       fetchedEntity.setData(persistUpdatedInterest);
       fetchedEntity.setUpdatedOn(currentTime);

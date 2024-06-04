@@ -223,6 +223,8 @@ public class Constants {
     public static final String CONTENT_PROVIDER_NAME_TAG = "#contentProviderName";
     public static final String SPV_ADMIN ="SPV_ADMIN";
     public static final String ROLES = "roles";
+    public static final String INTEREST_ID_MISSING = "InterestId is not present";
+    public static final String DEMAND_ID_MISSING = "DemandId is not present";
     private Constants() {
     }
 }
