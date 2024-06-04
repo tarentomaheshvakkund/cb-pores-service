@@ -152,9 +152,11 @@ public class DemandServiceImpl implements DemandService {
             }
             if (map.get(Constants.REQUEST_TYPE).equals(Constants.BROADCAST) && ObjectUtils.isNotEmpty(map.get(Constants.PREFERRED_PROVIDER))) {
                 kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
+                logger.info("kafka message pushed");
             }
             if(map.get(Constants.REQUEST_TYPE).equals(Constants.SINGLE)){
                 kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
+                logger.info("kafka message pushed");
             }
             response.setMessage(Constants.SUCCESSFULLY_CREATED);
             map.put(Constants.DEMAND_ID, id);

@@ -55,6 +55,7 @@ public class NotificationConsumer {
 
     public void processNotification(Map<String, Object> demandRequest) {
         try {
+            logger.info("notification process started");
             long startTime = System.currentTimeMillis();
 
             // Extract request and status
