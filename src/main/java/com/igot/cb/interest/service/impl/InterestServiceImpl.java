@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.authentication.util.AccessTokenValidator;
 import com.igot.cb.demand.entity.DemandEntity;
 import com.igot.cb.demand.repository.DemandRepository;
+import com.igot.cb.demand.service.DemandServiceImpl;
 import com.igot.cb.interest.entity.Interests;
 import com.igot.cb.interest.repository.InterestRepository;
 import com.igot.cb.interest.service.InterestService;
@@ -25,9 +26,12 @@ import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
+import com.igot.cb.producer.Producer;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +83,11 @@ public class InterestServiceImpl implements InterestService {
   @Autowired
   private AccessTokenValidator accessTokenValidator;
 
+  @Autowired
+  private DemandServiceImpl demandService;
+
+  @Autowired
+  private Producer kafkaProducer;
   @Override
   public CustomResponse createInterest(JsonNode interestDetails) {
     log.info("InterestServiceImpl::createInterest:entered the method: " + interestDetails);
@@ -205,6 +214,7 @@ public class InterestServiceImpl implements InterestService {
     if (optSchemeDetails.isPresent()) {
       Optional<DemandEntity> demandEntity = demandRepository.findById(
           interestDetails.get(Constants.DEMAND_ID_RQST).asText());
+      Map<String, Object> demandMap = new HashMap<>();
       if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = demandEntity.get().getData();
         if (!fetchedDemandJson.isEmpty()) {
@@ -237,7 +247,7 @@ public class InterestServiceImpl implements InterestService {
           ((ObjectNode) assignedProvider).put(Constants.ASSIGNED_BY,
               interestDetails.get(Constants.ASSIGNED_BY));
           ((ObjectNode) fetchedDemandJson).put(Constants.ASSIGNED_PROVIDER, assignedProvider);
-          updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
+           demandMap = updateCountAndStatusOfDemand(demandEntity.get(), currentTime, fetchedDemandJson);
           log.info(
               "InterestServiceImpl::assignInterestToDemand:updated the status and assigned provider in demand");
         }
@@ -263,6 +273,15 @@ public class InterestServiceImpl implements InterestService {
 
       cacheService.putCache(fetchedEntity.getInterestId(), jsonNode);
       log.info("assigned interest");
+      Map<String, Object> dataMap = new HashMap<>();
+      dataMap.put(Constants.DATA,demandMap);
+      dataMap.put(Constants.IS_SPV_REQUEST,false);
+      dataMap.put(Constants.USER_ID_RQST,userId);
+      if(demandService.isSpvRequest(userId)){
+        dataMap.put(Constants.IS_SPV_REQUEST,true);
+      }
+        kafkaProducer.push(cbServerProperties.getDemandRequestKafkaTopic(), dataMap);
+      log.info("kafka message pushed");
       map.put(Constants.INTEREST_ID_RQST, fetchedEntity.getInterestId());
       response.setResult(map);
       response.setMessage(Constants.SUCCESSFULLY_ASSIGNED);
@@ -320,7 +339,7 @@ public class InterestServiceImpl implements InterestService {
     return response;
   }
 
-  private void updateCountAndStatusOfDemand(DemandEntity demand, Timestamp currentTime,
+  private Map<String, Object> updateCountAndStatusOfDemand(DemandEntity demand, Timestamp currentTime,
       JsonNode fetchedDemandDetails) {
     log.info("InterestServiceImpl::updateCountAndStatusOfDemand:inside the method");
     ((ObjectNode) fetchedDemandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
@@ -333,6 +352,7 @@ public class InterestServiceImpl implements InterestService {
         esMap, cbServerProperties.getElasticDemandJsonPath());
     cacheService.putCache(demand.getDemandId(), fetchedDemandDetails);
     log.info("InterestServiceImpl::updateCountAndStatusOfDemand:updated the demand");
+    return esMap;
   }
 
   public void createSuccessResponse(CustomResponse response) {

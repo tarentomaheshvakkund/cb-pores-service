@@ -121,6 +121,7 @@ public class NotificationConsumer {
             mailNotificationDetails.put(Constants.DEMAND_ID, request.get(Constants.DEMAND_ID));
             mailNotificationDetails.put(Constants.SUB, subjectLine);
             mailNotificationDetails.put(Constants.BODY, body);
+            logger.info("mailNotificationDetails mapped");
 
             // Send notifications
             if (status.equals(Constants.ASSIGNED) || status.equals(Constants.UNASSIGNED)) {
@@ -301,6 +302,7 @@ public class NotificationConsumer {
     }
 
     private void handleSpvRequest(String status, Map<String, Object> request, String mdoName, Map<String, Object> mailNotificationDetails) {
+        logger.info("handling spvRequest");
         List<String> emails;
         String subjectLine;
         String body;
