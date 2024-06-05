@@ -223,6 +223,10 @@ public class Constants {
     public static final String CONTENT_PROVIDER_NAME_TAG = "#contentProviderName";
     public static final String SPV_ADMIN ="SPV_ADMIN";
     public static final String ROLES = "roles";
+    public static final String PROVIDER_ID_TO_VALIDATE= "providerIdsToValidate";
+    public static final String ASSIGNED_PROVIDER_ID= "assignedProviderId";
+    public static final String CONTENT_ID= "contentId";
+    public static final String IN_PROGRESS= "InProgress";
     private Constants() {
     }
 }

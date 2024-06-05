@@ -109,6 +109,9 @@ public class DemandServiceImpl implements DemandService {
             return response;
         }
         try {
+            if (!handleProviderValidation(demandDetails, response)) {
+                return response;
+            }
             String id = generateUniqueDemandId();
             ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
@@ -144,16 +147,16 @@ public class DemandServiceImpl implements DemandService {
             log.info("demand created successfully");
             boolean isSpvReq = false;
             Map<String, Object> dataMap = new HashMap<>();
-            dataMap.put(Constants.DATA,map);
-            dataMap.put(Constants.IS_SPV_REQUEST,isSpvReq);
-            dataMap.put(Constants.USER_ID_RQST,userId);
-            if(isSpvRequest(userId)){
-                dataMap.put(Constants.IS_SPV_REQUEST,true);
+            dataMap.put(Constants.DATA, map);
+            dataMap.put(Constants.IS_SPV_REQUEST, isSpvReq);
+            dataMap.put(Constants.USER_ID_RQST, userId);
+            if (isSpvRequest(userId)) {
+                dataMap.put(Constants.IS_SPV_REQUEST, true);
             }
             if (map.get(Constants.REQUEST_TYPE).equals(Constants.BROADCAST) && ObjectUtils.isNotEmpty(map.get(Constants.PREFERRED_PROVIDER))) {
                 kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
             }
-            if(map.get(Constants.REQUEST_TYPE).equals(Constants.SINGLE)){
+            if (map.get(Constants.REQUEST_TYPE).equals(Constants.SINGLE)) {
                 kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
             }
             response.setMessage(Constants.SUCCESSFULLY_CREATED);
@@ -312,7 +315,14 @@ public class DemandServiceImpl implements DemandService {
                 String requestType = data.get(Constants.REQUEST_TYPE).asText();
                 boolean isActive = data.get(Constants.IS_ACTIVE).asBoolean();
                 String newStatus = updateDetails.get(Constants.NEW_STATUS).asText();
-
+                String contentId = updateDetails.get(Constants.CONTENT_ID).asText();
+                if (newStatus.equals(Constants.IN_PROGRESS) && contentId.isEmpty())
+                {
+                    response.getParams().setErrmsg("ContentId is missing");
+                    logger.error("ContentId is missing");
+                    response.setResponseCode(HttpStatus.BAD_REQUEST);
+                    return response;
+                }
                 if (!isActive) {
                     logger.error("You are trying to update an inactive demand");
                     throw new CustomException(Constants.ERROR, Constants.CANNOT_UPDATE_INACTIVE_DEMAND, HttpStatus.BAD_REQUEST);
@@ -323,6 +333,7 @@ public class DemandServiceImpl implements DemandService {
                 }
                 // Update the status
                 ((ObjectNode) data).put(Constants.STATUS, newStatus);
+                ((ObjectNode) data).put(Constants.CONTENT_ID, contentId);
                 demandDbData.setData(data);
                 Timestamp currentTime = new Timestamp(System.currentTimeMillis());
                 ((ObjectNode) data).put(Constants.UPDATED_ON, String.valueOf(currentTime));
@@ -339,13 +350,13 @@ public class DemandServiceImpl implements DemandService {
 
                 cacheService.putCache(saveJsonEntity.getDemandId(), jsonNode);
                 log.info("demand updated");
-                Map<String,Object> notifcationMap = new HashMap<>();
-                notifcationMap.put(Constants.DATA,map);
-                notifcationMap.put(Constants.USER_ID_RQST,userId);
-                notifcationMap.put(Constants.IS_SPV_REQUEST,false);
-                if(map.get(Constants.STATUS).equals(Constants.INVALID) && isSpvRequest(userId)){
-                    notifcationMap.put(Constants.IS_SPV_REQUEST,true);
-                    kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(),notifcationMap);
+                Map<String, Object> notifcationMap = new HashMap<>();
+                notifcationMap.put(Constants.DATA, map);
+                notifcationMap.put(Constants.USER_ID_RQST, userId);
+                notifcationMap.put(Constants.IS_SPV_REQUEST, false);
+                if (map.get(Constants.STATUS).equals(Constants.INVALID) && isSpvRequest(userId)) {
+                    notifcationMap.put(Constants.IS_SPV_REQUEST, true);
+                    kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), notifcationMap);
                 }
                 response.setMessage(Constants.SUCCESSFULLY_UPDATED);
                 map.put(Constants.DEMAND_ID, saveJsonEntity.getDemandId());
@@ -473,5 +484,102 @@ public class DemandServiceImpl implements DemandService {
         if (roles.contains(Constants.SPV_ADMIN)) {
             return true;
         } else return false;
+    }
+
+    private boolean handleProviderValidation(JsonNode demandDetails, CustomResponse response) {
+        Map<String, Object> idsMap = getProviderIdsToValidate(demandDetails);
+        List<String> providerIdsToValidate = (List<String>) idsMap.get(Constants.PROVIDER_ID_TO_VALIDATE);
+        String assignedProviderId = (String) idsMap.get(Constants.ASSIGNED_PROVIDER_ID);
+
+        List<String> invalidProviderIds = validateProviderIds(providerIdsToValidate, assignedProviderId);
+        if (!invalidProviderIds.isEmpty()) {
+            String invalidIds = String.join(", ", invalidProviderIds);
+            response.getParams().setErrmsg(Constants.INVALID_ID + invalidIds);
+            log.warn("DemandService::handleProviderValidation: Found invalid provider IDs: {}", invalidProviderIds);
+            response.setResponseCode(HttpStatus.BAD_REQUEST);
+            return false;
+        }
+        return true;
+    }
+
+    private Map<String, Object> getProviderIdsToValidate(JsonNode demandDetails) {
+        List<String> providerIdsToValidate = new ArrayList<>();
+        String assignedProviderId = null;
+        String requestType = demandDetails.get(Constants.REQUEST_TYPE).asText();
+
+        if (requestType.equals(Constants.BROADCAST)) {
+            JsonNode preferredProviders = demandDetails.get(Constants.PREFERRED_PROVIDER);
+            if (preferredProviders != null && preferredProviders.isArray()) {
+                for (JsonNode provider : preferredProviders) {
+                    String providerId = provider.get(Constants.PROVIDER_ID).asText();
+                    providerIdsToValidate.add(providerId);
+                }
+                log.info("DemandService::getProviderIdsToValidate: Collected preferred provider IDs for broadcast request");
+            }
+        } else if (requestType.equals(Constants.SINGLE)) {
+            JsonNode assignedProvider = demandDetails.get(Constants.ASSIGNED_PROVIDER);
+            if (assignedProvider != null) {
+                assignedProviderId = assignedProvider.get(Constants.PROVIDER_ID).asText();
+                log.info("DemandService::getProviderIdsToValidate: Collected assigned provider ID for single request");
+            }
+        }
+
+        Map<String, Object> idsMap = new HashMap<>();
+        idsMap.put("providerIdsToValidate", providerIdsToValidate);
+        idsMap.put("assignedProviderId", assignedProviderId);
+        return idsMap;
+    }
+    private List<String> validateProviderIds(List<String> providerIds, String assignedProviderId) {
+        List<String> idsToValidate = new ArrayList<>(providerIds);
+        if (assignedProviderId != null) {
+            idsToValidate.add(assignedProviderId);
+        }
+        // Fetch user IDs associated with the provider IDs
+        List<String> fetchedUserIds = fetchingUserId(idsToValidate);
+
+        List<String> invalidProviderIds = new ArrayList<>();
+        for (String providerId : idsToValidate) {
+            if (!fetchedUserIds.contains(providerId)) {
+                invalidProviderIds.add(providerId);
+                log.warn("DemandService::validateProviderIds: Invalid provider ID found: {}", providerId);
+            }
+            else {
+                log.info("DemandService::validateProviderIds: Valid provider ID: {}", providerId);
+            }
+        }
+        return invalidProviderIds;
+    }
+
+    private List<String> fetchingUserId(List<String> userIds) {
+        log.info("DemandService::fetchEmailFromUserId: Fetching user IDs: {}", userIds);
+        Map<String, Object> requestObject = new HashMap<>();
+        Map<String, Object> req = new HashMap<>();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put(Constants.ROOT_ORG_ID, userIds);
+        List<String> userFields = Arrays.asList(Constants.ROOT_ORG_ID);
+        req.put(Constants.FILTERS, filters);
+        req.put(Constants.FIELDS, userFields);
+        requestObject.put(Constants.REQUEST, req);
+
+        HashMap<String, String> headersValue = new HashMap<>();
+        headersValue.put(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
+        headersValue.put(Constants.AUTHORIZATION, cbServerProperties.getSbApiKey());
+
+        String url = cbServerProperties.getLearnerServiceUrl() + cbServerProperties.getOrgSearchPath();
+        Map<String, Object> searchProfileApiResp = requestHandlerService.fetchResultUsingPost(url, requestObject, headersValue);
+        List<String> userIdResponseList = new ArrayList<>();
+        if (searchProfileApiResp != null
+                && Constants.OK.equalsIgnoreCase((String) searchProfileApiResp.get(Constants.RESPONSE_CODE))) {
+            Map<String, Object> map = (Map<String, Object>) searchProfileApiResp.get(Constants.RESULT);
+            Map<String, Object> resp = (Map<String, Object>) map.get(Constants.RESPONSE);
+            List<Map<String, Object>> contents = (List<Map<String, Object>>) resp.get(Constants.CONTENT);
+            for (Map<String, Object> content : contents) {
+                userIdResponseList.add((String) content.get(Constants.ROOT_ORG_ID));
+            }
+            log.info("DemandService::fetchEmailFromUserId: Fetched user IDs: {}", userIdResponseList);
+        }else {
+            log.warn("DemandService::fetchEmailFromUserId: No user IDs found or error in fetching.");
+        }
+        return userIdResponseList;
     }
 }

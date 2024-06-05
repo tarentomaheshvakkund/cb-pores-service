@@ -138,16 +138,7 @@
   "previousAssignedProvider": {
     "type": "object"
   },
-  "imgSource": {
-    "type": "text"
-  },
-  "children": {
-    "type": "keyword"
-  },
-  "type": {
-    "type": "string"
-  },
-  "playListKey": {
+  "contentId": {
     "type": "string"
   }
 }
