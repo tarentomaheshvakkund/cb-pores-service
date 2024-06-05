@@ -352,13 +352,13 @@ public class DemandServiceImpl implements DemandService {
 
                 cacheService.putCache(saveJsonEntity.getDemandId(), jsonNode);
                 log.info("demand updated");
-                Map<String, Object> notifcationMap = new HashMap<>();
-                notifcationMap.put(Constants.DATA, map);
-                notifcationMap.put(Constants.USER_ID_RQST, userId);
-                notifcationMap.put(Constants.IS_SPV_REQUEST, false);
-                if (map.get(Constants.STATUS).equals(Constants.INVALID) && isSpvRequest(userId)) {
-                    notifcationMap.put(Constants.IS_SPV_REQUEST, true);
-                    kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), notifcationMap);
+                Map<String,Object> notifcationMap = new HashMap<>();
+                notifcationMap.put(Constants.DATA,map);
+                notifcationMap.put(Constants.USER_ID_RQST,userId);
+                notifcationMap.put(Constants.IS_SPV_REQUEST,false);
+                if(map.get(Constants.STATUS).equals(Constants.INVALID) && isSpvRequest(userId)){
+                    notifcationMap.put(Constants.IS_SPV_REQUEST,true);
+                    kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(),notifcationMap);
                 }
                 response.setMessage(Constants.SUCCESSFULLY_UPDATED);
                 map.put(Constants.DEMAND_ID, saveJsonEntity.getDemandId());
