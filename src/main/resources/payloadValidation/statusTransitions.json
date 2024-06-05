@@ -1,13 +1,13 @@
 {
   "Broadcast": {
     "Unassigned": ["Invalid"],
-    "Assigned": ["InProgress", "Invalid"],
-    "In Progress": ["Fulfill"],
+    "Assigned": ["InProgress"],
+    "InProgress": ["Fulfill"],
     "Fulfill": []
   },
   "Single": {
-    "Assigned": ["InProgress", "Invalid"],
-    "In Progress": ["Fulfill"],
+    "Assigned": ["InProgress"],
+    "InProgress": ["Fulfill"],
     "Fulfill": []
   }
 }
