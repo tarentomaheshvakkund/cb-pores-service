@@ -1,0 +1,44 @@
+{
+  "interestId": {
+    "type": "keyword"
+  },
+  "demandId": {
+    "type": "keyword"
+  },
+  "ownerId": {
+    "type": "keyword"
+  },
+  "assignedBy": {
+    "type": "keyword"
+  },
+  "orgId": {
+    "type": "keyword"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "orgName": {
+    "type": "text"
+  },
+  "turnAroundTime": {
+    "type": "date",
+    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"]
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  }
+}

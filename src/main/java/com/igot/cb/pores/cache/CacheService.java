@@ -32,7 +32,6 @@ public class CacheService {
       String data = objectMapper.writeValueAsString(object);
       try (Jedis jedis = jedisPool.getResource()) {
         jedis.set(Constants.REDIS_KEY_PREFIX + key, data);
-//        long cacheTtl = 60000;
         jedis.expire(Constants.REDIS_KEY_PREFIX + key, cacheTtl);
       }
     } catch (Exception e) {

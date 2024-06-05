@@ -36,13 +36,6 @@
     },
     "assignedProvider": {
         "type": "object"
-    },
-    "status": {
-      "type": "string",
-      "enum": ["Unassigned", "Assigned", "In Progress", "Fulfilled", "Invalid"]
-    },
-    "source": {
-      "type": "string"
     }
   },
   "required": [

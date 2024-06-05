@@ -18,5 +18,10 @@ public class CustomResponse {
   private RespParam params;
   private HttpStatus responseCode;
   private Map<String, Object> result = new HashMap<>();
-
+  public RespParam getParams() {
+    if (params == null) {
+      params = new RespParam();
+    }
+    return params;
+  }
 }

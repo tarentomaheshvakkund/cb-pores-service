@@ -48,7 +48,10 @@
   "learningMode": {
     "type": "keyword"
   },
-  "source": {
+  "owner": {
+    "type": "keyword"
+  },
+  "rootOrgId": {
     "type": "keyword"
   },
   "status": {
@@ -106,5 +109,45 @@
         }
       }
     }
+  },
+  "interestId": {
+    "type": "keyword"
+  },
+  "demandId": {
+    "type": "keyword"
+  },
+  "ownerId": {
+    "type": "keyword"
+  },
+  "assignedBy": {
+    "type": "keyword"
+  },
+  "orgId": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "turnAroundTime": {
+    "type": "date",
+    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"]
+  },
+  "orgName": {
+    "type": "text"
+  },
+  "previousAssignedProvider": {
+    "type": "object"
+  },
+  "imgSource": {
+    "type": "text"
+  },
+  "children": {
+    "type": "keyword"
+  },
+  "type": {
+    "type": "string"
+  },
+  "playListKey": {
+    "type": "string"
   }
 }
