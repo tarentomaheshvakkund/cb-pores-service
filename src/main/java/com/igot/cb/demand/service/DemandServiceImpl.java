@@ -147,17 +147,17 @@ public class DemandServiceImpl implements DemandService {
             log.info("demand created successfully");
 
             Map<String, Object> dataMap = new HashMap<>();
-            dataMap.put(Constants.DATA, map);
-            dataMap.put(Constants.IS_SPV_REQUEST, isSpvReq);
-            dataMap.put(Constants.USER_ID_RQST, userId);
-            if (isSpvRequest(userId)) {
-                dataMap.put(Constants.IS_SPV_REQUEST, true);
+            dataMap.put(Constants.DATA,map);
+            dataMap.put(Constants.IS_SPV_REQUEST,false);
+            dataMap.put(Constants.USER_ID_RQST,userId);
+            if(isSpvRequest(userId)){
+                dataMap.put(Constants.IS_SPV_REQUEST,true);
             }
             if (map.get(Constants.REQUEST_TYPE).equals(Constants.BROADCAST) && ObjectUtils.isNotEmpty(map.get(Constants.PREFERRED_PROVIDER))) {
                 kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
                 logger.info("kafka message pushed for broadcast type");
             }
-            if (map.get(Constants.REQUEST_TYPE).equals(Constants.SINGLE)) {
+            if(map.get(Constants.REQUEST_TYPE).equals(Constants.SINGLE)){
                 kafkaProducer.push(propertiesConfig.getDemandRequestKafkaTopic(), dataMap);
                 logger.info("kafka message pushed for single type");
             }
