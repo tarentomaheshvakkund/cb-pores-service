@@ -10,7 +10,7 @@ public interface InterestService {
 
   CustomResponse searchDemand(SearchCriteria searchCriteria);
 
-  CustomResponse assignInterestToDemand(JsonNode interestDetails);
+  CustomResponse assignInterestToDemand(JsonNode interestDetails, String token);
 
   CustomResponse read(String id);
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.igot.cb.interest.service.InterestService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
+import com.igot.cb.pores.util.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,8 +37,8 @@ public class InterestController {
   }
 
   @PutMapping("/v1/assign")
-  public ResponseEntity<CustomResponse> assign(@RequestBody JsonNode interestDetails) {
-    CustomResponse response = interestService.assignInterestToDemand(interestDetails);
+  public ResponseEntity<CustomResponse> assign(@RequestBody JsonNode interestDetails, @RequestHeader(Constants.X_AUTH_TOKEN) String token) {
+    CustomResponse response = interestService.assignInterestToDemand(interestDetails, token);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 
