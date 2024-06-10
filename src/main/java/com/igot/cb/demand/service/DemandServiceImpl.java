@@ -122,7 +122,7 @@ public class DemandServiceImpl implements DemandService {
                 ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 jsonNodeEntity.setCreatedOn(currentTime);
             }
-            if (!demandDetails.get(Constants.ASSIGNED_PROVIDER).isEmpty()){
+            if (demandDetails.has(Constants.DEMAND_ID) && Constants.SINGLE.equalsIgnoreCase(demandDetails.get(Constants.REQUEST_TYPE).asText())){
                 Optional<DemandEntity> demandEntity = demandRepository.findById(
                     demandDetails.get(Constants.DEMAND_ID).asText());
                 if (demandEntity.isPresent()) {
