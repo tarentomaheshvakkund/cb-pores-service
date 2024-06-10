@@ -36,6 +36,9 @@
     },
     "assignedProvider": {
         "type": "object"
+    },
+    "demand_id": {
+      "type": "string"
     }
   },
   "required": [

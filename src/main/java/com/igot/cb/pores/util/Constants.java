@@ -225,6 +225,11 @@ public class Constants {
     public static final String ROLES = "roles";
     public static final String INTEREST_ID_MISSING = "InterestId is not present";
     public static final String DEMAND_ID_MISSING = "DemandId is not present";
+    public static final String PROVIDER_ID_TO_VALIDATE= "providerIdsToValidate";
+    public static final String ASSIGNED_PROVIDER_ID= "assignedProviderId";
+    public static final String CONTENT_ID= "contentId";
+    public static final String IN_PROGRESS= "InProgress";
+
     private Constants() {
     }
 }

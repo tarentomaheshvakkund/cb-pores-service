@@ -109,11 +109,52 @@ public class DemandServiceImpl implements DemandService {
             return response;
         }
         try {
-            String id = generateUniqueDemandId();
-            ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
+            if (!handleProviderValidation(demandDetails, response)) {
+                return response;
+            }
+            DemandEntity jsonNodeEntity = new DemandEntity();
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+            String id = "";
+            if (demandDetails.has(Constants.DEMAND_ID) && !demandDetails.get(Constants.DEMAND_ID).asText().isEmpty()) {
+                id = demandDetails.get(Constants.DEMAND_ID).asText();
+            } else {
+                id = generateUniqueDemandId();
+                ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
+                jsonNodeEntity.setCreatedOn(currentTime);
+            }
+            if (demandDetails.has(Constants.DEMAND_ID) && Constants.SINGLE.equalsIgnoreCase(demandDetails.get(Constants.REQUEST_TYPE).asText())){
+                Optional<DemandEntity> demandEntity = demandRepository.findById(
+                    demandDetails.get(Constants.DEMAND_ID).asText());
+                if (demandEntity.isPresent()) {
+                    JsonNode fetchedDemandJson = demandEntity.get().getData();
+                    if (!fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER).isEmpty()) {
+                        JsonNode fetchedAssignedProvider = fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER);
+                        JsonNode orgIdNode = fetchedAssignedProvider.get(Constants.PROVIDER_ID);
+                        String fetchedOrgId = orgIdNode.asText();
+                        JsonNode assignedProvider = demandDetails.get(Constants.ASSIGNED_PROVIDER);
+                        JsonNode assingedorgIdNode = assignedProvider.get(Constants.PROVIDER_ID);
+                        String assignedOrgId = assingedorgIdNode.asText();
+                        if (!fetchedOrgId.equalsIgnoreCase(assignedOrgId)) {
+                            ((ObjectNode) demandDetails).put(Constants.PREV_ASSIGNED_PROVIDER,
+                                fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER));
+                            ((ObjectNode) demandDetails).put(Constants.CREATED_ON, fetchedDemandJson.get(Constants.CREATED_ON));
+                            jsonNodeEntity.setCreatedOn(demandEntity.get().getCreatedOn());
+                            log.info(
+                                "Reasigning the demand");
+                        } else {
+                            response.setMessage("Assigning to the same org please reassign");
+                            response.setResponseCode(HttpStatus.BAD_REQUEST);
+                            return response;
+                        }
+                    } else {
+                        response.setMessage("AssignedProvider is not present for fetched data");
+                        response.setResponseCode(HttpStatus.BAD_REQUEST);
+                        return response;
+                    }
+                }
+            }
             ((ObjectNode) demandDetails).put(Constants.DEMAND_ID, id);
-            ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
+            ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             ((ObjectNode) demandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.INTEREST_COUNT, 0);
             ((ObjectNode) demandDetails).put(Constants.OWNER, userId);
@@ -124,10 +165,8 @@ public class DemandServiceImpl implements DemandService {
             } else {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.ASSIGNED);
             }
-            DemandEntity jsonNodeEntity = new DemandEntity();
             jsonNodeEntity.setDemandId(id);
             jsonNodeEntity.setData(demandDetails);
-            jsonNodeEntity.setCreatedOn(currentTime);
             jsonNodeEntity.setUpdatedOn(currentTime);
 
             DemandEntity saveJsonEntity = demandRepository.save(jsonNodeEntity);
@@ -314,7 +353,14 @@ public class DemandServiceImpl implements DemandService {
                 String requestType = data.get(Constants.REQUEST_TYPE).asText();
                 boolean isActive = data.get(Constants.IS_ACTIVE).asBoolean();
                 String newStatus = updateDetails.get(Constants.NEW_STATUS).asText();
-
+                String contentId = updateDetails.get(Constants.CONTENT_ID).asText();
+                if (newStatus.equals(Constants.IN_PROGRESS) && contentId.isEmpty())
+                {
+                    response.getParams().setErrmsg("ContentId is missing");
+                    logger.error("ContentId is missing");
+                    response.setResponseCode(HttpStatus.BAD_REQUEST);
+                    return response;
+                }
                 if (!isActive) {
                     logger.error("You are trying to update an inactive demand");
                     throw new CustomException(Constants.ERROR, Constants.CANNOT_UPDATE_INACTIVE_DEMAND, HttpStatus.BAD_REQUEST);
@@ -325,6 +371,7 @@ public class DemandServiceImpl implements DemandService {
                 }
                 // Update the status
                 ((ObjectNode) data).put(Constants.STATUS, newStatus);
+                ((ObjectNode) data).put(Constants.CONTENT_ID, contentId);
                 demandDbData.setData(data);
                 Timestamp currentTime = new Timestamp(System.currentTimeMillis());
                 ((ObjectNode) data).put(Constants.UPDATED_ON, String.valueOf(currentTime));
@@ -475,5 +522,102 @@ public class DemandServiceImpl implements DemandService {
         if (roles.contains(Constants.SPV_ADMIN)) {
             return true;
         } else return false;
+    }
+
+    private boolean handleProviderValidation(JsonNode demandDetails, CustomResponse response) {
+        Map<String, Object> idsMap = getProviderIdsToValidate(demandDetails);
+        List<String> providerIdsToValidate = (List<String>) idsMap.get(Constants.PROVIDER_ID_TO_VALIDATE);
+        String assignedProviderId = (String) idsMap.get(Constants.ASSIGNED_PROVIDER_ID);
+
+        List<String> invalidProviderIds = validateProviderIds(providerIdsToValidate, assignedProviderId);
+        if (!invalidProviderIds.isEmpty()) {
+            String invalidIds = String.join(", ", invalidProviderIds);
+            response.getParams().setErrmsg(Constants.INVALID_ID + invalidIds);
+            log.warn("DemandService::handleProviderValidation: Found invalid provider IDs: {}", invalidProviderIds);
+            response.setResponseCode(HttpStatus.BAD_REQUEST);
+            return false;
+        }
+        return true;
+    }
+
+    private Map<String, Object> getProviderIdsToValidate(JsonNode demandDetails) {
+        List<String> providerIdsToValidate = new ArrayList<>();
+        String assignedProviderId = null;
+        String requestType = demandDetails.get(Constants.REQUEST_TYPE).asText();
+
+        if (requestType.equals(Constants.BROADCAST)) {
+            JsonNode preferredProviders = demandDetails.get(Constants.PREFERRED_PROVIDER);
+            if (preferredProviders != null && preferredProviders.isArray()) {
+                for (JsonNode provider : preferredProviders) {
+                    String providerId = provider.get(Constants.PROVIDER_ID).asText();
+                    providerIdsToValidate.add(providerId);
+                }
+                log.info("DemandService::getProviderIdsToValidate: Collected preferred provider IDs for broadcast request");
+            }
+        } else if (requestType.equals(Constants.SINGLE)) {
+            JsonNode assignedProvider = demandDetails.get(Constants.ASSIGNED_PROVIDER);
+            if (assignedProvider != null) {
+                assignedProviderId = assignedProvider.get(Constants.PROVIDER_ID).asText();
+                log.info("DemandService::getProviderIdsToValidate: Collected assigned provider ID for single request");
+            }
+        }
+
+        Map<String, Object> idsMap = new HashMap<>();
+        idsMap.put("providerIdsToValidate", providerIdsToValidate);
+        idsMap.put("assignedProviderId", assignedProviderId);
+        return idsMap;
+    }
+    private List<String> validateProviderIds(List<String> providerIds, String assignedProviderId) {
+        List<String> idsToValidate = new ArrayList<>(providerIds);
+        if (assignedProviderId != null) {
+            idsToValidate.add(assignedProviderId);
+        }
+        // Fetch user IDs associated with the provider IDs
+        List<String> fetchedUserIds = fetchingUserId(idsToValidate);
+
+        List<String> invalidProviderIds = new ArrayList<>();
+        for (String providerId : idsToValidate) {
+            if (!fetchedUserIds.contains(providerId)) {
+                invalidProviderIds.add(providerId);
+                log.warn("DemandService::validateProviderIds: Invalid provider ID found: {}", providerId);
+            }
+            else {
+                log.info("DemandService::validateProviderIds: Valid provider ID: {}", providerId);
+            }
+        }
+        return invalidProviderIds;
+    }
+
+    private List<String> fetchingUserId(List<String> userIds) {
+        log.info("DemandService::fetchEmailFromUserId: Fetching user IDs: {}", userIds);
+        Map<String, Object> requestObject = new HashMap<>();
+        Map<String, Object> req = new HashMap<>();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put(Constants.ROOT_ORG_ID, userIds);
+        List<String> userFields = Arrays.asList(Constants.ROOT_ORG_ID);
+        req.put(Constants.FILTERS, filters);
+        req.put(Constants.FIELDS, userFields);
+        requestObject.put(Constants.REQUEST, req);
+
+        HashMap<String, String> headersValue = new HashMap<>();
+        headersValue.put(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
+        headersValue.put(Constants.AUTHORIZATION, cbServerProperties.getSbApiKey());
+
+        String url = cbServerProperties.getLearnerServiceUrl() + cbServerProperties.getOrgSearchPath();
+        Map<String, Object> searchProfileApiResp = requestHandlerService.fetchResultUsingPost(url, requestObject, headersValue);
+        List<String> userIdResponseList = new ArrayList<>();
+        if (searchProfileApiResp != null
+                && Constants.OK.equalsIgnoreCase((String) searchProfileApiResp.get(Constants.RESPONSE_CODE))) {
+            Map<String, Object> map = (Map<String, Object>) searchProfileApiResp.get(Constants.RESULT);
+            Map<String, Object> resp = (Map<String, Object>) map.get(Constants.RESPONSE);
+            List<Map<String, Object>> contents = (List<Map<String, Object>>) resp.get(Constants.CONTENT);
+            for (Map<String, Object> content : contents) {
+                userIdResponseList.add((String) content.get(Constants.ROOT_ORG_ID));
+            }
+            log.info("DemandService::fetchEmailFromUserId: Fetched user IDs: {}", userIdResponseList);
+        }else {
+            log.warn("DemandService::fetchEmailFromUserId: No user IDs found or error in fetching.");
+        }
+        return userIdResponseList;
     }
 }
