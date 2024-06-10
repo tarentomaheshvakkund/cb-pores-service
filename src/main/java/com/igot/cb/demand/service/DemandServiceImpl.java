@@ -112,11 +112,49 @@ public class DemandServiceImpl implements DemandService {
             if (!handleProviderValidation(demandDetails, response)) {
                 return response;
             }
-            String id = generateUniqueDemandId();
-            ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
+            DemandEntity jsonNodeEntity = new DemandEntity();
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+            String id = "";
+            if (demandDetails.has(Constants.DEMAND_ID) && !demandDetails.get(Constants.DEMAND_ID).asText().isEmpty()) {
+                id = demandDetails.get(Constants.DEMAND_ID).asText();
+            } else {
+                id = generateUniqueDemandId();
+                ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
+                jsonNodeEntity.setCreatedOn(currentTime);
+            }
+            if (!demandDetails.get(Constants.ASSIGNED_PROVIDER).isEmpty()){
+                Optional<DemandEntity> demandEntity = demandRepository.findById(
+                    demandDetails.get(Constants.DEMAND_ID).asText());
+                if (demandEntity.isPresent()) {
+                    JsonNode fetchedDemandJson = demandEntity.get().getData();
+                    if (!fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER).isEmpty()) {
+                        JsonNode fetchedAssignedProvider = fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER);
+                        JsonNode orgIdNode = fetchedAssignedProvider.get(Constants.PROVIDER_ID);
+                        String fetchedOrgId = orgIdNode.asText();
+                        JsonNode assignedProvider = demandDetails.get(Constants.ASSIGNED_PROVIDER);
+                        JsonNode assingedorgIdNode = assignedProvider.get(Constants.PROVIDER_ID);
+                        String assignedOrgId = assingedorgIdNode.asText();
+                        if (!fetchedOrgId.equalsIgnoreCase(assignedOrgId)) {
+                            ((ObjectNode) demandDetails).put(Constants.PREV_ASSIGNED_PROVIDER,
+                                fetchedDemandJson.get(Constants.ASSIGNED_PROVIDER));
+                            ((ObjectNode) demandDetails).put(Constants.CREATED_ON, fetchedDemandJson.get(Constants.CREATED_ON));
+                            jsonNodeEntity.setCreatedOn(demandEntity.get().getCreatedOn());
+                            log.info(
+                                "Reasigning the demand");
+                        } else {
+                            response.setMessage("Assigning to the same org please reassign");
+                            response.setResponseCode(HttpStatus.BAD_REQUEST);
+                            return response;
+                        }
+                    } else {
+                        response.setMessage("AssignedProvider is not present for fetched data");
+                        response.setResponseCode(HttpStatus.BAD_REQUEST);
+                        return response;
+                    }
+                }
+            }
             ((ObjectNode) demandDetails).put(Constants.DEMAND_ID, id);
-            ((ObjectNode) demandDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
+            ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             ((ObjectNode) demandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.INTEREST_COUNT, 0);
             ((ObjectNode) demandDetails).put(Constants.OWNER, userId);
@@ -127,10 +165,8 @@ public class DemandServiceImpl implements DemandService {
             } else {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.ASSIGNED);
             }
-            DemandEntity jsonNodeEntity = new DemandEntity();
             jsonNodeEntity.setDemandId(id);
             jsonNodeEntity.setData(demandDetails);
-            jsonNodeEntity.setCreatedOn(currentTime);
             jsonNodeEntity.setUpdatedOn(currentTime);
 
             DemandEntity saveJsonEntity = demandRepository.save(jsonNodeEntity);
