@@ -32,7 +32,6 @@
   "required": [
     "type",
     "orgId",
-    "ownerId",
-    "children"
+    "ownerId"
   ]
 }
