@@ -344,7 +344,7 @@ public class DemandServiceImpl implements DemandService {
             throw new CustomException(Constants.ERROR, Constants.MISSING_ID_OR_NEW_STATUS, HttpStatus.BAD_REQUEST);
         }
         try {
-            log.info("updating demand status with id : " + updateDetails.get("id"));
+            log.info("updating demand status with id : " + updateDetails.get(Constants.DEMAND_ID));
             Optional<DemandEntity> optionalDemand = demandRepository.findById(updateDetails.get(Constants.DEMAND_ID).asText());
             if (optionalDemand.isPresent()) {
                 DemandEntity demandDbData = optionalDemand.get();
@@ -353,8 +353,7 @@ public class DemandServiceImpl implements DemandService {
                 String requestType = data.get(Constants.REQUEST_TYPE).asText();
                 boolean isActive = data.get(Constants.IS_ACTIVE).asBoolean();
                 String newStatus = updateDetails.get(Constants.NEW_STATUS).asText();
-                String contentId = updateDetails.get(Constants.CONTENT_ID).asText();
-                if (newStatus.equals(Constants.IN_PROGRESS) && contentId.isEmpty())
+                if (Constants.IN_PROGRESS.equals(newStatus) && !updateDetails.has(Constants.CONTENT_ID) && updateDetails.get(Constants.CONTENT_ID).asText().isEmpty())
                 {
                     response.getParams().setErrmsg("ContentId is missing");
                     logger.error("ContentId is missing");
@@ -371,7 +370,9 @@ public class DemandServiceImpl implements DemandService {
                 }
                 // Update the status
                 ((ObjectNode) data).put(Constants.STATUS, newStatus);
-                ((ObjectNode) data).put(Constants.CONTENT_ID, contentId);
+                if (newStatus.equalsIgnoreCase(Constants.IN_PROGRESS)){
+                    ((ObjectNode) data).put(Constants.CONTENT_ID, updateDetails.get(Constants.CONTENT_ID).asText());
+                }
                 demandDbData.setData(data);
                 Timestamp currentTime = new Timestamp(System.currentTimeMillis());
                 ((ObjectNode) data).put(Constants.UPDATED_ON, String.valueOf(currentTime));
