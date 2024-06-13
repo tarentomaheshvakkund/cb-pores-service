@@ -137,6 +137,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       searchTags.add(playListJson.get(Constants.TITLE).textValue().toLowerCase());
       searchTags.add(playListJson.get(Constants.TYPE).textValue().toLowerCase());
       ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+      ((ObjectNode) playListJson).put(Constants.ID, String.valueOf(playListId));
       ((ObjectNode) playListJson).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
       Map<String, Object> map = objectMapper.convertValue(playListJson, Map.class);
       //put it in es jsonNodeEntiy along with enrichedContentMap
@@ -350,6 +351,7 @@ public class PlayListServiceImpl implements PlayListSerive {
         persistInRedis(enrichedContentJson, playListEntity,
             playListEntity.getOrgId() + playListEntity.getRequestType());
         JsonNode playListJson = playListEntity.getData();
+        ((ObjectNode) playListJson).put(Constants.ID, playListEntity.getId());
         Map<String, Object> map = objectMapper.convertValue(playListJson, Map.class);
         //put it in es jsonNodeEntiy along with enrichedContentMap
         esUtilService.addDocument(Constants.PLAYLIST_INDEX_NAME, Constants.INDEX_TYPE,
@@ -424,12 +426,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       return response;
     }
     String searchString = searchCriteria.getSearchString();
-    if (searchString != null && searchString.length() < 2) {
-      createErrorResponse(response, "Minimum 3 characters are required to search",
-          HttpStatus.BAD_REQUEST,
-          Constants.FAILED_CONST);
-      return response;
-    } else {
+    if(searchString != null && searchString.length() > 0) {
       searchCriteria.setSearchString(searchString.toLowerCase());
     }
     try {
@@ -561,5 +558,6 @@ public class PlayListServiceImpl implements PlayListSerive {
     response.setParams(new ApiRespParam());
     response.getParams().setStatus(status);
     response.setResponseCode(httpStatus);
+    response.getParams().setErrMsg(errorMessage);
   }
 }
