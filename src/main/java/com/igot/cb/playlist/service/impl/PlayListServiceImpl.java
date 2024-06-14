@@ -430,7 +430,7 @@ public class PlayListServiceImpl implements PlayListSerive {
         .get(generateRedisJwtTokenKey(searchCriteria));
     if (searchResult != null) {
       log.info("PlayListService::searchPlayList: search result fetched from redis");
-      response.getResult().put(Constants.RESULT, searchResult);
+      response.getResult().putAll(objectMapper.convertValue(searchResult, Map.class));
       createSuccessResponse(response);
       return response;
     }
@@ -543,7 +543,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           ((ObjectNode) dataNode).put(Constants.UPDATED_ON, String.valueOf(currentTime));
           ((ObjectNode) dataNode).put(Constants.KEY_PLAYLIST,
               playListEntityUpdated.getOrgId() + playListEntityUpdated.getRequestType()
-                  + playListDetails.get(Constants.ID));
+                  + playListDetails.get(Constants.ID).asText());
           if (playListDetails.has(Constants.CHILDREN) && !playListDetails.get(Constants.CHILDREN)
               .asText()
               .isEmpty()) {
@@ -608,7 +608,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       log.info("PlayListService::createPlayList:creating playList");
       PlayListEntity jsonNodeEntity = new PlayListEntity();
       UUID playListId = UUIDs.timeBased();
-
+      String id = String.valueOf(playListId);
       jsonNodeEntity.setId(String.valueOf(playListId));
       jsonNodeEntity.setOrgId(playListDetails.get(Constants.ORG_ID).asText());
       Timestamp currentTime = new Timestamp(System.currentTimeMillis());
@@ -619,7 +619,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       jsonNodeEntity.setUpdatedOn(currentTime);
       jsonNodeEntity.setRequestType(playListDetails.get(Constants.RQST_CONTENT_TYPE).asText());
       ((ObjectNode) playListDetails).put(Constants.KEY_PLAYLIST,
-          jsonNodeEntity.getOrgId() + jsonNodeEntity.getRequestType() + playListId);
+          jsonNodeEntity.getOrgId() + jsonNodeEntity.getRequestType() + id);
       jsonNodeEntity.setIsActive(true);
       playListRepository.save(jsonNodeEntity);
       if (playListDetails.has(Constants.CHILDREN) && !playListDetails.get(Constants.CHILDREN)
