@@ -143,5 +143,8 @@
   },
   "ownerOrgName": {
     "type": "keyword"
+  },
+  "ownerName": {
+    "type": "keyword"
   }
 }

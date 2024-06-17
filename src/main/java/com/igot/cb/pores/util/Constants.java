@@ -238,6 +238,7 @@ public class Constants {
     public static final String LAST_UPDATED_ON = "lastUpdatedOn";
     public static final String COMPETENCY = "competencyArea";
     public static final Boolean ACTIVE_STATUS_FALSE = false;
+    public static final String OWNER_NAME = "ownerName";
 
     private Constants() {
     }
