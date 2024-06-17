@@ -153,12 +153,22 @@ public class DemandServiceImpl implements DemandService {
                     }
                 }
             }
+            Map<String, Object> propertyMap = new HashMap<>();
+            propertyMap.put(Constants.ID, rootOrgId);
+            List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
+                    Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
+            if (ObjectUtils.isEmpty(orgDetails)) {
+                response.setMessage("OrgDetails are not fetched for given orgId");
+                response.setResponseCode(HttpStatus.NOT_FOUND);
+                return response;
+            }
             ((ObjectNode) demandDetails).put(Constants.DEMAND_ID, id);
             ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             ((ObjectNode) demandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.INTEREST_COUNT, 0);
             ((ObjectNode) demandDetails).put(Constants.OWNER, userId);
             ((ObjectNode) demandDetails).put(Constants.ROOT_ORG_ID, rootOrgId);
+            ((ObjectNode) demandDetails).put(Constants.OWNER_ORG_NAME,(String) orgDetails.get(0).get(Constants.USER_ROOT_ORG_NAME));
             String requestType = demandDetails.get(Constants.REQUEST_TYPE).asText();
             if (requestType.equals(Constants.BROADCAST)) {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.UNASSIGNED);
