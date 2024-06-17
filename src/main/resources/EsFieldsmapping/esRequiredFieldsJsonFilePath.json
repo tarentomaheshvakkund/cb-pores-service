@@ -51,7 +51,7 @@
   "owner": {
     "type": "keyword"
   },
-  "rootOrgId": {
+  "ownerOrgId": {
     "type": "keyword"
   },
   "status": {
@@ -140,5 +140,8 @@
   },
   "contentId": {
     "type": "string"
+  },
+  "ownerOrgName": {
+    "type": "keyword"
   }
 }
