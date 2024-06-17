@@ -167,7 +167,7 @@ public class DemandServiceImpl implements DemandService {
             ((ObjectNode) demandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.INTEREST_COUNT, 0);
             ((ObjectNode) demandDetails).put(Constants.OWNER, userId);
-            ((ObjectNode) demandDetails).put(Constants.OWNER_ORG_ID, rootOrgId);
+            ((ObjectNode) demandDetails).put(Constants.ROOT_ORG_ID, rootOrgId);
             ((ObjectNode) demandDetails).put(Constants.OWNER_ORG_NAME,(String) orgDetails.get(0).get(Constants.USER_ROOT_ORG_NAME));
             String requestType = demandDetails.get(Constants.REQUEST_TYPE).asText();
             if (requestType.equals(Constants.BROADCAST)) {
