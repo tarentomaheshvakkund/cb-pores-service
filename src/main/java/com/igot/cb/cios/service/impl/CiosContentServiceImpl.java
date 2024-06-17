@@ -20,6 +20,7 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -56,6 +57,9 @@ public class CiosContentServiceImpl implements CiosContentService {
 
     @Value("${search.result.redis.ttl}")
     private long searchResultRedisTtl;
+
+    @Autowired
+    private CbServerProperties cbServerProperties;
 
     @Autowired
     private CacheService cacheService;
@@ -115,7 +119,7 @@ public class CiosContentServiceImpl implements CiosContentService {
             fetchedEntity.setIsActive(false);
             ciosRepository.save(fetchedEntity);
             Map<String, Object> map = objectMapper.convertValue(fetchedEntity.getCiosData().get("content"), Map.class);
-            esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE,fetchedEntity.getContentId(), map, Constants.ES_REQUIRED_FIELDS_JSON_FILE);
+            esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE,fetchedEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
             cacheService.deleteCache(fetchedEntity.getContentId());
             log.info("deleted content");
             return "Content with id : " + contentId + " is deleted";
@@ -147,7 +151,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                 Map<String, Object> map = objectMapper.convertValue(ciosContentEntity.getCiosData().get("content"), Map.class);
                 log.info("Id of content created in Igot: " + ciosContentEntity.getContentId());
                 cacheService.putCache(ciosContentEntity.getContentId(), ciosContentEntity.getCiosData());
-                esUtilService.addDocument(Constants.CIOS_INDEX_NAME,Constants.INDEX_TYPE,ciosContentEntity.getContentId(), map, Constants.ES_REQUIRED_FIELDS_JSON_FILE);
+                esUtilService.addDocument(Constants.CIOS_INDEX_NAME,Constants.INDEX_TYPE,ciosContentEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
             }
             return "Success";
         } catch (Exception e) {

@@ -58,6 +58,10 @@ public class CbServerProperties {
   @Value("${bookmark.duplicate.not.allowed.category}")
   private String bookmarkDuplicateNotAllowedCategory;
 
+  @Value("${elastic.required.field.cios.json.path}")
+  private String elasticCiosJsonPath;
+
+
   public List<String> getBookmarkDuplicateNotAllowedCategory() {
     return Arrays.asList(bookmarkDuplicateNotAllowedCategory.split(","));
   }
