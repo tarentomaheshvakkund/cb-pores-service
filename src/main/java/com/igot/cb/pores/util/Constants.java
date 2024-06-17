@@ -231,6 +231,13 @@ public class Constants {
     public static final String IN_PROGRESS= "InProgress";
     public static final String SEARCHTAGS = "searchTags";
     public static final String OWNER_ORG_NAME = "ownerOrgName";
+    public static final String CIOS_INDEX_NAME= "cios_content_entity";
+    public static final String ES_REQUIRED_FIELDS_JSON_FILE = "/EsFieldsmapping/contentEsRequiredFieldsJsonFilePath.json";
+    public static final String CIOS_CONTENT_SERVICE_KEY = "cios_content";
+    public static final String ID_PREFIX = "ext_";
+    public static final String LAST_UPDATED_ON = "lastUpdatedOn";
+    public static final String COMPETENCY = "competencyArea";
+    public static final Boolean ACTIVE_STATUS_FALSE = false;
 
     private Constants() {
     }

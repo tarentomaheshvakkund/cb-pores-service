@@ -209,6 +209,7 @@ public class EsUtilServiceImpl implements EsUtilService {
         addRequestedFieldsToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
         addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
         addFacetsToSearchSourceBuilder(searchCriteria.getFacets(), searchSourceBuilder);
+        log.info("final search query result {}",searchSourceBuilder);
         return searchSourceBuilder;
     }
 
@@ -273,7 +274,7 @@ public class EsUtilServiceImpl implements EsUtilService {
         if (isNotBlank(searchString)) {
             boolQueryBuilder.must(
                     QueryBuilders.boolQuery()
-                            .should(new WildcardQueryBuilder("searchTags.keyword", "*" + searchString + "*")));
+                            .should(new WildcardQueryBuilder("searchTags.keyword", "*" + searchString.toLowerCase() + "*")));
         }
     }
 
