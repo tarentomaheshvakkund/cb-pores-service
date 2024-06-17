@@ -231,7 +231,6 @@ public class Constants {
     public static final String IN_PROGRESS= "InProgress";
     public static final String SEARCHTAGS = "searchTags";
     public static final String OWNER_ORG_NAME = "ownerOrgName";
-    public static final String OWNER_ORG_ID = "ownerOrgId";
 
     private Constants() {
     }
