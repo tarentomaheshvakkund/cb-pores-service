@@ -544,9 +544,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           ((ObjectNode) dataNode).put(Constants.KEY_PLAYLIST,
               playListEntityUpdated.getOrgId() + playListEntityUpdated.getRequestType()
                   + playListDetails.get(Constants.ID).asText());
-          if (playListDetails.has(Constants.CHILDREN) && !playListDetails.get(Constants.CHILDREN)
-              .asText()
-              .isEmpty()) {
+          if (playListDetails.has(Constants.CHILDREN)) {
             ((ObjectNode) dataNode).put(Constants.CHILDREN,
                 playListDetails.get(Constants.CHILDREN));
           }
