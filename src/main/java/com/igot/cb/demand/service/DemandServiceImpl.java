@@ -108,6 +108,9 @@ public class DemandServiceImpl implements DemandService {
         if (response.getResponseCode() != HttpStatus.OK) {
             return response;
         }
+        Map<String,Object> userDetails = (Map<String, Object>) response.getResult();
+        ((ObjectNode) demandDetails).put(Constants.OWNER_NAME, (String) userDetails.get(Constants.FIRST_NAME));
+        response.getResult().clear();
         try {
             if (!handleProviderValidation(demandDetails, response)) {
                 return response;
@@ -153,12 +156,22 @@ public class DemandServiceImpl implements DemandService {
                     }
                 }
             }
+            Map<String, Object> propertyMap = new HashMap<>();
+            propertyMap.put(Constants.ID, rootOrgId);
+            List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
+                    Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
+            if (ObjectUtils.isEmpty(orgDetails)) {
+                response.setMessage("OrgDetails are not fetched for given orgId");
+                response.setResponseCode(HttpStatus.NOT_FOUND);
+                return response;
+            }
             ((ObjectNode) demandDetails).put(Constants.DEMAND_ID, id);
             ((ObjectNode) demandDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
             ((ObjectNode) demandDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) demandDetails).put(Constants.INTEREST_COUNT, 0);
             ((ObjectNode) demandDetails).put(Constants.OWNER, userId);
             ((ObjectNode) demandDetails).put(Constants.ROOT_ORG_ID, rootOrgId);
+            ((ObjectNode) demandDetails).put(Constants.OWNER_ORG_NAME,(String) orgDetails.get(0).get(Constants.USER_ROOT_ORG_NAME));
             String requestType = demandDetails.get(Constants.REQUEST_TYPE).asText();
             if (requestType.equals(Constants.BROADCAST)) {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.UNASSIGNED);
@@ -435,13 +448,14 @@ public class DemandServiceImpl implements DemandService {
 
     public CustomResponse validateUser(String rootOrgId, CustomResponse response, String userId) {
         log.info("Validating the user with rootOrgId: {} and userId: {}", rootOrgId, userId);
+        List<Map<String, Object>> userDetails;
         try {
             Map<String, Object> propertyMap = new HashMap<>();
             propertyMap.put(Constants.ID, userId);
 
-            List<Map<String, Object>> userDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
+            userDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
                     Constants.KEYSPACE_SUNBIRD, Constants.TABLE_USER, propertyMap,
-                    Arrays.asList(Constants.ROOT_ORG_ID), 2);
+                    Arrays.asList(Constants.ROOT_ORG_ID, Constants.FIRST_NAME), 2);
 
             String userRootOrgId = null;
             if (!CollectionUtils.isEmpty(userDetails)) {
@@ -464,7 +478,10 @@ public class DemandServiceImpl implements DemandService {
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             return response;
         }
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put(Constants.FIRST_NAME,(String) userDetails.get(0).get(Constants.FIRST_NAME));
         response.setResponseCode(HttpStatus.OK);
+        response.setResult(userMap);
         return response;
     }
 
