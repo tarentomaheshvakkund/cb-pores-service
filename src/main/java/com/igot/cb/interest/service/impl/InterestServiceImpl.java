@@ -94,7 +94,7 @@ public class InterestServiceImpl implements InterestService {
     CustomResponse response = new CustomResponse();
     payloadValidation.validatePayload(Constants.INTEREST_VALIDATION_FILE_JSON, interestDetails);
     Map<String, Object> propertyMap = new HashMap<>();
-    String  orgId = interestDetails.get(Constants.ORG_ID).asText();
+    String orgId = interestDetails.get(Constants.ORG_ID).asText();
     propertyMap.put(Constants.ID, interestDetails.get(Constants.ORG_ID).asText());
     List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(
         Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
@@ -119,9 +119,9 @@ public class InterestServiceImpl implements InterestService {
           interestDetails.get(Constants.DEMAND_ID_RQST).asText());
       if (demandEntity.isPresent()) {
         JsonNode fetchedDemandJson = null;
-        if(!demandEntity.get().getData().isEmpty()){
+        if (!demandEntity.get().getData().isEmpty()) {
           fetchedDemandJson = demandEntity.get().getData();
-        }else {
+        } else {
           response.setMessage("data is not present for demand");
           response.setResponseCode(HttpStatus.BAD_REQUEST);
           return response;
@@ -129,7 +129,8 @@ public class InterestServiceImpl implements InterestService {
         ((ObjectNode) fetchedDemandJson).put(Constants.INTEREST_COUNT,
             fetchedDemandJson.get(Constants.INTEREST_COUNT).asInt() + 1);
         Set<String> interestOrgSet = new HashSet<>();
-        if (fetchedDemandJson.has(Constants.INTEREST_ORG_SET) && !ObjectUtils.isEmpty(fetchedDemandJson.get(Constants.INTEREST_ORG_SET))) {
+        if (fetchedDemandJson.has(Constants.INTEREST_ORG_SET) && !ObjectUtils.isEmpty(
+            fetchedDemandJson.get(Constants.INTEREST_ORG_SET))) {
           for (JsonNode node : fetchedDemandJson.get(Constants.INTEREST_ORG_SET)) {
             interestOrgSet.add(node.asText());
           }
