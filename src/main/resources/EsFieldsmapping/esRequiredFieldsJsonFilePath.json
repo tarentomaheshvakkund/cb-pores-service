@@ -146,5 +146,8 @@
   },
   "ownerName": {
     "type": "keyword"
+  },
+  "interestOrgSet": {
+    "type": "keyword"
   }
 }
