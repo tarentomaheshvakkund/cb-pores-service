@@ -725,6 +725,33 @@ public class PlayListServiceImpl implements PlayListSerive {
     }
   }
 
+  @Override
+  public ApiResponse searchPlayListWithoutCaching(SearchCriteria searchCriteria) {
+    log.info("PlayListService::searchPlayListWithoutCaching:inside method");
+    ApiResponse response = new ApiResponse();
+    SearchResult searchResult;
+    String searchString = searchCriteria.getSearchString();
+    if (searchString != null && searchString.length() < 2) {
+      createErrorResponse(response, "Minimum 3 characters are required to search",
+          HttpStatus.BAD_REQUEST, Constants.FAILED_CONST);
+      return response;
+    }
+    if (searchString != null && searchString.length() > 2) {
+      searchCriteria.setSearchString(searchString.toLowerCase());
+    }
+    try {
+      searchResult =
+          esUtilService.searchDocuments(Constants.PLAYLIST_INDEX_NAME, searchCriteria);
+      response.getResult().putAll(objectMapper.convertValue(searchResult, Map.class));
+      createSuccessResponse(response);
+      return response;
+    } catch (Exception e) {
+      createErrorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR,
+          Constants.FAILED_CONST);
+      return response;
+    }
+  }
+
   private void validatePayload(SearchDto searchDto) {
     log.info("PlayListService::validatePayload:inside method");
     if (searchDto == null || searchDto.getRequest() == null) {

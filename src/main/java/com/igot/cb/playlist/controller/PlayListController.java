@@ -78,4 +78,10 @@ public class PlayListController {
     ApiResponse response = playListSerive.readV2Playlist(id, playListId, orgId);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
+
+  @PostMapping("/v1/search/program")
+  public Object playListSearchWithoutCaching(@RequestBody SearchCriteria searchDto) {
+    ApiResponse response = playListSerive.searchPlayListWithoutCaching(searchDto);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
 }
