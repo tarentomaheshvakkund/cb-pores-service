@@ -140,5 +140,11 @@
   },
   "contentId": {
     "type": "string"
+  },
+  "ownerOrgName": {
+    "type": "keyword"
+  },
+  "ownerName": {
+    "type": "keyword"
   }
 }

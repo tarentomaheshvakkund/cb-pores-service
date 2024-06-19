@@ -45,6 +45,7 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.xcontent.XContentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -69,6 +70,7 @@ public class EsUtilServiceImpl implements EsUtilService {
     @Override
     public RestStatus addDocument(
             String esIndexName, String type, String id, Map<String, Object> document, String JsonFilePath) {
+        log.info("EsUtilServiceImpl :: addDocument");
         try {
             JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance();
             InputStream schemaStream = schemaFactory.getClass().getResourceAsStream(JsonFilePath);
@@ -86,6 +88,7 @@ public class EsUtilServiceImpl implements EsUtilService {
             IndexRequest indexRequest =
                     new IndexRequest(esIndexName, type, id).source(document, XContentType.JSON);
             IndexResponse response = elasticsearchClient.index(indexRequest, RequestOptions.DEFAULT);
+            log.info("EsUtilServiceImpl :: addDocument :Insertion response {}",response.status());
             return response.status();
         } catch (Exception e) {
             log.error("Issue while Indexing to es: {}", e.getMessage());
@@ -209,6 +212,7 @@ public class EsUtilServiceImpl implements EsUtilService {
         addRequestedFieldsToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
         addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
         addFacetsToSearchSourceBuilder(searchCriteria.getFacets(), searchSourceBuilder);
+        log.info("final search query result {}",searchSourceBuilder);
         return searchSourceBuilder;
     }
 
@@ -273,7 +277,7 @@ public class EsUtilServiceImpl implements EsUtilService {
         if (isNotBlank(searchString)) {
             boolQueryBuilder.must(
                     QueryBuilders.boolQuery()
-                            .should(new WildcardQueryBuilder("searchTags.keyword", "*" + searchString + "*")));
+                            .should(new WildcardQueryBuilder("searchTags.keyword", "*" + searchString.toLowerCase() + "*")));
         }
     }
 

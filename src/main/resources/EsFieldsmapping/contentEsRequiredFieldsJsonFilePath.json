@@ -1,0 +1,46 @@
+{
+  "contentId": {
+    "type": "keyword"
+  },
+  "externalId": {
+    "type": "keyword"
+  },
+  "name": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "duration": {
+    "type": "long"
+  },
+  "redirectUrl": {
+    "type": "keyword"
+  },
+  "appIcon": {
+    "type": "keyword"
+  },
+  "objectives": {
+    "type": "keyword"
+  },
+  "topic": {
+    "type": "keyword"
+  },
+  "isActive": {
+    "type": "boolean"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
+  },
+  "lastUpdatedOn": {
+    "type": "date",
+    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
+  },
+  "searchTags": {
+    "type": "keyword"
+  },
+  "competencyArea": {
+    "type": "keyword"
+  }
+}

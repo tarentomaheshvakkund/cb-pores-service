@@ -59,4 +59,29 @@ public class PlayListController {
     ApiResponse response = playListSerive.readPlaylist(id, orgId);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
+
+  @PutMapping("/v2/update")
+  public Object updateV2(@RequestBody JsonNode playListDetails)
+      throws JsonProcessingException {
+    ApiResponse response = playListSerive.updateV2PlayList(playListDetails);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @PostMapping("/v2/create")
+  public Object createV2(@RequestBody JsonNode playListDetails) {
+    ApiResponse response = playListSerive.createV2PlayList(playListDetails);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @GetMapping("/v2/read/{id}/{playListId}/{orgId}")
+  public Object playListReadV2(@PathVariable String id, @PathVariable String playListId, @PathVariable String orgId) {
+    ApiResponse response = playListSerive.readV2Playlist(id, playListId, orgId);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @PostMapping("/v1/search/program")
+  public Object playListSearchWithoutCaching(@RequestBody SearchCriteria searchDto) {
+    ApiResponse response = playListSerive.searchPlayListWithoutCaching(searchDto);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
 }
