@@ -24,4 +24,6 @@ public interface PlayListSerive {
   ApiResponse createV2PlayList(JsonNode playListDetails);
 
   ApiResponse readV2Playlist(String id, String playListId, String orgId);
+
+  public ApiResponse searchPlayListWithoutCaching(SearchCriteria searchDto);
 }
