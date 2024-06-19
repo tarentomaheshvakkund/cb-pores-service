@@ -732,7 +732,8 @@ public class PlayListServiceImpl implements PlayListSerive {
     SearchResult searchResult;
     String searchString = searchCriteria.getSearchString();
     if (searchString != null && searchString.length() < 2) {
-      createErrorResponse(response, "Minimum 3 characters are required to search", HttpStatus.BAD_REQUEST, Constants.FAILED_CONST);
+      createErrorResponse(response, "Minimum 3 characters are required to search",
+          HttpStatus.BAD_REQUEST, Constants.FAILED_CONST);
       return response;
     }
     if (searchString != null && searchString.length() > 2) {
