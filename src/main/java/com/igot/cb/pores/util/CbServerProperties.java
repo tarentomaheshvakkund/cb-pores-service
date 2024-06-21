@@ -93,4 +93,7 @@ public class CbServerProperties {
   @Value("${lms.user.read.path}")
   private String userReadEndPoint;
 
+  @Value("${announcement.default.search.pageSize}")
+  private int announcementDefaultSearchPageSize;
+
 }

@@ -143,12 +143,14 @@ public class PlayListServiceImpl implements PlayListSerive {
       persistInRedis(enrichedContentJson, jsonNodeEntity,
           jsonNodeEntity.getOrgId() + jsonNodeEntity.getRequestType());
       JsonNode playListJson = jsonNodeEntity.getData();
-      List<String> searchTags = new ArrayList<>();
-      searchTags.add(playListJson.get(Constants.TITLE).textValue().toLowerCase());
-      searchTags.add(playListJson.get(Constants.TYPE).textValue().toLowerCase());
-      ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+      if (playListJson.has(Constants.TITLE) && !playListJson.get(Constants.TITLE).asText()
+          .isEmpty()) {
+        List<String> searchTags = new ArrayList<>();
+        searchTags.add(playListJson.get(Constants.TITLE).textValue().toLowerCase());
+        ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+        ((ObjectNode) playListJson).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+      }
       ((ObjectNode) playListJson).put(Constants.ID, String.valueOf(playListId));
-      ((ObjectNode) playListJson).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
       Map<String, Object> map = objectMapper.convertValue(playListJson, Map.class);
       //put it in es jsonNodeEntiy along with enrichedContentMap
       esUtilService.addDocument(Constants.PLAYLIST_INDEX_NAME, Constants.INDEX_TYPE,
@@ -360,6 +362,13 @@ public class PlayListServiceImpl implements PlayListSerive {
         persistInRedis(enrichedContentJson, playListEntity,
             playListEntity.getOrgId() + playListEntity.getRequestType());
         JsonNode playListJson = playListEntity.getData();
+        if (playListJson.has(Constants.TITLE) && !playListJson.get(Constants.TITLE).asText()
+            .isEmpty()) {
+          List<String> searchTags = new ArrayList<>();
+          searchTags.add(playListJson.get(Constants.TITLE).textValue().toLowerCase());
+          ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+          ((ObjectNode) playListJson).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+        }
         ((ObjectNode) playListJson).put(Constants.ID, playListEntity.getId());
         Map<String, Object> map = objectMapper.convertValue(playListJson, Map.class);
         //put it in es jsonNodeEntiy along with enrichedContentMap
@@ -565,6 +574,12 @@ public class PlayListServiceImpl implements PlayListSerive {
                     + playListEntityUpdated.getId());
           }
           JsonNode jsonNode = playListEntityUpdated.getData();
+          if (jsonNode.has(Constants.TITLE) && !jsonNode.get(Constants.TITLE).asText().isEmpty()) {
+            List<String> searchTags = new ArrayList<>();
+            searchTags.add(jsonNode.get(Constants.TITLE).textValue().toLowerCase());
+            ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+            ((ObjectNode) jsonNode).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+          }
           ((ObjectNode) jsonNode).put(Constants.ID, playListEntityUpdated.getId());
           Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
           esUtilService.updateDocument(Constants.PLAYLIST_INDEX_NAME, Constants.INDEX_TYPE, id, map,
@@ -633,11 +648,13 @@ public class PlayListServiceImpl implements PlayListSerive {
 
       }
       JsonNode playListJson = jsonNodeEntity.getData();
-      List<String> searchTags = new ArrayList<>();
-      searchTags.add(playListJson.get(Constants.TITLE).textValue().toLowerCase());
-      searchTags.add(playListJson.get(Constants.TYPE).textValue().toLowerCase());
-      ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
-      ((ObjectNode) playListJson).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+      if (playListJson.has(Constants.TITLE) && !playListJson.get(Constants.TITLE).asText()
+          .isEmpty()) {
+        List<String> searchTags = new ArrayList<>();
+        searchTags.add(playListJson.get(Constants.TITLE).textValue().toLowerCase());
+        ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+        ((ObjectNode) playListDetails).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+      }
       ((ObjectNode) playListJson).put(Constants.ID, String.valueOf(playListId));
       Map<String, Object> map = objectMapper.convertValue(playListJson, Map.class);
       //put it in es jsonNodeEntiy along with enrichedContentMap

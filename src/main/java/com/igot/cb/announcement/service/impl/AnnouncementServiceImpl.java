@@ -19,6 +19,7 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
 import java.sql.Timestamp;
@@ -60,6 +61,9 @@ public class AnnouncementServiceImpl implements AnnouncementService {
 
   @Autowired
   private RedisTemplate<String, SearchResult> redisTemplate;
+
+  @Autowired
+  private CbServerProperties serverProperties;
 
   @Value("${search.result.redis.ttl}")
   private long searchResultRedisTtl;
@@ -149,6 +153,9 @@ public class AnnouncementServiceImpl implements AnnouncementService {
       return response;
     }
     try {
+      if (searchCriteria.getPageSize() == 0) {
+        searchCriteria.setPageSize(serverProperties.getAnnouncementDefaultSearchPageSize());
+      }
       searchResult =
           esUtilService.searchDocuments(Constants.ANNOUNCEMENT_INDEX, searchCriteria);
       response.getResult().putAll(objectMapper.convertValue(searchResult, Map.class));
