@@ -8,16 +8,6 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.util.Constants;
 import com.networknt.schema.JsonSchemaFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -33,6 +23,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.WildcardQueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
@@ -44,9 +35,12 @@ import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.xcontent.XContentType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
+import java.util.Map.Entry;
 
 @Service
 @Slf4j
@@ -88,7 +82,7 @@ public class EsUtilServiceImpl implements EsUtilService {
             IndexRequest indexRequest =
                     new IndexRequest(esIndexName, type, id).source(document, XContentType.JSON);
             IndexResponse response = elasticsearchClient.index(indexRequest, RequestOptions.DEFAULT);
-            log.info("EsUtilServiceImpl :: addDocument :Insertion response {}",response.status());
+            log.info("EsUtilServiceImpl :: addDocument :Insertion response {}", response.status());
             return response.status();
         } catch (Exception e) {
             log.error("Issue while Indexing to es: {}", e.getMessage());
@@ -212,7 +206,7 @@ public class EsUtilServiceImpl implements EsUtilService {
         addRequestedFieldsToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
         addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
         addFacetsToSearchSourceBuilder(searchCriteria.getFacets(), searchSourceBuilder);
-        log.info("final search query result {}",searchSourceBuilder);
+        log.info("final search query result {}", searchSourceBuilder);
         return searchSourceBuilder;
     }
 
@@ -231,18 +225,43 @@ public class EsUtilServiceImpl implements EsUtilService {
                             boolQueryBuilder.must(QueryBuilders.termsQuery(field + Constants.KEYWORD, value));
                         } else if (value instanceof Map) {
                             Map<String, Object> nestedMap = (Map<String, Object>) value;
-                            nestedMap.forEach((nestedField, nestedValue) -> {
-                                String fullPath = field + "." + nestedField;
-                                if (nestedValue instanceof Boolean) {
-                                    boolQueryBuilder.must(QueryBuilders.termQuery(fullPath, nestedValue));
-                                } else if (nestedValue instanceof String) {
-                                    boolQueryBuilder.must(QueryBuilders.termQuery(fullPath + Constants.KEYWORD, nestedValue));
-                                } else if (nestedValue instanceof ArrayList) {
-                                    boolQueryBuilder.must(
-                                            QueryBuilders.termsQuery(
-                                                    fullPath + Constants.KEYWORD, ((ArrayList<?>) nestedValue).toArray()));
-                                }
-                            });
+                            if (isRangeQuery(nestedMap)) {
+                                // Handle range query
+                                BoolQueryBuilder rangeOrNullQuery = QueryBuilders.boolQuery();
+                                RangeQueryBuilder rangeQuery = QueryBuilders.rangeQuery(field);
+                                nestedMap.forEach((rangeOperator, rangeValue) -> {
+                                    switch (rangeOperator) {
+                                        case Constants.SEARCH_OPERATION_GREATER_THAN_EQUALS:
+                                            rangeQuery.gte(rangeValue);
+                                            break;
+                                        case Constants.SEARCH_OPERATION_LESS_THAN_EQUALS:
+                                            rangeQuery.lte(rangeValue);
+                                            break;
+                                        case Constants.SEARCH_OPERATION_GREATER_THAN:
+                                            rangeQuery.gt(rangeValue);
+                                            break;
+                                        case Constants.SEARCH_OPERATION_LESS_THAN:
+                                            rangeQuery.lt(rangeValue);
+                                            break;
+                                    }
+                                });
+                                rangeOrNullQuery.should(rangeQuery);
+                                rangeOrNullQuery.should(QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(field)));
+                                boolQueryBuilder.must(rangeOrNullQuery);
+                            } else {
+                                nestedMap.forEach((nestedField, nestedValue) -> {
+                                    String fullPath = field + "." + nestedField;
+                                    if (nestedValue instanceof Boolean) {
+                                        boolQueryBuilder.must(QueryBuilders.termQuery(fullPath, nestedValue));
+                                    } else if (nestedValue instanceof String) {
+                                        boolQueryBuilder.must(QueryBuilders.termQuery(fullPath + Constants.KEYWORD, nestedValue));
+                                    } else if (nestedValue instanceof ArrayList) {
+                                        boolQueryBuilder.must(
+                                                QueryBuilders.termsQuery(
+                                                        fullPath + Constants.KEYWORD, ((ArrayList<?>) nestedValue).toArray()));
+                                    }
+                                });
+                            }
                         }
                     });
         }
@@ -329,6 +348,12 @@ public class EsUtilServiceImpl implements EsUtilService {
         searchHits.forEach(
                 hit -> bulkRequest.add(new DeleteRequest(esIndexName, Constants.INDEX_TYPE, hit.getId())));
         return elasticsearchClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+    }
+
+    private boolean isRangeQuery(Map<String, Object> nestedMap) {
+        return nestedMap.keySet().stream().anyMatch(key -> key.equals(Constants.SEARCH_OPERATION_GREATER_THAN_EQUALS) ||
+                key.equals(Constants.SEARCH_OPERATION_LESS_THAN_EQUALS) || key.equals(Constants.SEARCH_OPERATION_GREATER_THAN) ||
+                key.equals(Constants.SEARCH_OPERATION_LESS_THAN));
     }
 }
 

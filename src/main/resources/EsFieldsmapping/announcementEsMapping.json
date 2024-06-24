@@ -45,5 +45,9 @@
   },
   "announcementId": {
     "type": "keyword"
+  },
+  "expiredOn": {
+    "type": "string",
+    "format": "date"
   }
 }

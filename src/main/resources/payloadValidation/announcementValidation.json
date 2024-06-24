@@ -6,7 +6,9 @@
       "type": "string"
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 500
     },
     "category": {
       "type": "string"
@@ -41,6 +43,10 @@
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
         "epoch_millis"
       ]
+    },
+    "expiredOn": {
+      "type": "string",
+      "format": "date"
     }
   },
   "required": [

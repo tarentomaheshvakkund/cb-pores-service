@@ -238,6 +238,11 @@ public class Constants {
     public static final Boolean ACTIVE_STATUS_FALSE = false;
     public static final String OWNER_NAME = "ownerName";
     public static final String INTEREST_ORG_SET ="interestOrgSet";
+    public static final String SEARCH_OPERATION_LESS_THAN = "<";
+    public static final String SEARCH_OPERATION_GREATER_THAN = ">";
+    public static final String SEARCH_OPERATION_LESS_THAN_EQUALS = "<=";
+    public static final String SEARCH_OPERATION_GREATER_THAN_EQUALS = ">=";
+    public static final String EXPIRED_ON = "expiredOn";
 
 
     private Constants() {

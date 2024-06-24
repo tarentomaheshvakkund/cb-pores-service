@@ -213,29 +213,7 @@ public class PlayListServiceImpl implements PlayListSerive {
             new ArrayList<>());
         if (MapUtils.isNotEmpty(contentResponse)) {
           if (Constants.LIVE.equalsIgnoreCase((String) contentResponse.get(Constants.STATUS))) {
-            Map<String, Object> enrichContentMap = new HashMap<>();
-            enrichContentMap.put(Constants.NAME, contentResponse.get(Constants.NAME));
-            enrichContentMap.put(Constants.COMPETENCIES_V5,
-                contentResponse.get(Constants.COMPETENCIES_V5));
-            enrichContentMap.put(Constants.AVG_RATING, contentResponse.get(Constants.AVG_RATING));
-            enrichContentMap.put(Constants.IDENTIFIER, contentResponse.get(Constants.IDENTIFIER));
-            enrichContentMap.put(Constants.DESCRIPTION, contentResponse.get(Constants.DESCRIPTION));
-            enrichContentMap.put(Constants.ADDITIONAL_TAGS,
-                contentResponse.get(Constants.ADDITIONAL_TAGS));
-            enrichContentMap.put(Constants.CONTENT_TYPE_KEY,
-                contentResponse.get(Constants.CONTENT_TYPE_KEY));
-            enrichContentMap.put(Constants.PRIMARY_CATEGORY,
-                contentResponse.get(Constants.PRIMARY_CATEGORY));
-            enrichContentMap.put(Constants.DURATION, contentResponse.get(Constants.DURATION));
-            enrichContentMap.put(Constants.COURSE_APP_ICON,
-                contentResponse.get(Constants.COURSE_APP_ICON));
-            enrichContentMap.put(Constants.POSTER_IMAGE,
-                contentResponse.get(Constants.POSTER_IMAGE));
-            enrichContentMap.put(Constants.ORGANISATION,
-                contentResponse.get(Constants.ORGANISATION));
-            enrichContentMap.put(Constants.CREATOR_LOGO,
-                contentResponse.get(Constants.CREATOR_LOGO));
-            enrichContentMaps.put(childId, enrichContentMap);
+            enrichContentMaps.put(childId, contentResponse);
           }
         }
       });
@@ -700,8 +678,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           ObjectNode enrichedContentJson = objectMapper.createObjectNode();
           enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
           enrichedContentJson.put(Constants.ID, playListEntity.getOrgId());
-          persistInRedis(enrichedContentJson, playListEntity,
-              playListEntity.getOrgId() + playListEntity.getRequestType());
+          persistInRedis(enrichedContentJson, playListEntity, id);
 
           playListStringFromRedis =
               redisCacheMngr.hget(id, redisInsightIndex, orgId).toString();
