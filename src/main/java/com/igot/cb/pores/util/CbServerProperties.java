@@ -103,6 +103,6 @@ public class CbServerProperties {
   private String sbCompositeV4Search;
 
   @Value("${playlist_course_facets}")
-  private String courseCategoryFacet;
+  private List<String> courseCategoryFacet;
 
 }
