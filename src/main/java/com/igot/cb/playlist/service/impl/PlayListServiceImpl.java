@@ -305,8 +305,12 @@ public class PlayListServiceImpl implements PlayListSerive {
       });
 
       response.setResponseCode(HttpStatus.OK);
-      response.getResult().put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
-      response.getResult().put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+      response.getResult()
+          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
@@ -510,10 +514,13 @@ public class PlayListServiceImpl implements PlayListSerive {
         JsonNode childData = entry.getValue();
         dataList.add(childData);
       });
-
       response.setResponseCode(HttpStatus.OK);
-      response.getResult().put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
-      response.getResult().put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+      response.getResult()
+          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
@@ -720,8 +727,12 @@ public class PlayListServiceImpl implements PlayListSerive {
       });
 
       response.setResponseCode(HttpStatus.OK);
-      response.getResult().put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
-      response.getResult().put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+      response.getResult()
+          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
