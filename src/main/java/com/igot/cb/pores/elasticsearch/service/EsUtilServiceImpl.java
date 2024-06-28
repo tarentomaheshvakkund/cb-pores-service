@@ -21,10 +21,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.RangeQueryBuilder;
-import org.elasticsearch.index.query.WildcardQueryBuilder;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
@@ -206,16 +203,22 @@ public class EsUtilServiceImpl implements EsUtilService {
         addRequestedFieldsToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
         addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
         addFacetsToSearchSourceBuilder(searchCriteria.getFacets(), searchSourceBuilder);
+        QueryBuilder queryPart = buildQueryPart(searchCriteria.getQuery());
+        boolQueryBuilder.must(queryPart);
         log.info("final search query result {}", searchSourceBuilder);
         return searchSourceBuilder;
     }
 
     private BoolQueryBuilder buildFilterQuery(Map<String, Object> filterCriteriaMap) {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        List<Map<String, Object>> mustNotConditions = new ArrayList<>();
+
         if (filterCriteriaMap != null) {
             filterCriteriaMap.forEach(
                     (field, value) -> {
-                        if (value instanceof Boolean) {
+                        if (field.equals("must_not") && value instanceof ArrayList) {
+                            mustNotConditions.addAll((List<Map<String, Object>>) value);
+                        } else if (value instanceof Boolean) {
                             boolQueryBuilder.must(QueryBuilders.termQuery(field, value));
                         } else if (value instanceof ArrayList) {
                             boolQueryBuilder.must(
@@ -264,6 +267,11 @@ public class EsUtilServiceImpl implements EsUtilService {
                             }
                         }
                     });
+            if (mustNotConditions != null) {
+                mustNotConditions.forEach(condition -> {
+                    boolQueryBuilder.mustNot(buildQueryPart(condition));
+                });
+            }
         }
         return boolQueryBuilder;
     }
@@ -355,5 +363,109 @@ public class EsUtilServiceImpl implements EsUtilService {
                 key.equals(Constants.SEARCH_OPERATION_LESS_THAN_EQUALS) || key.equals(Constants.SEARCH_OPERATION_GREATER_THAN) ||
                 key.equals(Constants.SEARCH_OPERATION_LESS_THAN));
     }
+
+    private QueryBuilder buildQueryPart(Map<String, Object> queryMap) {
+        log.info("Search:: buildQueryPart");
+        if (queryMap == null || queryMap.isEmpty()) {
+            return QueryBuilders.matchAllQuery();
+        }
+        for (Map.Entry<String, Object> entry : queryMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            switch (key) {
+                case Constants.BOOL:
+                    return buildBoolQuery((Map<String, Object>) value);
+                case Constants.TERM:
+                    return buildTermQuery((Map<String, Object>) value);
+                case Constants.TERMS:
+                    return buildTermsQuery((Map<String, Object>) value);
+                case Constants.MATCH:
+                    return buildMatchQuery((Map<String, Object>) value);
+                case Constants.RANGE:
+                    return buildRangeQuery((Map<String, Object>) value);
+                default:
+                    throw new IllegalArgumentException(Constants.UNSUPPORTED_QUERY + key);
+            }
+        }
+
+        return null;
+    }
+
+    private BoolQueryBuilder buildBoolQuery(Map<String, Object> boolMap) {
+        log.info("Search:: builderBoolQuery");
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        if (boolMap.containsKey(Constants.MUST)) {
+            List<Map<String, Object>> mustList = (List<Map<String, Object>>) boolMap.get("must");
+            mustList.forEach(must -> boolQueryBuilder.must(buildQueryPart(must)));
+        }
+        if (boolMap.containsKey(Constants.FILTER)) {
+            List<Map<String, Object>> filterList = (List<Map<String, Object>>) boolMap.get("filter");
+            filterList.forEach(filter -> boolQueryBuilder.filter(buildQueryPart(filter)));
+        }
+        if (boolMap.containsKey(Constants.MUST_NOT)) {
+            List<Map<String, Object>> mustNotList = (List<Map<String, Object>>) boolMap.get("must_not");
+            mustNotList.forEach(mustNot -> boolQueryBuilder.mustNot(buildQueryPart(mustNot)));
+        }
+        if (boolMap.containsKey(Constants.SHOULD)) {
+            List<Map<String, Object>> shouldList = (List<Map<String, Object>>) boolMap.get("should");
+            shouldList.forEach(should -> boolQueryBuilder.should(buildQueryPart(should)));
+        }
+
+        return boolQueryBuilder;
+    }
+
+    private QueryBuilder buildTermQuery(Map<String, Object> termMap) {
+        log.info("search::buildTermQuery");
+        for (Map.Entry<String, Object> entry : termMap.entrySet()) {
+            return QueryBuilders.termQuery(entry.getKey(), entry.getValue());
+        }
+        return null;
+    }
+
+    private QueryBuilder buildTermsQuery(Map<String, Object> termsMap) {
+        log.info("search::buildTermsQuery");
+        for (Map.Entry<String, Object> entry : termsMap.entrySet()) {
+            return QueryBuilders.termsQuery(entry.getKey(), (List<?>) entry.getValue());
+        }
+        return null;
+    }
+
+    private QueryBuilder buildMatchQuery(Map<String, Object> matchMap) {
+        log.info("search:: buildMatchQuery");
+        for (Map.Entry<String, Object> entry : matchMap.entrySet()) {
+            return QueryBuilders.matchQuery(entry.getKey(), entry.getValue());
+        }
+        return null;
+    }
+
+    private QueryBuilder buildRangeQuery(Map<String, Object> rangeMap) {
+        log.info("search:: buildRangeQuery");
+        for (Map.Entry<String, Object> entry : rangeMap.entrySet()) {
+            Map<String, Object> rangeConditions = (Map<String, Object>) entry.getValue();
+            RangeQueryBuilder rangeQuery = QueryBuilders.rangeQuery(entry.getKey());
+            rangeConditions.forEach((condition, value) -> {
+                switch (condition) {
+                    case "gt":
+                        rangeQuery.gt(value);
+                        break;
+                    case "gte":
+                        rangeQuery.gte(value);
+                        break;
+                    case "lt":
+                        rangeQuery.lt(value);
+                        break;
+                    case "lte":
+                        rangeQuery.lte(value);
+                        break;
+                    default:
+                        throw new IllegalArgumentException(Constants.UNSUPPORTED_RANGE + condition);
+                }
+            });
+            return rangeQuery;
+        }
+        return null;
+    }
+
 }
 
