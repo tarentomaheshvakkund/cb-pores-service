@@ -17,6 +17,7 @@ import com.igot.cb.playlist.service.ContentService;
 import com.igot.cb.playlist.service.PlayListSerive;
 import com.igot.cb.playlist.util.ProjectUtil;
 import com.igot.cb.playlist.util.RedisCacheMngr;
+import com.igot.cb.pores.Service.OutboundRequestHandlerServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
@@ -32,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -92,6 +94,9 @@ public class PlayListServiceImpl implements PlayListSerive {
   @Autowired
   private CacheService cacheService;
 
+  @Autowired
+  private OutboundRequestHandlerServiceImpl outboundRequestHandlerService;
+
   @Value("${search.result.redis.ttl}")
   private long searchResultRedisTtl;
 
@@ -135,7 +140,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       jsonNodeEntity.setIsActive(true);
       playListRepository.save(jsonNodeEntity);
       JsonNode childrenNode = playListDetails.get(Constants.CHILDREN);
-      Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+      Map<String, Object> enrichContentMaps = new HashMap<>();
       enrichContentMaps = fetchContentDetails(childrenNode);
       ObjectNode enrichedContentJson = objectMapper.createObjectNode();
       enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
@@ -202,24 +207,29 @@ public class PlayListServiceImpl implements PlayListSerive {
 
   }
 
-  private Map<String, Map<String, Object>> fetchContentDetails(JsonNode childrenNode) {
+  private Map<String, Object> fetchContentDetails(JsonNode childrenNode) {
     log.info("PlayListService::fetchContentDetails");
-    Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+    Map<String, Object> compositeSearchRes = new HashMap<>();
     if (childrenNode != null && childrenNode.isArray()) {
-      childrenNode.forEach(childNode -> {
-        String childId = childNode.asText();
-        // Call method to fetch details for each child
-        Map<String, Object> contentResponse = contentService.readContentFromCache(childId,
-            new ArrayList<>());
-        if (MapUtils.isNotEmpty(contentResponse)) {
-          if (Constants.LIVE.equalsIgnoreCase((String) contentResponse.get(Constants.STATUS))) {
-            enrichContentMaps.put(childId, contentResponse);
-          }
-        }
-      });
+      HashMap<String, Object> reqBody = new HashMap<>();
+      HashMap<String, Object> req = new HashMap<>();
+      req.put(Constants.FACETS, Arrays.asList(cbServerProperties.getCourseCategoryFacet()));
+      Map<String, Object> filters = new HashMap<>();
+      filters.put(Constants.IDENTIFIER,
+          objectMapper.convertValue(childrenNode, new TypeReference<List<String>>() {
+          }));
+      filters.put(Constants.STATUS, Arrays.asList(Constants.LIVE));
+      req.put(Constants.FILTERS, filters);
+      reqBody.put(Constants.REQUEST, req);
+
+      compositeSearchRes = outboundRequestHandlerService.fetchResultUsingPost(
+          cbServerProperties.getSbSearchServiceHost() + cbServerProperties.getSbCompositeV4Search(),
+          reqBody,
+          null);
+      return compositeSearchRes;
     }
     log.info("PlayListService::fetchContentDetails:fetchedContent");
-    return enrichContentMaps;
+    return compositeSearchRes;
   }
 
   @Override
@@ -258,7 +268,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           PlayListEntity playListEntity = optionalJsonNodeEntity.orElse(null);
           log.info("PlayListService::searchPlayListForOrg::fetched playList from postgres");
           playListEntity.getData().get(Constants.CHILDREN);
-          Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+          Map<String, Object> enrichContentMaps = new HashMap<>();
           enrichContentMaps = fetchContentDetails(playListEntity.getData().get(Constants.CHILDREN));
           ObjectNode enrichedContentJson = objectMapper.createObjectNode();
           enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
@@ -295,7 +305,12 @@ public class PlayListServiceImpl implements PlayListSerive {
       });
 
       response.setResponseCode(HttpStatus.OK);
-      response.getResult().put(Constants.CONTENT, dataList);
+      response.getResult()
+          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+      response.getResult()
+          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
@@ -332,7 +347,7 @@ public class PlayListServiceImpl implements PlayListSerive {
             playListEntity.getOrgId() + playListEntity.getRequestType());
         playListEntity.setData(fetchedData);
         PlayListEntity saveJsonEntity = playListRepository.save(playListEntity);
-        Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+        Map<String, Object> enrichContentMaps = new HashMap<>();
         enrichContentMaps = fetchContentDetails(playListDetails.get(Constants.CHILDREN));
         ObjectNode enrichedContentJson = objectMapper.createObjectNode();
         enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
@@ -465,7 +480,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           PlayListEntity playListEntity = optionalJsonNodeEntity.get(0);
           log.info("PlayListService::readPlayList::fetched playList from postgres");
           playListEntity.getData().get(Constants.CHILDREN);
-          Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+          Map<String, Object> enrichContentMaps = new HashMap<>();
           enrichContentMaps = fetchContentDetails(playListEntity.getData().get(Constants.CHILDREN));
           ObjectNode enrichedContentJson = objectMapper.createObjectNode();
           enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
@@ -499,9 +514,13 @@ public class PlayListServiceImpl implements PlayListSerive {
         JsonNode childData = entry.getValue();
         dataList.add(childData);
       });
-
       response.setResponseCode(HttpStatus.OK);
-      response.getResult().put(Constants.CONTENT, dataList);
+      response.getResult()
+          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+      response.getResult()
+          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
@@ -541,7 +560,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           if (playListDetails.has(Constants.CHILDREN) && !playListDetails.get(Constants.CHILDREN)
               .isEmpty()) {
             JsonNode childrenNode = playListDetails.get(Constants.CHILDREN);
-            Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+            Map<String, Object> enrichContentMaps = new HashMap<>();
             enrichContentMaps = fetchContentDetails(childrenNode);
             ObjectNode enrichedContentJson = objectMapper.createObjectNode();
             enrichedContentJson.put(Constants.CHILDREN,
@@ -616,7 +635,7 @@ public class PlayListServiceImpl implements PlayListSerive {
       if (playListDetails.has(Constants.CHILDREN) && !playListDetails.get(Constants.CHILDREN)
           .isEmpty()) {
         JsonNode childrenNode = playListDetails.get(Constants.CHILDREN);
-        Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+        Map<String, Object> enrichContentMaps = new HashMap<>();
         enrichContentMaps = fetchContentDetails(childrenNode);
         ObjectNode enrichedContentJson = objectMapper.createObjectNode();
         enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
@@ -673,7 +692,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           PlayListEntity playListEntity = optionalJsonNodeEntity.get();
           log.info("PlayListService::readPlayList::fetched playList from postgres");
           playListEntity.getData().get(Constants.CHILDREN);
-          Map<String, Map<String, Object>> enrichContentMaps = new HashMap<>();
+          Map<String, Object> enrichContentMaps = new HashMap<>();
           enrichContentMaps = fetchContentDetails(playListEntity.getData().get(Constants.CHILDREN));
           ObjectNode enrichedContentJson = objectMapper.createObjectNode();
           enrichedContentJson.put(Constants.CHILDREN, objectMapper.valueToTree(enrichContentMaps));
@@ -708,7 +727,12 @@ public class PlayListServiceImpl implements PlayListSerive {
       });
 
       response.setResponseCode(HttpStatus.OK);
-      response.getResult().put(Constants.CONTENT, dataList);
+      response.getResult()
+          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+      response.getResult()
+          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+      response.getResult()
+          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);

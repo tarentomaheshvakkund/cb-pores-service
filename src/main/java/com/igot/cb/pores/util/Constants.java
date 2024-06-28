@@ -254,6 +254,8 @@ public class Constants {
     public static final String RANGE="range";
     public static final String UNSUPPORTED_QUERY="Unsupported query type";
     public static final String UNSUPPORTED_RANGE= "Unsupported range condition";
+    public static final String FACETS = "facets";
+    public static final String COUNT = "count";
 
     private Constants() {
     }
