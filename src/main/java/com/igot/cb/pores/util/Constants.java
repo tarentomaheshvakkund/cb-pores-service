@@ -243,6 +243,8 @@ public class Constants {
     public static final String SEARCH_OPERATION_LESS_THAN_EQUALS = "<=";
     public static final String SEARCH_OPERATION_GREATER_THAN_EQUALS = ">=";
     public static final String EXPIRED_ON = "expiredOn";
+    public static final String FACETS = "facets";
+    public static final String COUNT = "count";
 
 
     private Constants() {

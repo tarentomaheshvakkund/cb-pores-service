@@ -96,4 +96,13 @@ public class CbServerProperties {
   @Value("${announcement.default.search.pageSize}")
   private int announcementDefaultSearchPageSize;
 
+  @Value("${sb.search.service.host}")
+  private String sbSearchServiceHost;
+
+  @Value("${sb.composite.v4.search}")
+  private String sbCompositeV4Search;
+
+  @Value("${playlist_course_facets}")
+  private String[] courseCategoryFacet;
+
 }
