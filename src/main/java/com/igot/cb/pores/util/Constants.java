@@ -243,7 +243,17 @@ public class Constants {
     public static final String SEARCH_OPERATION_LESS_THAN_EQUALS = "<=";
     public static final String SEARCH_OPERATION_GREATER_THAN_EQUALS = ">=";
     public static final String EXPIRED_ON = "expiredOn";
-
+    public static final String MUST= "must";
+    public static final String FILTER= "filter";
+    public static final String MUST_NOT="must_not";
+    public static final String SHOULD= "should";
+    public static final String BOOL="bool";
+    public static final String TERM="term";
+    public static final String TERMS="terms";
+    public static final String MATCH="match";
+    public static final String RANGE="range";
+    public static final String UNSUPPORTED_QUERY="Unsupported query type";
+    public static final String UNSUPPORTED_RANGE= "Unsupported range condition";
 
     private Constants() {
     }
