@@ -243,6 +243,8 @@ public class Constants {
     public static final String SEARCH_OPERATION_LESS_THAN_EQUALS = "<=";
     public static final String SEARCH_OPERATION_GREATER_THAN_EQUALS = ">=";
     public static final String EXPIRED_ON = "expiredOn";
+    public static final String ORG = "org";
+    public static final String SPV_ORG_NAME = "Karmayogi Bharat";
 
 
     private Constants() {
