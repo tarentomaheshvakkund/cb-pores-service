@@ -175,8 +175,18 @@ public class DemandServiceImpl implements DemandService {
             String requestType = demandDetails.get(Constants.REQUEST_TYPE).asText();
             if (requestType.equals(Constants.BROADCAST)) {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.UNASSIGNED);
+                if (demandDetails.has(Constants.ASSIGNED_PROVIDER) && !demandDetails.get(Constants.ASSIGNED_PROVIDER).isNull()) {
+                    response.setMessage("AssignedProvider should not send for broadcast requests");
+                    response.setResponseCode(HttpStatus.BAD_REQUEST);
+                    return response;
+                }
             } else {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.ASSIGNED);
+                if (demandDetails.has(Constants.PREFERRED_PROVIDER) && !demandDetails.get(Constants.PREFERRED_PROVIDER).isNull()) {
+                    response.setMessage("PreferredProvider should not send for single requests");
+                    response.setResponseCode(HttpStatus.BAD_REQUEST);
+                    return response;
+                }
             }
             jsonNodeEntity.setDemandId(id);
             jsonNodeEntity.setData(demandDetails);
