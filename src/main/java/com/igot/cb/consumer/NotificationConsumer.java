@@ -113,6 +113,8 @@ public class NotificationConsumer {
             // Prepare mail notification details
             mailNotificationDetails.put(Constants.EMAIL_ID_LIST, emails);
             mailNotificationDetails.put(Constants.MDO_NAME, mdoName);
+            mailNotificationDetails.put(Constants.ORG,mdoName);
+            mailNotificationDetails.put(Constants.ORG_NAME,mdoName);
             mailNotificationDetails.put(Constants.COMPETENCY_AREA, allArea);
             mailNotificationDetails.put(Constants.COMPETENCY_THEMES, allThemes);
             mailNotificationDetails.put(Constants.COMPETENCY_SUB_THEMES, allSubThemes);
@@ -125,6 +127,10 @@ public class NotificationConsumer {
 
             // Send notifications
             if (status.equals(Constants.ASSIGNED) || status.equals(Constants.UNASSIGNED)) {
+                if(isSpvRequest){
+                    mailNotificationDetails.put(Constants.ORG,Constants.SPV_ORG_NAME);
+                    mailNotificationDetails.put(Constants.ORG_NAME,Constants.SPV_ORG_NAME);
+                }
                 sendNotificationToProvidersAsync(mailNotificationDetails);
             }
 
@@ -172,12 +178,13 @@ public class NotificationConsumer {
 
         params.put(Constants.MDO_NAME_PARAM, (String) mailNotificationDetails.get(Constants.MDO_NAME));
         params.put(Constants.NAME, (String) mailNotificationDetails.get(Constants.MDO_NAME));
+        params.put(Constants.ORG, mailNotificationDetails.get(Constants.ORG));
         params.put(Constants.COMPETENCY_AREA_PARAM, mailNotificationDetails.get(Constants.COMPETENCY_AREA));
         params.put(Constants.COMPETENCY_THEME_PARAM, mailNotificationDetails.get(Constants.COMPETENCY_THEMES));
         params.put(Constants.COMPETENCY_SUB_THEME_PARAM, mailNotificationDetails.get(Constants.COMPETENCY_SUB_THEMES));
         params.put(Constants.DESCRIPTION, mailNotificationDetails.get(Constants.DESCRIPTION));
         params.put(Constants.FROM_EMAIL, configuration.getSupportEmail());
-        params.put(Constants.ORG_NAME, (String) mailNotificationDetails.get(Constants.MDO_NAME));
+        params.put(Constants.ORG_NAME, (String) mailNotificationDetails.get(Constants.ORG_NAME));
         params.put(Constants.BODY, mailNotificationDetails.get(Constants.BODY));
         Template template = new Template(constructEmailTemplate(configuration.getDemandRequestTemplate(), params), configuration.getDemandRequestTemplate(), params);
 
@@ -322,6 +329,8 @@ public class NotificationConsumer {
         mailNotificationDetails.put(Constants.EMAIL_ID_LIST, emails);
         mailNotificationDetails.put(Constants.SUB, subjectLine);
         mailNotificationDetails.put(Constants.BODY, body);
+        mailNotificationDetails.put(Constants.ORG,Constants.SPV_ORG_NAME);
+        mailNotificationDetails.put(Constants.ORG_NAME,Constants.SPV_ORG_NAME);
         sendNotificationToProvidersAsync(mailNotificationDetails);
     }
 

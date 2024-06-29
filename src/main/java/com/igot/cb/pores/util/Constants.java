@@ -256,6 +256,8 @@ public class Constants {
     public static final String UNSUPPORTED_RANGE= "Unsupported range condition";
     public static final String FACETS = "facets";
     public static final String COUNT = "count";
+    public static final String ORG = "org";
+    public static final String SPV_ORG_NAME = "Karmayogi Bharat";
 
     private Constants() {
     }
