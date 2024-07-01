@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.authentication.util.AccessTokenValidator;
@@ -197,11 +198,26 @@ public class DemandServiceImpl implements DemandService {
             ObjectMapper objectMapper = new ObjectMapper();
             ObjectNode jsonNode = objectMapper.createObjectNode();
             jsonNode.set(Constants.DEMAND_ID, new TextNode(saveJsonEntity.getDemandId()));
+            if (!saveJsonEntity.getData().isNull()) {
+                if (saveJsonEntity.getData().has(Constants.TITLE) && !saveJsonEntity.getData()
+                    .get(Constants.TITLE).asText()
+                    .isEmpty() && !saveJsonEntity.getData().get(Constants.TITLE).isNull()) {
+                    List<String> searchTags = new ArrayList<>();
+                    searchTags.add(
+                        saveJsonEntity.getData().get(Constants.TITLE).textValue()
+                            .toLowerCase());
+                    ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+                    ((ObjectNode) saveJsonEntity.getData()).putArray(Constants.SEARCHTAGS)
+                        .add(searchTagsArray);
+                }
+            } else {
+                logger.error("Demand Data not Found with this ID");
+                throw new CustomException(Constants.ERROR, Constants.INVALID_DATA,
+                    HttpStatus.NOT_FOUND);
+            }
             jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
-
             Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
             esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticDemandJsonPath());
-
             cacheService.putCache(jsonNodeEntity.getDemandId(), jsonNode);
             log.info("demand created successfully");
 
@@ -288,6 +304,9 @@ public class DemandServiceImpl implements DemandService {
         if (searchString != null && searchString.length() < 2) {
             createErrorResponse(response, "Minimum 3 characters are required to search", HttpStatus.BAD_REQUEST, Constants.FAILED_CONST);
             return response;
+        }
+        if (searchString != null && searchString.length() > 2) {
+            searchCriteria.setSearchString(searchString.toLowerCase());
         }
         try {
             searchResult = esUtilService.searchDocuments(Constants.INDEX_NAME, searchCriteria);
@@ -406,6 +425,23 @@ public class DemandServiceImpl implements DemandService {
                 ObjectMapper objectMapper = new ObjectMapper();
                 ObjectNode jsonNode = objectMapper.createObjectNode();
                 jsonNode.set(Constants.DEMAND_ID, new TextNode(saveJsonEntity.getDemandId()));
+                if (!saveJsonEntity.getData().isNull()) {
+                    if (saveJsonEntity.getData().has(Constants.TITLE) && !saveJsonEntity.getData()
+                        .get(Constants.TITLE).asText()
+                        .isEmpty() && !saveJsonEntity.getData().get(Constants.TITLE).isNull()) {
+                        List<String> searchTags = new ArrayList<>();
+                        searchTags.add(
+                            saveJsonEntity.getData().get(Constants.TITLE).textValue()
+                                .toLowerCase());
+                        ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+                        ((ObjectNode) saveJsonEntity.getData()).putArray(Constants.SEARCHTAGS)
+                            .add(searchTagsArray);
+                    }
+                } else {
+                    logger.error("Demand Data not Found with this ID");
+                    throw new CustomException(Constants.ERROR, Constants.INVALID_DATA,
+                        HttpStatus.NOT_FOUND);
+                }
                 jsonNode.setAll((ObjectNode) saveJsonEntity.getData());
                 Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
                 esUtilService.addDocument(Constants.INDEX_NAME, Constants.INDEX_TYPE, saveJsonEntity.getDemandId(), map, cbServerProperties.getElasticDemandJsonPath());
