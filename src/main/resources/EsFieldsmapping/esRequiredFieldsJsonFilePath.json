@@ -149,5 +149,8 @@
   },
   "interestOrgSet": {
     "type": "keyword"
+  },
+  "searchTags": {
+    "type": "keyword"
   }
 }
