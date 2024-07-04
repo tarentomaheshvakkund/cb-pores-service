@@ -259,7 +259,8 @@ public class Constants {
     public static final String ORG = "org";
     public static final String SPV_ORG_NAME = "Karmayogi Bharat";
     public static final String INVALID_DATA = "No data found";
+  public static final String PLAYLIST_KEY_REDIS = "playListKey";
 
-    private Constants() {
+  private Constants() {
     }
 }
