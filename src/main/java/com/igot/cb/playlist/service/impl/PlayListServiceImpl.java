@@ -400,11 +400,8 @@ public class PlayListServiceImpl implements PlayListSerive {
     ApiResponse response = new ApiResponse();
     try {
       log.info("PlayListService::delete");
-      Optional<PlayListEntity> optionalJsonNodeEntity = Optional.ofNullable(
-          (PlayListEntity) playListRepository.findByOrgId(
-              id));
+      Optional<PlayListEntity> optionalJsonNodeEntity = playListRepository.findById(id);
       PlayListEntity playListEntity = optionalJsonNodeEntity.orElse(null);
-
       if (optionalJsonNodeEntity.isPresent()) {
         log.info("PlayListService::delete::deleting");
         playListEntity.setIsActive(false);
@@ -413,6 +410,8 @@ public class PlayListServiceImpl implements PlayListSerive {
         playListRepository.save(playListEntity);
         redisCacheMngr.hdel(playListEntity.getOrgId() + playListEntity.getRequestType(), id,
             redisInsightIndex);
+        esUtilService.deleteDocument(Constants.PLAYLIST_INDEX_NAME,
+            id);
         log.info("PlayListService::delete::deleted");
         response = ProjectUtil.createDefaultResponse(Constants.API_PLAYLIST_CREATE);
         response.put(Constants.RESPONSE, Constants.SUCCESS);
