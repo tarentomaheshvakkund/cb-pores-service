@@ -24,9 +24,6 @@ import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.producer.Producer;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
-import com.igot.cb.transactional.model.Config;
-import com.igot.cb.transactional.model.NotificationAsyncRequest;
-import com.igot.cb.transactional.model.Template;
 import com.igot.cb.transactional.service.RequestHandlerServiceImpl;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -35,8 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +42,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -176,15 +170,15 @@ public class DemandServiceImpl implements DemandService {
             String requestType = demandDetails.get(Constants.REQUEST_TYPE).asText();
             if (requestType.equals(Constants.BROADCAST)) {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.UNASSIGNED);
-                if (demandDetails.has(Constants.ASSIGNED_PROVIDER) && !demandDetails.get(Constants.ASSIGNED_PROVIDER).isNull()) {
+                if (demandDetails.has(Constants.ASSIGNED_PROVIDER) && !demandDetails.get(Constants.ASSIGNED_PROVIDER).isNull() && !demandDetails.get(Constants.ASSIGNED_PROVIDER).isEmpty()) {
                     response.setMessage("AssignedProvider should not send for broadcast requests");
                     response.setResponseCode(HttpStatus.BAD_REQUEST);
                     return response;
                 }
             } else {
                 ((ObjectNode) demandDetails).put(Constants.STATUS, Constants.ASSIGNED);
-                if (demandDetails.has(Constants.PREFERRED_PROVIDER) && !demandDetails.get(Constants.PREFERRED_PROVIDER).isNull()) {
-                    response.setMessage("PreferredProvider should not send for single requests");
+                if (demandDetails.has(Constants.PREFERRED_PROVIDER) && !demandDetails.get(Constants.PREFERRED_PROVIDER).isNull() && !demandDetails.get(Constants.PREFERRED_PROVIDER).isEmpty()) {
+                    response.setMessage("PreferredProvider should not be sent for single requests");
                     response.setResponseCode(HttpStatus.BAD_REQUEST);
                     return response;
                 }
