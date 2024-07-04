@@ -305,12 +305,19 @@ public class PlayListServiceImpl implements PlayListSerive {
       });
 
       response.setResponseCode(HttpStatus.OK);
-      response.getResult()
-          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
-      response.getResult()
-          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
-      response.getResult()
-          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
+      if (!dataList.isEmpty()) {
+        response.getResult().put(Constants.CONTENT, dataList);
+      }
+      if (childrenNode.has(Constants.RESULT) && childrenNode.get(Constants.RESULT)
+          .has(Constants.CONTENT) && !childrenNode.get(Constants.RESULT)
+          .get(Constants.CONTENT).isNull()) {
+        response.getResult()
+            .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+        response.getResult()
+            .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+        response.getResult()
+            .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
+      }
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
@@ -515,12 +522,19 @@ public class PlayListServiceImpl implements PlayListSerive {
         dataList.add(childData);
       });
       response.setResponseCode(HttpStatus.OK);
-      response.getResult()
-          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
-      response.getResult()
-          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
-      response.getResult()
-          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
+      if (!dataList.isEmpty()) {
+        response.getResult().put(Constants.CONTENT, dataList);
+      }
+      if (childrenNode.has(Constants.RESULT) && childrenNode.get(Constants.RESULT)
+          .has(Constants.CONTENT) && !childrenNode.get(Constants.RESULT)
+          .get(Constants.CONTENT).isNull()) {
+        response.getResult()
+            .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+        response.getResult()
+            .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+        response.getResult()
+            .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
+      }
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
@@ -727,12 +741,19 @@ public class PlayListServiceImpl implements PlayListSerive {
       });
 
       response.setResponseCode(HttpStatus.OK);
-      response.getResult()
-          .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
-      response.getResult()
-          .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
-      response.getResult()
-          .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
+      if (!dataList.isEmpty()) {
+        response.getResult().put(Constants.CONTENT, dataList);
+      }
+      if (childrenNode.has(Constants.RESULT) && childrenNode.get(Constants.RESULT)
+          .has(Constants.CONTENT) && !childrenNode.get(Constants.RESULT)
+          .get(Constants.CONTENT).isNull()) {
+        response.getResult()
+            .put(Constants.CONTENT, childrenNode.get(Constants.RESULT).get(Constants.CONTENT));
+        response.getResult()
+            .put(Constants.COUNT, childrenNode.get(Constants.RESULT).get(Constants.COUNT));
+        response.getResult()
+            .put(Constants.FACETS, childrenNode.get(Constants.RESULT).get(Constants.FACETS));
+      }
       return response;
     } catch (Exception e) {
       logger.error("Failed to Create PalyList: ", e);
