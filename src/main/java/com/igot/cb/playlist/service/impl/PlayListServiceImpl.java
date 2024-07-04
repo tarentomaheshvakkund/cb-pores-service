@@ -110,9 +110,9 @@ public class PlayListServiceImpl implements PlayListSerive {
     log.debug("PlayListService::createPlayList:validated the payload");
     ApiResponse response = new ApiResponse();
     try {
-      List<PlayListEntity> optionalJsonNodeEntity = playListRepository.findByOrgIdAndRequestType(
+      List<PlayListEntity> optionalJsonNodeEntity = playListRepository.findByOrgIdAndRequestTypeAndIsActive(
           playListDetails.get(Constants.ORG_ID).asText(),
-          playListDetails.get(Constants.RQST_CONTENT_TYPE).asText());
+          playListDetails.get(Constants.RQST_CONTENT_TYPE).asText(), true);
       if (!optionalJsonNodeEntity.isEmpty()) {
         response.getParams().setStatus(Constants.FAILED);
         response.getParams().setErrMsg(
@@ -337,9 +337,9 @@ public class PlayListServiceImpl implements PlayListSerive {
       log.info("PlayListService::updatePlayList");
       payloadValidation.validatePayload(Constants.PLAY_LIST_VALIDATION_FILE_JSON, playListDetails);
       log.debug("PlayListService::updatePlayList:validated the payload");
-      List<PlayListEntity> optionalJsonNodeEntity = playListRepository.findByOrgIdAndRequestType(
+      List<PlayListEntity> optionalJsonNodeEntity = playListRepository.findByOrgIdAndRequestTypeAndIsActive(
           playListDetails.get(Constants.ORG_ID).asText(),
-          playListDetails.get(Constants.RQST_CONTENT_TYPE).asText()
+          playListDetails.get(Constants.RQST_CONTENT_TYPE).asText(), true
       );
       if (!optionalJsonNodeEntity.isEmpty()) {
         PlayListEntity playListEntity = optionalJsonNodeEntity.get(0);
@@ -400,7 +400,8 @@ public class PlayListServiceImpl implements PlayListSerive {
     ApiResponse response = new ApiResponse();
     try {
       log.info("PlayListService::delete");
-      Optional<PlayListEntity> optionalJsonNodeEntity = playListRepository.findById(id);
+      Optional<PlayListEntity> optionalJsonNodeEntity =
+          Optional.ofNullable(playListRepository.findByIdAndIsActive(id, true));
       PlayListEntity playListEntity = optionalJsonNodeEntity.orElse(null);
       if (optionalJsonNodeEntity.isPresent()) {
         log.info("PlayListService::delete::deleting");
@@ -408,16 +409,25 @@ public class PlayListServiceImpl implements PlayListSerive {
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         playListEntity.setUpdatedOn(currentTime);
         playListRepository.save(playListEntity);
-        redisCacheMngr.hdel(playListEntity.getOrgId() + playListEntity.getRequestType(), id,
-            redisInsightIndex);
-        esUtilService.deleteDocument(Constants.PLAYLIST_INDEX_NAME,
-            id);
+        if (!playListEntity.getData().isNull() && playListEntity.getData()
+            .has(Constants.PLAYLIST_KEY_REDIS) && !playListEntity.getData()
+            .get(Constants.PLAYLIST_KEY_REDIS).isNull()) {
+          redisCacheMngr.hdel(playListEntity.getData().get(Constants.PLAYLIST_KEY_REDIS).asText(),
+              playListEntity.getOrgId(),
+              redisInsightIndex);
+        }
+        esUtilService.deleteDocument(id, Constants.PLAYLIST_INDEX_NAME);
         log.info("PlayListService::delete::deleted");
         response = ProjectUtil.createDefaultResponse(Constants.API_PLAYLIST_CREATE);
         response.put(Constants.RESPONSE, Constants.SUCCESS);
         response.setResponseCode(HttpStatus.OK);
         response.getResult().put(Constants.STATUS, Constants.DELETED_SUCCESSFULLY);
         response.getResult().put(Constants.ID, optionalJsonNodeEntity.get().getId());
+        return response;
+      } else {
+        response.getParams().setStatus(Constants.FAILED);
+        response.getParams().setErrMsg(Constants.NOT_FOUND);
+        response.setResponseCode(HttpStatus.NOT_FOUND);
         return response;
       }
     } catch (Exception e) {
@@ -427,7 +437,6 @@ public class PlayListServiceImpl implements PlayListSerive {
       response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
       return response;
     }
-    return response;
   }
 
   @Override
@@ -449,15 +458,15 @@ public class PlayListServiceImpl implements PlayListSerive {
     try {
       searchResult =
           esUtilService.searchDocuments(Constants.PLAYLIST_INDEX_NAME, searchCriteria);
-      redisTemplate.opsForValue()
-          .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
-              TimeUnit.SECONDS);
       response.getResult().putAll(objectMapper.convertValue(searchResult, Map.class));
       createSuccessResponse(response);
       return response;
     } catch (Exception e) {
       createErrorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR,
           Constants.FAILED_CONST);
+      redisTemplate.opsForValue()
+          .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
+              TimeUnit.SECONDS);
       return response;
     }
   }
@@ -481,7 +490,7 @@ public class PlayListServiceImpl implements PlayListSerive {
         }
         // Fetch from postgres and add fetched playlist into redis
         List<PlayListEntity> optionalJsonNodeEntity =
-            playListRepository.findByOrgIdAndRequestType(orgId, requestType);
+            playListRepository.findByOrgIdAndRequestTypeAndIsActive(orgId, requestType, true);
         if (!optionalJsonNodeEntity.isEmpty()) {
           PlayListEntity playListEntity = optionalJsonNodeEntity.get(0);
           log.info("PlayListService::readPlayList::fetched playList from postgres");
@@ -552,8 +561,9 @@ public class PlayListServiceImpl implements PlayListSerive {
       if (playListDetails.has(Constants.ID) && !playListDetails.get(Constants.ID).asText()
           .isEmpty()) {
         String id = playListDetails.get(Constants.ID).asText();
-        Optional<PlayListEntity> optPlayList = playListRepository.findById(
-            playListDetails.get(Constants.ID).asText());
+        Optional<PlayListEntity> optPlayList = Optional.ofNullable(
+            playListRepository.findByIdAndIsActive(
+                playListDetails.get(Constants.ID).asText(), true));
         PlayListEntity playListEntityUpdated = null;
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         if (optPlayList.isPresent()) {
@@ -700,7 +710,7 @@ public class PlayListServiceImpl implements PlayListSerive {
           || playListStringFromRedis.isEmpty()) {
         // Fetch from postgres and add fetched playlist into redis
         Optional<PlayListEntity> optionalJsonNodeEntity =
-            playListRepository.findById(playListId);
+            Optional.ofNullable(playListRepository.findByIdAndIsActive(playListId, true));
         if (optionalJsonNodeEntity.isPresent()) {
           PlayListEntity playListEntity = optionalJsonNodeEntity.get();
           log.info("PlayListService::readPlayList::fetched playList from postgres");
