@@ -211,8 +211,8 @@ public class PlayListServiceImpl implements PlayListSerive {
     log.info("PlayListService::fetchContentDetails");
     Map<String, Object> compositeSearchRes = new HashMap<>();
     if (childrenNode != null && childrenNode.isArray()) {
-      HashMap<String, Object> reqBody = new HashMap<>();
-      HashMap<String, Object> req = new HashMap<>();
+      Map<String, Object> reqBody = new HashMap<>();
+      Map<String, Object> req = new HashMap<>();
       req.put(Constants.FACETS, Arrays.asList(cbServerProperties.getCourseCategoryFacet()));
       Map<String, Object> filters = new HashMap<>();
       filters.put(Constants.IDENTIFIER,
