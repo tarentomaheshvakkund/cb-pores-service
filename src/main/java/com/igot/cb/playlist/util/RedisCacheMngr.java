@@ -52,7 +52,13 @@ public class RedisCacheMngr {
   public Long hdel(String key, String field, int index) {
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.select(index);
-      return jedis.hdel(key, field);
+      Long result = jedis.hdel(key, field);
+      if (result == 1) {
+        log.info("Field {} deleted successfully from key {}.", field, key);
+      } else {
+        log.warn("Field {} not found in key {}.", field, key);
+      }
+      return result;
     } catch (Exception e) {
       log.error(e.toString());
       return null;
