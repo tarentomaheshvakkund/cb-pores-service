@@ -1,0 +1,28 @@
+{
+  "id": {
+    "type": "keyword"
+  },
+  "designation": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "keyword"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  }
+}

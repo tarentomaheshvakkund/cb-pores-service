@@ -259,8 +259,14 @@ public class Constants {
     public static final String ORG = "org";
     public static final String SPV_ORG_NAME = "Karmayogi Bharat";
     public static final String INVALID_DATA = "No data found";
-  public static final String PLAYLIST_KEY_REDIS = "playListKey";
+    public static final String PLAYLIST_KEY_REDIS = "playListKey";
+    public static final String DESIGNATION_PAYLOAD_VALIDATION = "/payloadValidation/designationValidationFile.json";
+    public static final String UPDATED_DESIGNATION = "Updated Designations";
+    public static final String DESIGNATION = "designation";
+    public static final String DESCRIPTION_PAYLOAD = "Description";
+    public static final String DESIGNATION_INDEX_NAME = "designation_entity";
 
-  private Constants() {
+
+    private Constants() {
     }
 }

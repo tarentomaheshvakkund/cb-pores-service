@@ -105,4 +105,7 @@ public class CbServerProperties {
   @Value("${playlist_course_facets}")
   private String[] courseCategoryFacet;
 
+  @Value("${elastic.required.field.designation.json.path}")
+  private String elasticDesignationJsonPath;
+
 }
