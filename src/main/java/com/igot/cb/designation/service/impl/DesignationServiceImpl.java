@@ -11,8 +11,10 @@ import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -85,6 +90,7 @@ public class DesignationServiceImpl implements DesignationService {
             ((ObjectNode) eachDesignation).put(Constants.STATUS, Constants.ACTIVE);
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
             ((ObjectNode) eachDesignation).put(Constants.CREATED_ON, String.valueOf(currentTime));
+            ((ObjectNode) eachDesignation).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             designationEntity.setId(formattedId);
             designationEntity.setData(eachDesignation);
             designationEntity.setIsActive(true);
@@ -119,12 +125,24 @@ public class DesignationServiceImpl implements DesignationService {
 
   private List<Map<String, String>> validateFileAndProcessRows(MultipartFile file) {
     log.info("DesignationServiceImpl::validateFileAndProcessRows");
-    try (InputStream inputStream = file.getInputStream();
-        Workbook workbook = WorkbookFactory.create(inputStream)) {
-      Sheet sheet = workbook.getSheetAt(0);
-      return processSheetAndSendMessage(sheet);
+    log.info("DesignationServiceImpl::validateFileAndProcessRows");
+    String fileName = file.getOriginalFilename();
+    if (fileName == null) {
+      throw new RuntimeException("File name is null");
+    }
+
+    try (InputStream inputStream = file.getInputStream()) {
+      if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        Workbook workbook = WorkbookFactory.create(inputStream);
+        Sheet sheet = workbook.getSheetAt(0);
+        return processSheetAndSendMessage(sheet);
+      } else if (fileName.endsWith(".csv")) {
+        return processCsvAndSendMessage(inputStream);
+      } else {
+        throw new RuntimeException("Unsupported file type: " + fileName);
+      }
     } catch (IOException e) {
-      log.error("Error while processing Excel file: {}", e.getMessage());
+      log.error("Error while processing file: {}", e.getMessage());
       throw new RuntimeException(e.getMessage());
     }
   }
@@ -176,6 +194,60 @@ public class DesignationServiceImpl implements DesignationService {
       log.error(e.getMessage());
       throw new RuntimeException(e.getMessage());
     }
+  }
+
+  private List<Map<String, String>> processCsvAndSendMessage(InputStream inputStream) throws IOException {
+    log.info("DesignationServiceImpl::processCsvAndSendMessage");
+    List<Map<String, String>> dataRows = new ArrayList<>();
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
+
+      List<String> headers = csvParser.getHeaderNames();
+
+      for (CSVRecord csvRecord : csvParser) {
+        boolean allBlank = true;
+        Map<String, String> rowData = new HashMap<>();
+        for (String header : headers) {
+          String cellValue = csvRecord.get(header);
+          if (cellValue != null && !cellValue.trim().isEmpty()) {
+            // Handle date format (assuming date is in a specific format)
+            if (isDate(cellValue)) {
+              SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+              cellValue = dateFormat.format(parseDate(cellValue));
+            } else {
+              cellValue = cellValue.replace("\n", ",").trim();
+            }
+            allBlank = false;
+          }
+          rowData.put(header, cellValue);
+        }
+        log.info("Data Rows: " + rowData);
+        if (allBlank) {
+          break; // If all cells are blank in the current row, stop processing
+        }
+        dataRows.add(rowData);
+      }
+      log.info("Number of Data Rows Processed: " + dataRows.size());
+    } catch (Exception e) {
+      log.error(e.getMessage());
+      throw new RuntimeException(e.getMessage());
+    }
+    return dataRows;
+  }
+
+  private boolean isDate(String value) {
+    try {
+      parseDate(value);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  private Date parseDate(String value) throws Exception {
+    // Customize this date parsing logic based on the expected date format in your CSV
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    return dateFormat.parse(value);
   }
 
 }
