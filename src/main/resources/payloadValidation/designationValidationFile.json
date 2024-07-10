@@ -7,6 +7,12 @@
     },
     "description": {
       "type": "string"
+    },
+    "refNodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [

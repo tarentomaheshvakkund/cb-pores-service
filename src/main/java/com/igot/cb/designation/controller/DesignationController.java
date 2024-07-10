@@ -1,8 +1,8 @@
 package com.igot.cb.designation.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.igot.cb.designation.service.DesignationService;
 import com.igot.cb.pores.dto.CustomResponse;
-import com.igot.cb.pores.util.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,5 +43,12 @@ public class DesignationController {
   }
 
   //update API to store the refNodes
+
+  @PutMapping("/update/designation")
+  public ResponseEntity<CustomResponse> assign(@RequestBody JsonNode updateDesignationDetails) {
+    CustomResponse response = designationService.updateDesignation(updateDesignationDetails);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
 
 }

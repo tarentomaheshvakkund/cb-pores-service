@@ -265,6 +265,8 @@ public class Constants {
     public static final String DESIGNATION = "designation";
     public static final String DESCRIPTION_PAYLOAD = "Description";
     public static final String DESIGNATION_INDEX_NAME = "designation_entity";
+    public static final String VERSION = "version";
+    public static final String REF_NODES = "refNodes";
 
 
     private Constants() {
