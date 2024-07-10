@@ -345,15 +345,27 @@ public class PlayListServiceImpl implements PlayListSerive {
         PlayListEntity playListEntity = optionalJsonNodeEntity.get(0);
         JsonNode fetchedData = playListEntity.getData();
         log.info("PlayListService::updatePlayList::fetched playList from postgres");
-        ((ObjectNode) fetchedData).put(Constants.CHILDREN, playListDetails.get(Constants.CHILDREN));
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         playListEntity.setUpdatedOn(currentTime);
         ((ObjectNode) fetchedData).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-        ((ObjectNode) fetchedData).put(Constants.CHILDREN, playListDetails.get(Constants.CHILDREN));
+        ((ObjectNode) fetchedData).put(Constants.PLAYLIST_KEY_REDIS, playListEntity.getOrgId() + playListEntity.getRequestType());
+        Iterator<Map.Entry<String, JsonNode>> fields = playListDetails.fields();
+        while (fields.hasNext()) {
+          Map.Entry<String, JsonNode> field = fields.next();
+          String fieldName = field.getKey();
+          // Check if the field is present in the update JsonNode
+          if (fetchedData.has(fieldName)) {
+            // Update the main JsonNode with the value from the update JsonNode
+            ((ObjectNode) fetchedData).set(fieldName, playListDetails.get(fieldName));
+          } else {
+            ((ObjectNode) fetchedData).put(fieldName, playListDetails.get(fieldName));
+          }
+        }
+        optionalJsonNodeEntity.get(0).setUpdatedOn(currentTime);
+        PlayListEntity saveJsonEntity = playListRepository.save(playListEntity);
         ((ObjectNode) playListDetails).put(Constants.KEY_PLAYLIST,
             playListEntity.getOrgId() + playListEntity.getRequestType());
         playListEntity.setData(fetchedData);
-        PlayListEntity saveJsonEntity = playListRepository.save(playListEntity);
         Map<String, Object> enrichContentMaps = new HashMap<>();
         enrichContentMaps = fetchContentDetails(playListDetails.get(Constants.CHILDREN));
         ObjectNode enrichedContentJson = objectMapper.createObjectNode();
@@ -570,16 +582,22 @@ public class PlayListServiceImpl implements PlayListSerive {
           playListEntityUpdated = optPlayList.get();
           JsonNode dataNode = optPlayList.get().getData();
           ((ObjectNode) dataNode).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-          ((ObjectNode) dataNode).put(Constants.KEY_PLAYLIST,
-              playListEntityUpdated.getOrgId() + playListEntityUpdated.getRequestType()
-                  + playListDetails.get(Constants.ID).asText());
-          if (playListDetails.has(Constants.CHILDREN)) {
-            ((ObjectNode) dataNode).put(Constants.CHILDREN,
-                playListDetails.get(Constants.CHILDREN));
+          ((ObjectNode) dataNode).put(Constants.PLAYLIST_KEY_REDIS, playListEntityUpdated.getOrgId() + playListEntityUpdated.getRequestType()
+              + playListEntityUpdated.getId());
+          Iterator<Map.Entry<String, JsonNode>> fields = playListDetails.fields();
+          while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String fieldName = field.getKey();
+            // Check if the field is present in the update JsonNode
+            if (dataNode.has(fieldName)) {
+              // Update the main JsonNode with the value from the update JsonNode
+              ((ObjectNode) dataNode).set(fieldName, playListDetails.get(fieldName));
+            } else {
+              ((ObjectNode) dataNode).put(fieldName, playListDetails.get(fieldName));
+            }
           }
-          playListEntityUpdated.setData(dataNode);
-          playListEntityUpdated.setUpdatedOn(currentTime);
-          playListEntityUpdated = playListRepository.save(playListEntityUpdated);
+          optPlayList.get().setUpdatedOn(currentTime);
+          PlayListEntity saveJsonEntity = playListRepository.save(playListEntityUpdated);
           if (playListDetails.has(Constants.CHILDREN) && !playListDetails.get(Constants.CHILDREN)
               .isEmpty()) {
             JsonNode childrenNode = playListDetails.get(Constants.CHILDREN);
