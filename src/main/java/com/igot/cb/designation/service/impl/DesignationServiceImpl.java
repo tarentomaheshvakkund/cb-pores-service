@@ -1,13 +1,19 @@
 package com.igot.cb.designation.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.igot.cb.designation.entity.DesignationEntity;
 import com.igot.cb.designation.repository.DesignationRepository;
 import com.igot.cb.designation.service.DesignationService;
+import com.igot.cb.interest.entity.Interests;
+import com.igot.cb.interest.service.impl.InterestServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
+import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
+import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.ApiResponse;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.PayloadValidation;
@@ -22,11 +28,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -35,7 +43,10 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,6 +71,8 @@ public class DesignationServiceImpl implements DesignationService {
 
   @Autowired
   private CbServerProperties cbServerProperties;
+
+  private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
 
   @Override
   public void loadDesignationFromExcel(MultipartFile file) {
@@ -111,6 +124,53 @@ public class DesignationServiceImpl implements DesignationService {
 
         });
     log.info("DesignationServiceImpl::loadDesignationFromExcel::created the designations");
+  }
+
+  @Override
+  public CustomResponse readDesignation(String id) {
+    log.info("DesignationServiceImpl::readDesignation::reading the designation");
+    CustomResponse response = new CustomResponse();
+    if (StringUtils.isEmpty(id)) {
+      logger.error("InterestServiceImpl::read:Id not found");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.setMessage(Constants.ID_NOT_FOUND);
+      return response;
+    }
+    try {
+      String cachedJson = cacheService.getCache(id);
+      if (StringUtils.isNotEmpty(cachedJson)) {
+        log.info("InterestServiceImpl::read:Record coming from redis cache");
+        response.setMessage(Constants.SUCCESSFULLY_READING);
+        response
+            .getResult()
+            .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
+            }));
+      } else {
+        Optional<DesignationEntity> entityOptional = designationRepository.findByIdAndIsActive(id, true);
+        if (entityOptional.isPresent()) {
+          DesignationEntity designationEntity = entityOptional.get();
+          cacheService.putCache(id, designationEntity.getData());
+          log.info("InterestServiceImpl::read:Record coming from postgres db");
+          response.setMessage(Constants.SUCCESSFULLY_READING);
+          response
+              .getResult()
+              .put(Constants.RESULT,
+                  objectMapper.convertValue(
+                      designationEntity.getData(), new TypeReference<Object>() {
+                      }));
+          response.setResponseCode(HttpStatus.OK);
+        } else {
+          logger.error("Invalid Id: {}", id);
+          response.setResponseCode(HttpStatus.NOT_FOUND);
+          response.setMessage(Constants.INVALID_ID);
+        }
+      }
+    } catch (Exception e) {
+      logger.error("Error while mapping JSON for id {}: {}", id, e.getMessage(), e);
+      throw new CustomException(Constants.ERROR, "error while processing",
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return response;
   }
 
   private List<Map<String, String>> processExcelFile(MultipartFile incomingFile) {
