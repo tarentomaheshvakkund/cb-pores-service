@@ -81,7 +81,7 @@ public class DesignationServiceImpl implements DesignationService {
   private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
 
   @Override
-  public void loadDesignationFromExcel(MultipartFile file) {
+  public void loadDesignation(MultipartFile file) {
     log.info("DesignationServiceImpl::loadDesignationFromExcel");
     List<Map<String, String>> processedData = processExcelFile(file);
     log.info("No.of processedData from excel: " + processedData.size());

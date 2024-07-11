@@ -26,9 +26,9 @@ public class DesignationController {
   private DesignationService designationService;
 
   @PostMapping(value = "/upload", consumes = "multipart/form-data")
-  public ResponseEntity<String> loadJobsFromExcel(@RequestParam("file") MultipartFile file) {
+  public ResponseEntity<String> loadDesignation(@RequestParam("file") MultipartFile file) {
     try {
-      designationService.loadDesignationFromExcel(file);
+      designationService.loadDesignation(file);
       return ResponseEntity.ok("Loading of designations from excel is successful.");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
