@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/designationsUpload")
+@RequestMapping("/designation")
 @Slf4j
 public class DesignationController {
 
@@ -44,7 +44,7 @@ public class DesignationController {
 
   //update API to store the refNodes
 
-  @PutMapping("/update/designation")
+  @PutMapping("/update")
   public ResponseEntity<CustomResponse> assign(@RequestBody JsonNode updateDesignationDetails) {
     CustomResponse response = designationService.updateDesignation(updateDesignationDetails);
     return new ResponseEntity<>(response, response.getResponseCode());
