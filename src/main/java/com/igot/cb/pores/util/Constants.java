@@ -265,7 +265,14 @@ public class Constants {
     public static final String DESIGNATION = "designation";
     public static final String DESCRIPTION_PAYLOAD = "Description";
     public static final String DESIGNATION_INDEX_NAME = "designation_entity";
-
+    public static final String DESIGNATION_CREATE_PAYLOAD_VALIDATION = "/payloadValidation/designationCreateValidation.json";
+    public static final String REF_ID = "refId";
+    public static final String REF_TYPE = "refType";
+    public static final String CODE = "code";
+    public static final String PARENTS = "parents";
+    public static final String NODE_ID = "node_id";
+    public static final String REF_NODES = "refNodes";
+    public static final String API_DESIGNATION_CREATE = "api.designation.create";
 
     private Constants() {
     }

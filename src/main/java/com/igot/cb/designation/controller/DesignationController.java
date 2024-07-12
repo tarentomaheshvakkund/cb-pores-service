@@ -1,18 +1,19 @@
 package com.igot.cb.designation.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.igot.cb.designation.service.DesignationService;
+import com.igot.cb.pores.util.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
-@RequestMapping("/designationsUpload")
+@RequestMapping("/designation")
 @Slf4j
 public class DesignationController {
 
@@ -30,6 +31,10 @@ public class DesignationController {
     }
   }
 
-  //update API to store the refNodes
+  @PostMapping("/create")
+  public ResponseEntity<ApiResponse> createDesignation(@RequestBody JsonNode request) {
+    ApiResponse response = designationService.createDesignation(request);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
 
 }

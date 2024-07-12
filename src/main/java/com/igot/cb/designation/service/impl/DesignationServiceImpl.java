@@ -3,25 +3,28 @@ package com.igot.cb.designation.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.designation.entity.DesignationEntity;
 import com.igot.cb.designation.repository.DesignationRepository;
 import com.igot.cb.designation.service.DesignationService;
+import com.igot.cb.playlist.util.ProjectUtil;
+import com.igot.cb.pores.Service.OutboundRequestHandlerServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
+import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
-import com.igot.cb.pores.util.CbServerProperties;
-import com.igot.cb.pores.util.Constants;
-import com.igot.cb.pores.util.PayloadValidation;
+import com.igot.cb.pores.util.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
@@ -36,6 +39,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,6 +64,12 @@ public class DesignationServiceImpl implements DesignationService {
 
   @Autowired
   private CbServerProperties cbServerProperties;
+
+  @Autowired
+  private CbProperties cbProperties;
+
+  @Autowired
+  private OutboundRequestHandlerServiceImpl outboundRequestHandlerServiceImpl;
 
   @Override
   public void loadDesignationFromExcel(MultipartFile file) {
@@ -111,6 +121,95 @@ public class DesignationServiceImpl implements DesignationService {
 
         });
     log.info("DesignationServiceImpl::loadDesignationFromExcel::created the designations");
+  }
+  @Override
+  public ApiResponse createDesignation(JsonNode request){
+    ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_DESIGNATION_CREATE);
+    payloadValidation.validatePayload(Constants.DESIGNATION_CREATE_PAYLOAD_VALIDATION,request);
+    String name =  request.get(Constants.NAME).asText();
+    String ref_Id =  request.get(Constants.REF_ID).asText();
+    String ref_Type = request.get(Constants.REF_TYPE).asText();
+    Optional<DesignationEntity> designationEntity = designationRepository.findByIdAndIsActive(ref_Id,Boolean.TRUE);
+    if(designationEntity.isPresent()) {
+      DesignationEntity designation = designationEntity.get();
+      if (designation.getIsActive()) {
+      ApiResponse readResponse = readDesignation(ref_Id);
+        readResponse.setResponseCode(HttpStatus.NOT_FOUND);
+        if (readResponse == null) {
+          response.getParams().setErr("Failed to validate sector exists or not.");
+          response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+          response.getParams().setStatus(Constants.FAILED);
+        } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
+          Map<String, Object> reqBody = new HashMap<>();
+          reqBody.put(Constants.CODE, ref_Id);
+          reqBody.put(Constants.REF_ID, ref_Id);
+          reqBody.put(Constants.REF_TYPE, ref_Type);
+          reqBody.put(Constants.NAME, name);
+          Map<String, Object> parentObj = new HashMap<>();
+          parentObj.put(Constants.IDENTIFIER,
+                  cbProperties.getOdcsFrameworkName() + "_" + cbProperties.getOdcsCategoryName());
+          reqBody.put(Constants.PARENTS, Arrays.asList(parentObj));
+          Map<String, Object> termReq = new HashMap<String, Object>();
+          termReq.put(Constants.TERM, reqBody);
+          Map<String, Object> createReq = new HashMap<String, Object>();
+          createReq.put(Constants.REQUEST, termReq);
+          StringBuilder strUrl = new StringBuilder(cbProperties.getKnowledgeMS());
+          strUrl.append(cbProperties.getOdcsTermCrete()).append("?framework=")
+                  .append(cbProperties.getOdcsFrameworkName()).append("&category=")
+                  .append(cbProperties.getOdcsCategoryName());
+          Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
+                  createReq);
+          if (termResponse != null
+                  && Constants.OK.equalsIgnoreCase((String) termResponse.get(Constants.RESPONSE_CODE))) {
+            Map<String, Object> resultMap = (Map<String, Object>) termResponse.get(Constants.RESULT);
+            List<String> termIdentifier = (List<String>) resultMap.getOrDefault(Constants.NODE_ID, "");
+            log.info("Created Designation successfully with name: " + ref_Id);
+            log.info("termIdentifier : " + termIdentifier);
+            Map<String, Object> reqBodyMap = new HashMap<>();
+            reqBodyMap.put(Constants.ID, ref_Id);
+            reqBodyMap.put(Constants.DESIGNATION, name);
+            reqBodyMap.put(Constants.REF_NODES, termIdentifier);
+            CustomResponse desgResponse = updateDesignation(objectMapper.valueToTree(reqBodyMap));
+            if (desgResponse.getResponseCode() != HttpStatus.OK) {
+              log.error("Failed to update designation: " + response.getParams().getErr());
+              response.getParams().setErr("Failed to update designation.");
+              response.setResult(desgResponse.getResult());
+              response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+              response.getParams().setStatus(Constants.FAILED);
+            }
+          } else {
+            log.error("Failed to create the Designation with name: " + ref_Id);
+            response.getParams().setErr("Failed to create the Designation");
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            response.getParams().setStatus(Constants.FAILED);
+          }
+        } else if (HttpStatus.OK.equals(readResponse.getResponseCode())) {
+          String errMsg = "Designation already exists with name: " + ref_Id;
+          log.error(errMsg);
+          response.getParams().setErr(errMsg);
+          response.setResponseCode(HttpStatus.BAD_REQUEST);
+          response.getParams().setStatus(Constants.FAILED);
+        } else {
+          log.error("Failed to create the Designation with name: " + ref_Id);
+          response.getParams().setErr("Failed to create.");
+          response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+          response.getParams().setStatus(Constants.FAILED);
+        }
+      } else {
+        //if desg. is not active.
+        log.error("Failed to create Designation exists with name: " + ref_Id);
+        response.getParams().setErr("Failed to create Designation.");
+        response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        response.getParams().setStatus(Constants.FAILED);
+      }
+    } else
+    {
+      log.error("Failed to validate Designation exists with name: " + ref_Id);
+      response.getParams().setErr("Designation Not Exist.");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.getParams().setStatus(Constants.FAILED);
+    }
+    return response;
   }
 
   private List<Map<String, String>> processExcelFile(MultipartFile incomingFile) {
@@ -248,6 +347,137 @@ public class DesignationServiceImpl implements DesignationService {
     // Customize this date parsing logic based on the expected date format in your CSV
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     return dateFormat.parse(value);
+  }
+  public ApiResponse readDesignation(String Id) {
+    ApiResponse response = new ApiResponse();
+    try {
+      StringBuilder strUrl = new StringBuilder(cbProperties.getKnowledgeMS());
+      strUrl.append(cbProperties.getOdcsTermCrete()).append("/").append(Id).append("?framework=")
+              .append(cbProperties.getOdcsFrameworkName()).append("&category=")
+              .append(cbProperties.getOdcsCategoryName());
+
+      Map<String, Object> map = new HashMap<String, Object>();
+      Map<String, Object> desgResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResult(strUrl.toString());
+      if (null != desgResponse) {
+        if (Constants.OK.equalsIgnoreCase((String) desgResponse.get(Constants.RESPONSE_CODE))) {
+          Map<String, Object> resultMap = (Map<String, Object>) desgResponse.get(Constants.RESULT);
+          Map<String, Object> input = (Map<String, Object>) resultMap.get(Constants.TERM);
+          processDesignation(input, map);
+          response.getResult().put(Constants.DESIGNATION, map);
+        } else {
+          response.setResponseCode(HttpStatus.NOT_FOUND);
+          response.getParams().setErr("Data not found with id : " + Id);
+        }
+      } else {
+        response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        response.getParams().setErr("Failed to read the des details for Id : " + Id);
+      }
+    } catch (Exception e) {
+      log.error("Failed to read Designation with Id: " + Id, e);
+      response.getParams().setErr("Failed to read Designation: " + e.getMessage());
+      response.getParams().setStatus(Constants.FAILED);
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return response;
+  }
+
+  private void processDesignation(Map<String, Object> designationInput, Map<String, Object> designationMap) {
+    for (String field : cbProperties.getOdcsFields()) {
+      if (designationInput.containsKey(field)) {
+        designationMap.put(field, designationInput.get(field));
+      }
+    }
+    if (designationInput.containsKey(Constants.CHILDREN)) {
+      designationMap.put(Constants.CHILDREN, new ArrayList<Map<String, Object>>());
+      processSubDesignation(designationInput, designationMap);
+    }
+  }
+
+  private void processSubDesignation(Map<String, Object> designation, Map<String, Object> newDesignation) {
+    List<Map<String, Object>> designationList = (List<Map<String, Object>>) designation.get(Constants.CHILDREN);
+    Set<String> uniqueDesg = new HashSet<String>();
+    for (Map<String, Object> desig : designationList) {
+      if (uniqueDesg.contains((String) desig.get(Constants.IDENTIFIER))) {
+        continue;
+      } else {
+        uniqueDesg.add((String) desig.get(Constants.IDENTIFIER));
+      }
+      Map<String, Object> newSubDesignation = new HashMap<String, Object>();
+      for (String field : cbProperties.getOdcsFields()) {
+        if (desig.containsKey(field)) {
+          newSubDesignation.put(field, desig.get(field));
+        }
+      }
+      ((List) newDesignation.get(Constants.CHILDREN)).add(newSubDesignation);
+    }
+  }
+
+  @Override
+  public CustomResponse updateDesignation(JsonNode updateDesignationDetails) {
+    log.info("DesignationServiceImpl::updateDesignation::inside the method");
+    payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,
+            updateDesignationDetails);
+    CustomResponse response = new CustomResponse();
+    try {
+      if (updateDesignationDetails.has(Constants.ID) && !updateDesignationDetails.get(Constants.ID)
+              .isNull() && updateDesignationDetails.has(Constants.REF_NODES)
+              && !updateDesignationDetails.get(Constants.REF_NODES).isNull()) {
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        String id = updateDesignationDetails.get(Constants.ID).asText();
+        Optional<DesignationEntity> designationEntiy = designationRepository.findById(
+                id);
+        DesignationEntity designationEntityUpdated = null;
+        if (designationEntiy.isPresent()) {
+          JsonNode dataNode = designationEntiy.get().getData();
+          Iterator<Map.Entry<String, JsonNode>> fields = updateDesignationDetails.fields();
+          while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String fieldName = field.getKey();
+            // Check if the field is present in the update JsonNode
+            if (dataNode.has(fieldName)) {
+              // Update the main JsonNode with the value from the update JsonNode
+              ((ObjectNode) dataNode).set(fieldName, updateDesignationDetails.get(fieldName));
+            } else {
+              ((ObjectNode) dataNode).put(fieldName, updateDesignationDetails.get(fieldName));
+            }
+          }
+          designationEntiy.get().setUpdatedOn(currentTime);
+          ((ObjectNode) dataNode).put(Constants.UPDATED_ON, new TextNode(
+                  convertTimeStampToDate(designationEntiy.get().getUpdatedOn().getTime())));
+          designationEntityUpdated = designationRepository.save(designationEntiy.get());
+          ObjectNode jsonNode = objectMapper.createObjectNode();
+          jsonNode.set(Constants.ID,
+                  new TextNode(updateDesignationDetails.get(Constants.ID).asText()));
+          jsonNode.setAll((ObjectNode) designationEntityUpdated.getData());
+          jsonNode.set(Constants.UPDATED_ON, new TextNode(
+                  convertTimeStampToDate(designationEntityUpdated.getUpdatedOn().getTime())));
+          Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
+          esUtilService.updateDocument(Constants.INDEX_NAME_FOR_ORG_BOOKMARK, Constants.INDEX_TYPE,
+                  designationEntityUpdated.getId(), map,
+                  cbServerProperties.getElasticBookmarkJsonPath());
+          cacheService.putCache(designationEntityUpdated.getId(),
+                  designationEntityUpdated.getData());
+          log.info("updated the Designation");
+          response.setMessage(Constants.SUCCESSFULLY_CREATED);
+          map.put(Constants.ID, designationEntityUpdated.getId());
+          response.setResult(map);
+          response.setResponseCode(HttpStatus.OK);
+          log.info("InterestServiceImpl::createInterest::persited interest in Pores");
+          return response;
+        }
+      }
+    } catch (Exception e) {
+      log.error("Error while processing file: {}", e.getMessage());
+      throw new RuntimeException(e.getMessage());
+    }
+    return null;
+  }
+
+  private String convertTimeStampToDate(long timeStamp) {
+    Instant instant = Instant.ofEpochMilli(timeStamp);
+    OffsetDateTime dateTime = instant.atOffset(ZoneOffset.UTC);
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy'T'HH:mm:ss.SSS'Z'");
+    return dateTime.format(formatter);
   }
 
 }
