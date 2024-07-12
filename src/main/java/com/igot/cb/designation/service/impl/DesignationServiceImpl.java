@@ -226,7 +226,7 @@ public class DesignationServiceImpl implements DesignationService {
           Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
           esUtilService.updateDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
               designationEntityUpdated.getId(), map,
-              cbServerProperties.getElasticBookmarkJsonPath());
+              cbServerProperties.getElasticDesignationJsonPath());
           cacheService.putCache(designationEntityUpdated.getId(),
               designationEntityUpdated.getData());
           log.info("updated the Designation");
