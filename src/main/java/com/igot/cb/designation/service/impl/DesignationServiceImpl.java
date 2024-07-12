@@ -116,7 +116,7 @@ public class DesignationServiceImpl implements DesignationService {
             String descriptionValue =
                 (eachDesignation.has(Constants.DESCRIPTION_PAYLOAD) && !eachDesignation.get(
                     Constants.DESCRIPTION_PAYLOAD).isNull())
-                    ? eachDesignation.get(Constants.DESCRIPTION).asText("")
+                    ? eachDesignation.get(Constants.DESCRIPTION).asText()
                     : "";
             ((ObjectNode) eachDesignation).put(Constants.DESCRIPTION, descriptionValue);
             payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,
