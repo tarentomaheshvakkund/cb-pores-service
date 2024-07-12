@@ -224,7 +224,7 @@ public class DesignationServiceImpl implements DesignationService {
           jsonNode.set(Constants.UPDATED_ON, new TextNode(
               convertTimeStampToDate(designationEntityUpdated.getUpdatedOn().getTime())));
           Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-          esUtilService.updateDocument(Constants.INDEX_NAME_FOR_ORG_BOOKMARK, Constants.INDEX_TYPE,
+          esUtilService.updateDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
               designationEntityUpdated.getId(), map,
               cbServerProperties.getElasticBookmarkJsonPath());
           cacheService.putCache(designationEntityUpdated.getId(),
