@@ -263,6 +263,7 @@ public class DesignationServiceImpl implements DesignationService {
   @Override
   public CustomResponse createDesignation(JsonNode designationDetails) {
     log.info("DesignationServiceImpl::createDesignation");
+    payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,designationDetails);
     CustomResponse response = new CustomResponse();
     try {
       AtomicLong count = new AtomicLong(designationRepository.count());
@@ -301,8 +302,9 @@ public class DesignationServiceImpl implements DesignationService {
       return response;
     } catch (Exception e) {
       log.error("Error occurred while creating Designation", e);
-      throw new CustomException("error while processing", e.getMessage(),
-          HttpStatus.INTERNAL_SERVER_ERROR);
+      response.getParams().setErrmsg("error while processing");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      return response;
     }
   }
 

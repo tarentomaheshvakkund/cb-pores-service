@@ -267,7 +267,24 @@ public class Constants {
     public static final String DESIGNATION_INDEX_NAME = "designation_entity";
     public static final String VERSION = "version";
     public static final String REF_NODES = "refNodes";
-
+    public static final String COMP_AREA_INDEX_NAME = "comp_area_entity";
+    public static final String COMP_THEME_INDEX_NAME = "comp_theme_entity";
+    public static final String COMP_SUB_THEME_INDEX_NAME = "comp_sub_theme_entity";
+    public static final String COMP_AREA_PAYLOAD_VALIDATION = "/payloadValidation/compAreaValidation.json";
+    public static final String COMPETENCY_AREA_TYPE = "Competency Area";
+    public static final String COMPETENCY_THEME_TYPE = "Competency Theme";
+    public static final String COMPETENCY_SUB_THEME_TYPE = "Competency Sub-Theme";
+    public static final String SOURCE = "source";
+    public static final String ADDITIONAL_PROPERTIES = "additionalProperties";
+    public static final String LEVEL = "level";
+    public static final String LEVEL_ID = "levelId";
+    public static final String REVIEWED_DATE = "reviewedDate";
+    public static final String REVIEWED_BY = "reviewedBy";
+    public static final String WF_IF = "wfId";
+    public static final String INITIATIVE = "INITIATE";
+    public static final String UPDATED_BY = "updatedBy";
+    public static final String  COMPETENCY_TYPE = "Competency Type";
+    public static final String THEME_TYPE = "themeType";
 
     private Constants() {
     }
