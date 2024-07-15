@@ -110,6 +110,7 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
                ((ObjectNode) dataNode).put(Constants.CREATED_ON, String.valueOf(currentTime));
                ((ObjectNode) dataNode).put(Constants.UPDATED_ON, String.valueOf(currentTime));
                ((ObjectNode) dataNode).put(Constants.CREATED_BY, userId);
+               ((ObjectNode) dataNode).put(Constants.UPDATED_BY, userId);
                ((ObjectNode) dataNode).put(Constants.VERSION, 1);
                payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
                    dataNode);
@@ -195,10 +196,8 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
     ((ObjectNode) competencyArea).putArray(Constants.ADDITIONAL_PROPERTIES);
     ((ObjectNode) competencyArea).put(Constants.LEVEL, Constants.INITIATIVE);
     ((ObjectNode) competencyArea).put(Constants.IS_ACTIVE, true);
-    ((ObjectNode) competencyArea).put(Constants.LEVEL_ID, 0);
     ((ObjectNode) competencyArea).put(Constants.REVIEWED_BY, (JsonNode) null);
     ((ObjectNode) competencyArea).put(Constants.REVIEWED_DATE, (JsonNode) null);
-    ((ObjectNode) competencyArea).put(Constants.UPDATED_BY, (JsonNode) null);
     ((ObjectNode) competencyArea).put(Constants.ADDITIONAL_PROPERTIES, (JsonNode) null);
     return competencyArea;
   }

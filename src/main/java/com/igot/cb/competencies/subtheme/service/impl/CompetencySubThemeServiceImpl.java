@@ -89,7 +89,7 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
                 String formattedId = String.format("COMSUBTHEME-%06d", startingId.incrementAndGet());
                 JsonNode dataNode = objectMapper.createObjectNode();
                 ((ObjectNode) dataNode).put(Constants.ID, formattedId);
-                ((ObjectNode) dataNode).put(Constants.TITLE, eachCompSubTheme.get(Constants.COMPETENCY_THEME_TYPE).asText());
+                ((ObjectNode) dataNode).put(Constants.TITLE, eachCompSubTheme.get(Constants.COMPETENCY_SUB_THEME_TYPE).asText());
                 String descriptionValue =
                     (eachCompSubTheme.has(Constants.DESCRIPTION_PAYLOAD) && !eachCompSubTheme.get(
                         Constants.DESCRIPTION_PAYLOAD).isNull())
@@ -101,6 +101,7 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
                 ((ObjectNode) dataNode).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) dataNode).put(Constants.UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) dataNode).put(Constants.CREATED_BY, userId);
+                ((ObjectNode) dataNode).put(Constants.UPDATED_BY, userId);
                 ((ObjectNode) dataNode).put(Constants.VERSION, 1);
                 payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
                     dataNode);
@@ -147,10 +148,8 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
     ((ObjectNode) jsonNode).putArray(Constants.ADDITIONAL_PROPERTIES);
     ((ObjectNode) jsonNode).put(Constants.LEVEL, Constants.INITIATIVE);
     ((ObjectNode) jsonNode).put(Constants.IS_ACTIVE, true);
-    ((ObjectNode) jsonNode).put(Constants.LEVEL_ID, 0);
     ((ObjectNode) jsonNode).put(Constants.REVIEWED_BY, (JsonNode) null);
     ((ObjectNode) jsonNode).put(Constants.REVIEWED_DATE, (JsonNode) null);
-    ((ObjectNode) jsonNode).put(Constants.UPDATED_BY, (JsonNode) null);
     ((ObjectNode) jsonNode).put(Constants.ADDITIONAL_PROPERTIES, (JsonNode) null);
     return jsonNode;
   }
