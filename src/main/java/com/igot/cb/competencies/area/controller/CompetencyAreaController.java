@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,8 +41,8 @@ public class CompetencyAreaController {
   }
 
   @PostMapping("/create")
-  public ResponseEntity<CustomResponse> createCompetencyArea(@RequestBody JsonNode competencyArea) {
-    CustomResponse response = competencyAreaService.createCompArea(competencyArea);
+  public ResponseEntity<CustomResponse> createCompetencyArea(@RequestBody JsonNode competencyArea, @RequestHeader(Constants.X_AUTH_TOKEN) String token) {
+    CustomResponse response = competencyAreaService.createCompArea(competencyArea, token);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 
@@ -54,4 +57,17 @@ public class CompetencyAreaController {
     CustomResponse response = competencyAreaService.searchCompArea(searchCriteria);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
+
+  @GetMapping("/read/{id}")
+  public ResponseEntity<?> competencyAreatRead(@PathVariable String id) {
+    CustomResponse response = competencyAreaService.readCompArea(id);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @DeleteMapping("/delete/{id}")
+  public ResponseEntity<CustomResponse> deleteCompetencyArea(@PathVariable String id) {
+    CustomResponse response = competencyAreaService.deleteCompetencyArea(id);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
 }

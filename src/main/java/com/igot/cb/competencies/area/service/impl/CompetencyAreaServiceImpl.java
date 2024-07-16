@@ -3,6 +3,7 @@ package com.igot.cb.competencies.area.service.impl;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -143,23 +144,35 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
   }
 
   @Override
-  public CustomResponse createCompArea(JsonNode competencyArea) {
+  public CustomResponse createCompArea(JsonNode competencyArea, String token) {
     log.info("CompetencyAreaService::createCompArea");
+    payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
+        competencyArea);
     CustomResponse response = new CustomResponse();
+    String userId = accessTokenValidator.verifyUserToken(token);
+    if (StringUtils.isBlank(userId) || userId.equalsIgnoreCase(Constants.UNAUTHORIZED)) {
+      response.getParams().setErrmsg(Constants.USER_ID_DOESNT_EXIST);
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      return response;
+    }
     try {
       AtomicLong count = new AtomicLong(competencyAreaRepository.count());
       CompetencyAreaEntity competencyAreaEntity = new CompetencyAreaEntity();
       String formattedId = String.format("COMAREA-%06d", count.incrementAndGet());
       ((ObjectNode) competencyArea).put(Constants.STATUS, Constants.LIVE);
       ((ObjectNode) competencyArea).put(Constants.ID, formattedId);
+      ((ObjectNode) competencyArea).put(Constants.IS_ACTIVE, true);
       Timestamp currentTime = new Timestamp(System.currentTimeMillis());
       ((ObjectNode) competencyArea).put(Constants.CREATED_ON, String.valueOf(currentTime));
       ((ObjectNode) competencyArea).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+      ((ObjectNode) competencyArea).put(Constants.CREATED_BY, userId);
+      ((ObjectNode) competencyArea).put(Constants.UPDATED_BY, userId);
       List<String> searchTags = new ArrayList<>();
       searchTags.add(competencyArea.get(Constants.TITLE).textValue().toLowerCase());
       ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
       ((ObjectNode) competencyArea).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
-      competencyArea = addExtraFields(competencyArea);
+      ((ObjectNode) competencyArea).put(Constants.TYPE, Constants.COMPETENCY_AREA_TYPE);
+      ((ObjectNode) competencyArea).put(Constants.VERSION, 1);
       competencyAreaEntity.setId(formattedId);
       competencyAreaEntity.setData(competencyArea);
       competencyAreaEntity.setIsActive(true);
@@ -238,17 +251,17 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
               new TextNode(updatedCompArea.get(Constants.ID).asText()));
           jsonNode.setAll((ObjectNode) competencyAreaEntityUpdated.getData());
           Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
-          esUtilService.updateDocument(Constants.INDEX_NAME_FOR_ORG_BOOKMARK, Constants.INDEX_TYPE,
+          esUtilService.updateDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
               competencyAreaEntityUpdated.getId(), map,
-              cbServerProperties.getElasticBookmarkJsonPath());
+              cbServerProperties.getElasticCompJsonPath());
           cacheService.putCache(competencyAreaEntityUpdated.getId(),
               competencyAreaEntityUpdated.getData());
           log.info("updated the CompArea");
-          response.setMessage(Constants.SUCCESSFULLY_CREATED);
+          response.setMessage(Constants.SUCCESSFULLY_UPDATED);
           map.put(Constants.ID, competencyAreaEntityUpdated.getId());
           response.setResult(map);
           response.setResponseCode(HttpStatus.OK);
-          log.info("CompetencyAreaService::updateCompArea::persited interest in Pores");
+          log.info("CompetencyAreaService::updateCompArea::persited in Pores");
           return response;
         }else {
           response.setMessage("No data found for this id");
@@ -297,6 +310,90 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
       redisTemplate.opsForValue()
           .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
               TimeUnit.SECONDS);
+      return response;
+    }
+  }
+
+  @Override
+  public CustomResponse readCompArea(String id) {
+    log.info("CompetencyAreaServiceImpl::readCompArea");
+    CustomResponse response = new CustomResponse();
+    if (StringUtils.isEmpty(id)) {
+      log.error("CompetencyAreaServiceImpl::read:Id not found");
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      response.setMessage(Constants.ID_NOT_FOUND);
+      return response;
+    }
+    try {
+      String cachedJson = cacheService.getCache(id);
+      if (StringUtils.isNotEmpty(cachedJson)) {
+        log.info("CompetencyAreaServiceImpl::read:Record coming from redis cache");
+        response.setMessage(Constants.SUCCESSFULLY_READING);
+        response
+            .getResult()
+            .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
+            }));
+        response.setResponseCode(HttpStatus.OK);
+      } else {
+        Optional<CompetencyAreaEntity> entityOptional = competencyAreaRepository.findByIdAndIsActive(id, true);
+        if (entityOptional.isPresent()) {
+          CompetencyAreaEntity competencyAreaEntity = entityOptional.get();
+          cacheService.putCache(id, competencyAreaEntity.getData());
+          log.info("CompetencyAreaServiceImpl::readCompArea:Record coming from postgres db");
+          response.setMessage(Constants.SUCCESSFULLY_READING);
+          response
+              .getResult()
+              .put(Constants.RESULT,
+                  objectMapper.convertValue(
+                      competencyAreaEntity.getData(), new TypeReference<Object>() {
+                      }));
+          response.setResponseCode(HttpStatus.OK);
+        } else {
+          log.error("Invalid Id: {}", id);
+          response.setResponseCode(HttpStatus.NOT_FOUND);
+          response.setMessage(Constants.INVALID_ID);
+        }
+      }
+    } catch (Exception e) {
+      log.error("Error while Fetching the data", id, e.getMessage(), e);
+      throw new CustomException(Constants.ERROR, "error while processing",
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return response;
+  }
+
+  @Override
+  public CustomResponse deleteCompetencyArea(String id) {
+    log.info("CompetencyAreaServiceImpl::deleteCompetencyArea");
+    CustomResponse response = new CustomResponse();
+    try {
+      Optional<CompetencyAreaEntity> optionalEntity = competencyAreaRepository.findByIdAndIsActive(id, true);
+      if (optionalEntity.isPresent()){
+        CompetencyAreaEntity competencyAreaEntity = optionalEntity.get();
+        competencyAreaEntity.setIsActive(false);
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        competencyAreaEntity.setUpdatedOn(currentTime);
+        ((ObjectNode) competencyAreaEntity.getData()).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) competencyAreaEntity.getData()).put(Constants.STATUS, Constants.IN_ACTIVE);
+        ((ObjectNode) competencyAreaEntity.getData()).put(Constants.IS_ACTIVE, false);
+        competencyAreaRepository.save(competencyAreaEntity);
+        Map<String, Object> map = objectMapper.convertValue(competencyAreaEntity.getData(), Map.class);
+        esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
+            competencyAreaEntity.getId(), map, cbServerProperties.getElasticCompJsonPath());
+        cacheService.deleteCache(id);
+        response.setResponseCode(HttpStatus.OK);
+        response.setMessage(Constants.DELETED_SUCCESSFULLY);
+        return response;
+      }else {
+        response.setMessage("CompetencyAreaServiceImpl::deleteCompetencyArea:No data found for this id");
+        response.setResponseCode(HttpStatus.BAD_REQUEST);
+        return response;
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage());
+      response.getParams().setStatus(Constants.FAILED);
+      response.setMessage(e.getMessage());
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
       return response;
     }
   }
