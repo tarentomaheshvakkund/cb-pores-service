@@ -108,4 +108,26 @@ public class CbServerProperties {
   @Value("${elastic.required.field.designation.json.path}")
   private String elasticDesignationJsonPath;
 
+  @Value("${odcs.framework.name}")
+  private String odcsDesignationFramework;
+
+  @Value("${odcs.category.name}")
+  private String odcsDesignationCategory;
+
+  @Value("${knowledge.mv.service}")
+  private String knowledgeMS;
+
+  @Value("${odcs.term.create}")
+  private String odcsTermCrete;
+
+  @Value("${odcs.category.fields}")
+  private String odcsFields;
+
+  @Value("${odcs.designation.term.read}")
+  private String odcsDesignationTermRead;
+
+  public List<String> getOdcsFields() {
+    return Arrays.asList(odcsFields.split(",", -1));
+  }
+
 }

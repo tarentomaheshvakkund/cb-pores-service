@@ -12,6 +12,7 @@ import com.igot.cb.pores.Service.OutboundRequestHandlerServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
+import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.*;
 
 import java.io.BufferedReader;
@@ -64,9 +65,6 @@ public class DesignationServiceImpl implements DesignationService {
 
   @Autowired
   private CbServerProperties cbServerProperties;
-
-  @Autowired
-  private CbProperties cbProperties;
 
   @Autowired
   private OutboundRequestHandlerServiceImpl outboundRequestHandlerServiceImpl;
@@ -123,40 +121,36 @@ public class DesignationServiceImpl implements DesignationService {
     log.info("DesignationServiceImpl::loadDesignationFromExcel::created the designations");
   }
   @Override
-  public ApiResponse createDesignation(JsonNode request){
+  public ApiResponse createDesignation(JsonNode request) {
     ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_DESIGNATION_CREATE);
-    payloadValidation.validatePayload(Constants.DESIGNATION_CREATE_PAYLOAD_VALIDATION,request);
-    String name =  request.get(Constants.NAME).asText();
-    String ref_Id =  request.get(Constants.REF_ID).asText();
-    String ref_Type = request.get(Constants.REF_TYPE).asText();
-    Optional<DesignationEntity> designationEntity = designationRepository.findByIdAndIsActive(ref_Id,Boolean.TRUE);
-    if(designationEntity.isPresent()) {
+    try {
+    payloadValidation.validatePayload(Constants.DESIGNATION_CREATE_PAYLOAD_VALIDATION, request);
+    String name = request.get(Constants.NAME).asText();
+    String ref_Id = request.get(Constants.REF_ID).asText();
+    Optional<DesignationEntity> designationEntity = designationRepository.findByIdAndIsActive(ref_Id, Boolean.TRUE);
+    if (designationEntity.isPresent()) {
       DesignationEntity designation = designationEntity.get();
       if (designation.getIsActive()) {
-      ApiResponse readResponse = readDesignation(ref_Id);
-        readResponse.setResponseCode(HttpStatus.NOT_FOUND);
+        ApiResponse readResponse = readDesignation(ref_Id);
         if (readResponse == null) {
           response.getParams().setErr("Failed to validate sector exists or not.");
           response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
           response.getParams().setStatus(Constants.FAILED);
         } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
           Map<String, Object> reqBody = new HashMap<>();
-          reqBody.put(Constants.CODE, ref_Id);
-          reqBody.put(Constants.REF_ID, ref_Id);
-          reqBody.put(Constants.REF_TYPE, ref_Type);
-          reqBody.put(Constants.NAME, name);
+          request.fields().forEachRemaining(entry -> reqBody.put(entry.getKey(), entry.getValue().asText()));
           Map<String, Object> parentObj = new HashMap<>();
           parentObj.put(Constants.IDENTIFIER,
-                  cbProperties.getOdcsFrameworkName() + "_" + cbProperties.getOdcsCategoryName());
+                  cbServerProperties.getOdcsDesignationFramework() + "_" + cbServerProperties.getOdcsDesignationCategory());
           reqBody.put(Constants.PARENTS, Arrays.asList(parentObj));
           Map<String, Object> termReq = new HashMap<String, Object>();
           termReq.put(Constants.TERM, reqBody);
           Map<String, Object> createReq = new HashMap<String, Object>();
           createReq.put(Constants.REQUEST, termReq);
-          StringBuilder strUrl = new StringBuilder(cbProperties.getKnowledgeMS());
-          strUrl.append(cbProperties.getOdcsTermCrete()).append("?framework=")
-                  .append(cbProperties.getOdcsFrameworkName()).append("&category=")
-                  .append(cbProperties.getOdcsCategoryName());
+          StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+          strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
+                  .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
+                  .append(cbServerProperties.getOdcsDesignationCategory());
           Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
                   createReq);
           if (termResponse != null
@@ -202,12 +196,22 @@ public class DesignationServiceImpl implements DesignationService {
         response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
         response.getParams().setStatus(Constants.FAILED);
       }
-    } else
-    {
+    } else {
       log.error("Failed to validate Designation exists with name: " + ref_Id);
       response.getParams().setErr("Designation Not Exist.");
       response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
       response.getParams().setStatus(Constants.FAILED);
+    }
+  } catch (CustomException e) {
+      response.getParams().setErr(e.getMessage());
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      response.getParams().setStatus(Constants.FAILED);
+      log.error("Payload validation failed: " + e.getMessage());
+    } catch (Exception e) {
+      response.getParams().setErr("Unexpected error occurred while processing the request.");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.getParams().setStatus(Constants.FAILED);
+      log.error("Unexpected error occurred: " + e.getMessage(), e);
     }
     return response;
   }
@@ -351,10 +355,10 @@ public class DesignationServiceImpl implements DesignationService {
   public ApiResponse readDesignation(String Id) {
     ApiResponse response = new ApiResponse();
     try {
-      StringBuilder strUrl = new StringBuilder(cbProperties.getKnowledgeMS());
-      strUrl.append(cbProperties.getOdcsTermCrete()).append("/").append(Id).append("?framework=")
-              .append(cbProperties.getOdcsFrameworkName()).append("&category=")
-              .append(cbProperties.getOdcsCategoryName());
+      StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+      strUrl.append(cbServerProperties.getOdcsDesignationTermRead()).append("/").append(Id).append("?framework=")
+              .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
+              .append(cbServerProperties.getOdcsDesignationCategory());
 
       Map<String, Object> map = new HashMap<String, Object>();
       Map<String, Object> desgResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResult(strUrl.toString());
@@ -382,7 +386,7 @@ public class DesignationServiceImpl implements DesignationService {
   }
 
   private void processDesignation(Map<String, Object> designationInput, Map<String, Object> designationMap) {
-    for (String field : cbProperties.getOdcsFields()) {
+    for (String field : cbServerProperties.getOdcsFields()) {
       if (designationInput.containsKey(field)) {
         designationMap.put(field, designationInput.get(field));
       }
@@ -403,7 +407,7 @@ public class DesignationServiceImpl implements DesignationService {
         uniqueDesg.add((String) desig.get(Constants.IDENTIFIER));
       }
       Map<String, Object> newSubDesignation = new HashMap<String, Object>();
-      for (String field : cbProperties.getOdcsFields()) {
+      for (String field : cbServerProperties.getOdcsFields()) {
         if (desig.containsKey(field)) {
           newSubDesignation.put(field, desig.get(field));
         }
