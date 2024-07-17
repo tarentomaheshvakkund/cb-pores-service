@@ -9,7 +9,7 @@ public interface DesignationService {
 
  public void loadDesignationFromExcel(MultipartFile file);
 
- public ApiResponse createDesignation(JsonNode request);
+ public ApiResponse createTerm(JsonNode request);
 
- public   CustomResponse updateDesignation(JsonNode updateDesignationDetails);
+ public   CustomResponse updateIdentifiersToDesignation(JsonNode updateDesignationDetails);
 }

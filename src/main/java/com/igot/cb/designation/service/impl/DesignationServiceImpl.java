@@ -121,7 +121,7 @@ public class DesignationServiceImpl implements DesignationService {
     log.info("DesignationServiceImpl::loadDesignationFromExcel::created the designations");
   }
   @Override
-  public ApiResponse createDesignation(JsonNode request) {
+  public ApiResponse createTerm(JsonNode request) {
     ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_DESIGNATION_CREATE);
     try {
     payloadValidation.validatePayload(Constants.DESIGNATION_CREATE_PAYLOAD_VALIDATION, request);
@@ -131,7 +131,7 @@ public class DesignationServiceImpl implements DesignationService {
     if (designationEntity.isPresent()) {
       DesignationEntity designation = designationEntity.get();
       if (designation.getIsActive()) {
-        ApiResponse readResponse = readDesignation(ref_Id);
+        ApiResponse readResponse = readTerm(ref_Id);
         if (readResponse == null) {
           response.getParams().setErr("Failed to validate sector exists or not.");
           response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -163,7 +163,7 @@ public class DesignationServiceImpl implements DesignationService {
             reqBodyMap.put(Constants.ID, ref_Id);
             reqBodyMap.put(Constants.DESIGNATION, name);
             reqBodyMap.put(Constants.REF_NODES, termIdentifier);
-            CustomResponse desgResponse = updateDesignation(objectMapper.valueToTree(reqBodyMap));
+            CustomResponse desgResponse = updateIdentifiersToDesignation(objectMapper.valueToTree(reqBodyMap));
             if (desgResponse.getResponseCode() != HttpStatus.OK) {
               log.error("Failed to update designation: " + response.getParams().getErr());
               response.getParams().setErr("Failed to update designation.");
@@ -352,7 +352,7 @@ public class DesignationServiceImpl implements DesignationService {
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     return dateFormat.parse(value);
   }
-  public ApiResponse readDesignation(String Id) {
+  public ApiResponse readTerm(String Id) {
     ApiResponse response = new ApiResponse();
     try {
       StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
@@ -417,7 +417,7 @@ public class DesignationServiceImpl implements DesignationService {
   }
 
   @Override
-  public CustomResponse updateDesignation(JsonNode updateDesignationDetails) {
+  public CustomResponse updateIdentifiersToDesignation(JsonNode updateDesignationDetails) {
     log.info("DesignationServiceImpl::updateDesignation::inside the method");
     payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,
             updateDesignationDetails);
