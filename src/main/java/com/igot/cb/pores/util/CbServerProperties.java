@@ -2,7 +2,6 @@ package com.igot.cb.pores.util;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
@@ -129,5 +128,9 @@ public class CbServerProperties {
   public List<String> getOdcsFields() {
     return Arrays.asList(odcsFields.split(",", -1));
   }
+  
+  @Value("${elastic.required.field.compArea.json.path}")
+  private String elasticCompJsonPath;
+
 
 }

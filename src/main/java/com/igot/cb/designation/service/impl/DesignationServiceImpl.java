@@ -1,7 +1,12 @@
 package com.igot.cb.designation.service.impl;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.designation.entity.DesignationEntity;
@@ -14,7 +19,17 @@ import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.*;
-
+import com.igot.cb.interest.service.impl.InterestServiceImpl;
+import com.igot.cb.pores.cache.CacheService;
+import com.igot.cb.pores.dto.CustomResponse;
+import com.igot.cb.pores.dto.RespParam;
+import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
+import com.igot.cb.pores.elasticsearch.dto.SearchResult;
+import com.igot.cb.pores.elasticsearch.service.EsUtilService;
+import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
+import com.igot.cb.pores.util.Constants;
+import com.igot.cb.pores.util.PayloadValidation;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,11 +41,21 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -39,7 +64,11 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -69,8 +98,16 @@ public class DesignationServiceImpl implements DesignationService {
   @Autowired
   private OutboundRequestHandlerServiceImpl outboundRequestHandlerServiceImpl;
 
+  private RedisTemplate<String, SearchResult> redisTemplate;
+
+  @Value("${search.result.redis.ttl}")
+  private long searchResultRedisTtl;
+
+  private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
+
+
   @Override
-  public void loadDesignationFromExcel(MultipartFile file) {
+  public void loadDesignation(MultipartFile file) {
     log.info("DesignationServiceImpl::loadDesignationFromExcel");
     List<Map<String, String>> processedData = processExcelFile(file);
     log.info("No.of processedData from excel: " + processedData.size());
@@ -90,7 +127,7 @@ public class DesignationServiceImpl implements DesignationService {
             String descriptionValue =
                 (eachDesignation.has(Constants.DESCRIPTION_PAYLOAD) && !eachDesignation.get(
                     Constants.DESCRIPTION_PAYLOAD).isNull())
-                    ? eachDesignation.get(Constants.UPDATED_DESIGNATION).asText("")
+                    ? eachDesignation.get(Constants.DESCRIPTION).asText()
                     : "";
             ((ObjectNode) eachDesignation).put(Constants.DESCRIPTION, descriptionValue);
             payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,
@@ -99,6 +136,11 @@ public class DesignationServiceImpl implements DesignationService {
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
             ((ObjectNode) eachDesignation).put(Constants.CREATED_ON, String.valueOf(currentTime));
             ((ObjectNode) eachDesignation).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+            ((ObjectNode) eachDesignation).put(Constants.VERSION, 1);
+            List<String> searchTags = new ArrayList<>();
+            searchTags.add(eachDesignation.get(Constants.DESIGNATION).textValue().toLowerCase());
+            ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+            ((ObjectNode) eachDesignation).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
             designationEntity.setId(formattedId);
             designationEntity.setData(eachDesignation);
             designationEntity.setIsActive(true);
@@ -214,6 +256,233 @@ public class DesignationServiceImpl implements DesignationService {
       log.error("Unexpected error occurred: " + e.getMessage(), e);
     }
     return response;
+  }
+
+  @Override
+  public CustomResponse readDesignation(String id) {
+    log.info("DesignationServiceImpl::readDesignation::reading the designation");
+    CustomResponse response = new CustomResponse();
+    if (StringUtils.isEmpty(id)) {
+      logger.error("InterestServiceImpl::read:Id not found");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.setMessage(Constants.ID_NOT_FOUND);
+      return response;
+    }
+    try {
+      String cachedJson = cacheService.getCache(id);
+      if (StringUtils.isNotEmpty(cachedJson)) {
+        log.info("DesignationServiceImpl::read:Record coming from redis cache");
+        response.setMessage(Constants.SUCCESSFULLY_READING);
+        response
+            .getResult()
+            .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
+            }));
+        response.setResponseCode(HttpStatus.OK);
+      } else {
+        Optional<DesignationEntity> entityOptional = designationRepository.findByIdAndIsActive(id, true);
+        if (entityOptional.isPresent()) {
+          DesignationEntity designationEntity = entityOptional.get();
+          cacheService.putCache(id, designationEntity.getData());
+          log.info("DesignationServiceImpl::read:Record coming from postgres db");
+          response.setMessage(Constants.SUCCESSFULLY_READING);
+          response
+              .getResult()
+              .put(Constants.RESULT,
+                  objectMapper.convertValue(
+                      designationEntity.getData(), new TypeReference<Object>() {
+                      }));
+          response.setResponseCode(HttpStatus.OK);
+        } else {
+          logger.error("Invalid Id: {}", id);
+          response.setResponseCode(HttpStatus.NOT_FOUND);
+          response.setMessage(Constants.INVALID_ID);
+        }
+      }
+    } catch (Exception e) {
+      logger.error("Error while mapping JSON for id {}: {}", id, e.getMessage(), e);
+      throw new CustomException(Constants.ERROR, "error while processing",
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return response;
+  }
+
+  @Override
+  public CustomResponse updateDesignation(JsonNode updateDesignationDetails) {
+    log.info("DesignationServiceImpl::updateDesignation::inside the method");
+    payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,
+        updateDesignationDetails);
+    CustomResponse response = new CustomResponse();
+    try {
+      if (updateDesignationDetails.has(Constants.ID) && !updateDesignationDetails.get(Constants.ID)
+          .isNull() && updateDesignationDetails.has(Constants.REF_NODES)
+          && !updateDesignationDetails.get(Constants.REF_NODES).isNull()) {
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        Optional<DesignationEntity> designationEntiy = designationRepository.findById(
+            updateDesignationDetails.get(Constants.ID).asText());
+        DesignationEntity designationEntityUpdated = null;
+        if (designationEntiy.isPresent()) {
+          JsonNode dataNode = designationEntiy.get().getData();
+          Iterator<Entry<String, JsonNode>> fields = updateDesignationDetails.fields();
+          while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String fieldName = field.getKey();
+            // Check if the field is present in the update JsonNode
+            if (dataNode.has(fieldName)) {
+              // Update the main JsonNode with the value from the update JsonNode
+              ((ObjectNode) dataNode).set(fieldName, updateDesignationDetails.get(fieldName));
+            } else {
+              ((ObjectNode) dataNode).put(fieldName, updateDesignationDetails.get(fieldName));
+            }
+          }
+          designationEntiy.get().setUpdatedOn(currentTime);
+          ((ObjectNode) dataNode).put(Constants.UPDATED_ON, new TextNode(
+              convertTimeStampToDate(designationEntiy.get().getUpdatedOn().getTime())));
+          designationEntityUpdated = designationRepository.save(designationEntiy.get());
+          ObjectNode jsonNode = objectMapper.createObjectNode();
+          jsonNode.set(Constants.ID,
+              new TextNode(updateDesignationDetails.get(Constants.ID).asText()));
+          jsonNode.setAll((ObjectNode) designationEntityUpdated.getData());
+          jsonNode.set(Constants.UPDATED_ON, new TextNode(
+              convertTimeStampToDate(designationEntityUpdated.getUpdatedOn().getTime())));
+          Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
+          esUtilService.updateDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
+              designationEntityUpdated.getId(), map,
+              cbServerProperties.getElasticDesignationJsonPath());
+          cacheService.putCache(designationEntityUpdated.getId(),
+              designationEntityUpdated.getData());
+          log.info("updated the Designation");
+          response.setMessage(Constants.SUCCESSFULLY_CREATED);
+          map.put(Constants.ID, designationEntityUpdated.getId());
+          response.setResult(map);
+          response.setResponseCode(HttpStatus.OK);
+          log.info("InterestServiceImpl::createInterest::persited interest in Pores");
+          return response;
+        }
+      }
+    } catch (Exception e) {
+      log.error("Error while processing file: {}", e.getMessage());
+      throw new RuntimeException(e.getMessage());
+    }
+    return null;
+  }
+
+  @Override
+  public CustomResponse createDesignation(JsonNode designationDetails) {
+    log.info("DesignationServiceImpl::createDesignation");
+    payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,designationDetails);
+    CustomResponse response = new CustomResponse();
+    try {
+      AtomicLong count = new AtomicLong(designationRepository.count());
+      DesignationEntity designationEntity = new DesignationEntity();
+      String formattedId = String.format("DESG-%06d", count.incrementAndGet());
+      ((ObjectNode) designationDetails).put(Constants.STATUS, Constants.ACTIVE);
+      ((ObjectNode) designationDetails).put(Constants.ID, formattedId);
+      Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+      ((ObjectNode) designationDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
+      ((ObjectNode) designationDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+      ((ObjectNode) designationDetails).put(Constants.VERSION, 1);
+      List<String> searchTags = new ArrayList<>();
+      searchTags.add(designationDetails.get(Constants.DESIGNATION).textValue().toLowerCase());
+      ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+      ((ObjectNode) designationDetails).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+      designationEntity.setId(formattedId);
+      designationEntity.setData(designationDetails);
+      designationEntity.setIsActive(true);
+      designationEntity.setCreatedOn(currentTime);
+      designationEntity.setUpdatedOn(currentTime);
+      designationRepository.save(designationEntity);
+      log.info(
+          "DesignationServiceImpl::createDesignation::persited designation in postgres with id: "
+              + formattedId);
+      Map<String, Object> map = objectMapper.convertValue(designationDetails, Map.class);
+      esUtilService.addDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
+          formattedId, map, cbServerProperties.getElasticDesignationJsonPath());
+      cacheService.putCache(formattedId, designationDetails);
+      log.info(
+          "DesignationServiceImpl::createDesignation::created the designation with: "
+              + formattedId);
+      response.setMessage(Constants.SUCCESSFULLY_CREATED);
+      map.put(Constants.ID, designationEntity.getId());
+      response.setResult(map);
+      response.setResponseCode(HttpStatus.OK);
+      return response;
+    } catch (Exception e) {
+      log.error("Error occurred while creating Designation", e);
+      response.getParams().setErrmsg("error while processing");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      return response;
+    }
+  }
+
+  @Override
+  public CustomResponse deleteDesignation(
+      String id) {
+    log.info("DesignationServiceImpl::deleteDesignation");
+    CustomResponse response = new CustomResponse();
+    try {
+      Optional<DesignationEntity> optionalDesignationEntity = designationRepository.findByIdAndIsActive(id, true);
+      if (optionalDesignationEntity.isPresent()){
+        DesignationEntity designationEntity = optionalDesignationEntity.get();
+        designationEntity.setIsActive(false);
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        designationEntity.setUpdatedOn(currentTime);
+        ((ObjectNode) designationEntity.getData()).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) designationEntity.getData()).put(Constants.STATUS, Constants.IN_ACTIVE);
+        designationRepository.save(designationEntity);
+        Map<String, Object> map = objectMapper.convertValue(designationEntity.getData(), Map.class);
+        esUtilService.addDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
+            designationEntity.getId(), map, cbServerProperties.getElasticDesignationJsonPath());
+        cacheService.deleteCache(id);
+        response.setResponseCode(HttpStatus.OK);
+        response.setMessage(Constants.DELETED_SUCCESSFULLY);
+        return response;
+      }else {
+        response.setMessage("No data found for this id");
+        response.setResponseCode(HttpStatus.BAD_REQUEST);
+        return response;
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage());
+      response.getParams().setStatus(Constants.FAILED);
+      response.setMessage(e.getMessage());
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      return response;
+    }
+  }
+
+  @Override
+  public CustomResponse searchDesignation(SearchCriteria searchCriteria) {
+    log.info("DesignationServiceImpl::searchDesignation");
+    CustomResponse response = new CustomResponse();
+    SearchResult searchResult = redisTemplate.opsForValue()
+        .get(generateRedisJwtTokenKey(searchCriteria));
+    if (searchResult != null) {
+      log.info("searchDesignation:search result fetched from redis");
+      response.getResult().put(Constants.RESULT, searchResult);
+      createSuccessResponse(response);
+      return response;
+    }
+    String searchString = searchCriteria.getSearchString();
+    if (searchString != null && searchString.length() < 2) {
+      createErrorResponse(response, "Minimum 3 characters are required to search",
+          HttpStatus.BAD_REQUEST,
+          Constants.FAILED_CONST);
+      return response;
+    }
+    try {
+      searchResult =
+          esUtilService.searchDocuments(Constants.DESIGNATION_INDEX_NAME, searchCriteria);
+      response.getResult().put(Constants.RESULT, searchResult);
+      createSuccessResponse(response);
+      return response;
+    } catch (Exception e) {
+      createErrorResponse(response, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR,
+          Constants.FAILED_CONST);
+      redisTemplate.opsForValue()
+          .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
+              TimeUnit.SECONDS);
+      return response;
+    }
   }
 
   private List<Map<String, String>> processExcelFile(MultipartFile incomingFile) {
@@ -484,4 +753,37 @@ public class DesignationServiceImpl implements DesignationService {
     return dateTime.format(formatter);
   }
 
+  private String convertTimeStampToDate(long timeStamp) {
+    Instant instant = Instant.ofEpochMilli(timeStamp);
+    OffsetDateTime dateTime = instant.atOffset(ZoneOffset.UTC);
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy'T'HH:mm:ss.SSS'Z'");
+    return dateTime.format(formatter);
+  }
+
+  public String generateRedisJwtTokenKey(Object requestPayload) {
+    if (requestPayload != null) {
+      try {
+        String reqJsonString = objectMapper.writeValueAsString(requestPayload);
+        return JWT.create()
+            .withClaim(Constants.REQUEST_PAYLOAD, reqJsonString)
+            .sign(Algorithm.HMAC256(Constants.JWT_SECRET_KEY));
+      } catch (JsonProcessingException e) {
+        logger.error("Error occurred while converting json object to json string", e);
+      }
+    }
+    return "";
+  }
+
+  public void createSuccessResponse(CustomResponse response) {
+    response.setParams(new RespParam());
+    response.getParams().setStatus(Constants.SUCCESS);
+    response.setResponseCode(HttpStatus.OK);
+  }
+
+  public void createErrorResponse(
+      CustomResponse response, String errorMessage, HttpStatus httpStatus, String status) {
+    response.setParams(new RespParam());
+    response.getParams().setStatus(status);
+    response.setResponseCode(httpStatus);
+  }
 }
