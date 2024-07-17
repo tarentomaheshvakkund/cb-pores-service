@@ -745,14 +745,6 @@ public class DesignationServiceImpl implements DesignationService {
     }
     return null;
   }
-
-  private String convertTimeStampToDate(long timeStamp) {
-    Instant instant = Instant.ofEpochMilli(timeStamp);
-    OffsetDateTime dateTime = instant.atOffset(ZoneOffset.UTC);
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy'T'HH:mm:ss.SSS'Z'");
-    return dateTime.format(formatter);
-  }
-
   private String convertTimeStampToDate(long timeStamp) {
     Instant instant = Instant.ofEpochMilli(timeStamp);
     OffsetDateTime dateTime = instant.atOffset(ZoneOffset.UTC);
