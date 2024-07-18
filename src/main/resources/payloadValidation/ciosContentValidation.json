@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration": {
+          "type": "string",
+          "minimum": 1
+        },
+        "redirectUrl": {
+          "type": "string"
+        },
+        "appIcon": {
+          "type": "string",
+          "format": "uri"
+        },
+        "externalId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objectives": {
+          "type": "string"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "lastUpdatedOn": {
+          "type": "string"
+        },
+        "createdOn": {
+          "type": "string"
+        },
+        "contentId": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "duration",
+        "redirectUrl",
+        "appIcon",
+        "externalId"
+      ]
+    }
+  },
+  "additionalProperties": false
+}
