@@ -105,51 +105,49 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
       JsonNode jsonNode = objectMapper.valueToTree(processedData);
       AtomicLong startingId = new AtomicLong(competencyAreaRepository.count());
       CompetencyAreaEntity competencyAreaEntity = new CompetencyAreaEntity();
+      List<String> titles = new ArrayList<>();
+      dataJson.forEach(node -> {
+        if (node.has(Constants.TITLE)) {
+          titles.add(node.get(Constants.TITLE).asText().toLowerCase());
+        }
+      });
       jsonNode.forEach(
           eachCompArea -> {
-            for (JsonNode node : dataJson) {
-              if (node.has("title")) {
-                String title = node.get("title").asText();
-                if (title.equals(competencyAreaType)) {
-                  existsInDateJson = true;
-                  break;
-                }
-              }
-            }
 
             if (eachCompArea.has(Constants.COMPETENCY_AREA_TYPE)){
              if (!eachCompArea.get(
                  Constants.COMPETENCY_AREA_TYPE).asText().isEmpty()){
 
-               String formattedId = String.format("COMAREA-%06d", startingId.incrementAndGet());
-               JsonNode dataNode = objectMapper.createObjectNode();
-               ((ObjectNode) dataNode).put(Constants.ID, formattedId);
-               ((ObjectNode) dataNode).put(Constants.TITLE, eachCompArea.get(Constants.COMPETENCY_AREA_TYPE).asText());
-               String descriptionValue =
-                   (eachCompArea.has(Constants.DESCRIPTION_PAYLOAD) && !eachCompArea.get(
-                       Constants.DESCRIPTION_PAYLOAD).isNull())
-                       ? eachCompArea.get(Constants.DESCRIPTION).asText()
-                       : "";
-               ((ObjectNode) dataNode).put(Constants.DESCRIPTION, descriptionValue);
-               ((ObjectNode) dataNode).put(Constants.STATUS, Constants.LIVE);
-               Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-               ((ObjectNode) dataNode).put(Constants.CREATED_ON, String.valueOf(currentTime));
-               ((ObjectNode) dataNode).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-               ((ObjectNode) dataNode).put(Constants.CREATED_BY, userId);
-               ((ObjectNode) dataNode).put(Constants.UPDATED_BY, userId);
-               ((ObjectNode) dataNode).put(Constants.VERSION, 1);
-               payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
-                   dataNode);
-               List<String> searchTags = new ArrayList<>();
-               searchTags.add(dataNode.get(Constants.TITLE).textValue().toLowerCase());
-               ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
-               ((ObjectNode) dataNode).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
-               dataNode = addExtraFields(dataNode);
-               competencyAreaEntity.setId(formattedId);
-               competencyAreaEntity.setData(dataNode);
-               competencyAreaEntity.setIsActive(true);
-               competencyAreaEntity.setCreatedOn(currentTime);
-               competencyAreaEntity.setUpdatedOn(currentTime);
+               if (!titles.contains(eachCompArea.get(Constants.COMPETENCY_AREA_TYPE).asText().toLowerCase())) {
+                 String formattedId = String.format("COMAREA-%06d", startingId.incrementAndGet());
+                 JsonNode dataNode = objectMapper.createObjectNode();
+                 ((ObjectNode) dataNode).put(Constants.ID, formattedId);
+                 ((ObjectNode) dataNode).put(Constants.TITLE, eachCompArea.get(Constants.COMPETENCY_AREA_TYPE).asText());
+                 String descriptionValue =
+                     (eachCompArea.has(Constants.DESCRIPTION_PAYLOAD) && !eachCompArea.get(
+                         Constants.DESCRIPTION_PAYLOAD).isNull())
+                         ? eachCompArea.get(Constants.DESCRIPTION).asText()
+                         : "";
+                 ((ObjectNode) dataNode).put(Constants.DESCRIPTION, descriptionValue);
+                 ((ObjectNode) dataNode).put(Constants.STATUS, Constants.LIVE);
+                 Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+                 ((ObjectNode) dataNode).put(Constants.CREATED_ON, String.valueOf(currentTime));
+                 ((ObjectNode) dataNode).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+                 ((ObjectNode) dataNode).put(Constants.CREATED_BY, userId);
+                 ((ObjectNode) dataNode).put(Constants.UPDATED_BY, userId);
+                 ((ObjectNode) dataNode).put(Constants.VERSION, 1);
+                 payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
+                     dataNode);
+                 List<String> searchTags = new ArrayList<>();
+                 searchTags.add(dataNode.get(Constants.TITLE).textValue().toLowerCase());
+                 ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+                 ((ObjectNode) dataNode).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+                 dataNode = addExtraFields(dataNode);
+                 competencyAreaEntity.setId(formattedId);
+                 competencyAreaEntity.setData(dataNode);
+                 competencyAreaEntity.setIsActive(true);
+                 competencyAreaEntity.setCreatedOn(currentTime);
+                 competencyAreaEntity.setUpdatedOn(currentTime);
 //               competencyAreaRepository.save(competencyAreaEntity);
 //               log.info(
 //                   "CompetencyAreaService::loadCompetencyArea::persited CompetencyArea in postgres with id: "
@@ -158,9 +156,11 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
 //               esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
 //                   formattedId, map, cbServerProperties.getElasticCompJsonPath());
 //               cacheService.putCache(formattedId, dataNode);
-               log.info(
-                   "CompetencyAreaService::loadCompetencyArea::created the CompetencyArea with: "
-                       + formattedId);
+                 log.info(
+                     "CompetencyAreaService::loadCompetencyArea::created the CompetencyArea with: "
+                         + formattedId);
+               }
+
              }
             }
 
