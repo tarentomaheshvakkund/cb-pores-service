@@ -166,7 +166,7 @@ public class DesignationServiceImpl implements DesignationService {
   public ApiResponse createTerm(JsonNode request) {
     ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_DESIGNATION_CREATE);
     try {
-    payloadValidation.validatePayload(Constants.DESIGNATION_CREATE_PAYLOAD_VALIDATION, request);
+    payloadValidation.validatePayload(Constants.TERM_CREATE_PAYLOAD_VALIDATION, request);
     String name = request.get(Constants.NAME).asText();
     String ref_Id = request.get(Constants.REF_ID).asText();
     Optional<DesignationEntity> designationEntity = designationRepository.findByIdAndIsActive(ref_Id, Boolean.TRUE);
