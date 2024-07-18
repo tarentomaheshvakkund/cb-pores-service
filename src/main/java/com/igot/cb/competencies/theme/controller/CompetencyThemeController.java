@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.igot.cb.competencies.theme.service.CompetencyThemeService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
+import com.igot.cb.pores.util.ApiResponse;
 import com.igot.cb.pores.util.Constants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +68,12 @@ public class CompetencyThemeController {
   @DeleteMapping("/delete/{id}")
   public ResponseEntity<CustomResponse> deleteCompetencyArea(@PathVariable String id) {
     CustomResponse response = competencyThemeService.deleteCompetencyTheme(id);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @PostMapping("/term/create")
+  public ResponseEntity<ApiResponse> createTerm(@RequestBody JsonNode request) {
+    ApiResponse response = competencyThemeService.createTerm(request);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 }
