@@ -743,7 +743,7 @@ public class DesignationServiceImpl implements DesignationService {
       log.error("Error while processing file: {}", e.getMessage());
       throw new RuntimeException(e.getMessage());
     }
-    return null;
+    return response;
   }
   private String convertTimeStampToDate(long timeStamp) {
     Instant instant = Instant.ofEpochMilli(timeStamp);
