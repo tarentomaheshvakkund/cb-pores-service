@@ -431,7 +431,7 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
             response.getParams().setStatus(Constants.FAILED);
           } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
             Map<String, Object> reqBody = new HashMap<>();
-            request.fields().forEachRemaining(entry -> reqBody.put(entry.getKey(), entry.getValue().asText()));
+            request.fields().forEachRemaining(entry -> reqBody.put(entry.getKey(), toJavaObject(entry.getValue())));
             Map<String, Object> parentObj = new HashMap<>();
             parentObj.put(Constants.IDENTIFIER,
                     cbServerProperties.getOdcsDesignationFramework() + "_" + cbServerProperties.getOdcsDesignationCategory());
@@ -619,6 +619,16 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
         }
       }
       ((List) newDesignation.get(Constants.CHILDREN)).add(newSubDesignation);
+    }
+  }
+
+  private static Object toJavaObject(JsonNode jsonNode) {
+    if (jsonNode.isObject()) {
+      Map<String, Object> map = new HashMap<>();
+      jsonNode.fields().forEachRemaining(entry -> map.put(entry.getKey(), toJavaObject(entry.getValue())));
+      return map;
+    } else {
+      return jsonNode.asText();
     }
   }
 }
