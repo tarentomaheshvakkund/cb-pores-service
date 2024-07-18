@@ -3,11 +3,14 @@ package com.igot.cb.competencies.theme.service.impl;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.authentication.util.AccessTokenValidator;
+import com.igot.cb.competencies.area.entity.CompetencyAreaEntity;
 import com.igot.cb.competencies.theme.enity.CompetencyThemeEntity;
 import com.igot.cb.competencies.theme.repository.CompetencyThemeRepository;
 import com.igot.cb.competencies.theme.service.CompetencyThemeService;
@@ -17,6 +20,7 @@ import com.igot.cb.pores.dto.RespParam;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
+import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.igot.cb.pores.util.FileProcessService;
@@ -27,8 +31,11 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
@@ -180,6 +187,212 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
     }
   }
 
+  @Override
+  public CustomResponse createCompTheme(JsonNode competencyTheme, String token) {
+    log.info("CompetencyThemeServiceImpl::createCompTheme");
+    payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
+        competencyTheme);
+    CustomResponse response = new CustomResponse();
+    String userId = accessTokenValidator.verifyUserToken(token);
+    if (StringUtils.isBlank(userId) || userId.equalsIgnoreCase(Constants.UNAUTHORIZED)) {
+      response.getParams().setErrmsg(Constants.USER_ID_DOESNT_EXIST);
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      return response;
+    }
+    try {
+      AtomicLong count = new AtomicLong(competencyThemeRepository.count());
+      CompetencyThemeEntity competencyThemeEntity = new CompetencyThemeEntity();
+      String formattedId = String.format("COMTHEME-%06d", count.incrementAndGet());
+      ((ObjectNode) competencyTheme).put(Constants.STATUS, Constants.LIVE);
+      ((ObjectNode) competencyTheme).put(Constants.ID, formattedId);
+      ((ObjectNode) competencyTheme).put(Constants.IS_ACTIVE, true);
+      Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+      ((ObjectNode) competencyTheme).put(Constants.CREATED_ON, String.valueOf(currentTime));
+      ((ObjectNode) competencyTheme).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+      ((ObjectNode) competencyTheme).put(Constants.CREATED_BY, userId);
+      ((ObjectNode) competencyTheme).put(Constants.UPDATED_BY, userId);
+      List<String> searchTags = new ArrayList<>();
+      searchTags.add(competencyTheme.get(Constants.TITLE).textValue().toLowerCase());
+      ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+      ((ObjectNode) competencyTheme).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+      ((ObjectNode) competencyTheme).put(Constants.TYPE, Constants.COMPETENCY_THEME_TYPE);
+      ((ObjectNode) competencyTheme).put(Constants.VERSION, 1);
+      competencyThemeEntity.setId(formattedId);
+      competencyThemeEntity.setData(competencyTheme);
+      competencyThemeEntity.setIsActive(true);
+      competencyThemeEntity.setCreatedOn(currentTime);
+      competencyThemeEntity.setUpdatedOn(currentTime);
+      competencyThemeRepository.save(competencyThemeEntity);
+      log.info(
+          "CompetencyThemeServiceImpl::createCompTheme::persited data in postgres with id: "
+              + formattedId);
+      Map<String, Object> map = objectMapper.convertValue(competencyTheme, Map.class);
+      esUtilService.addDocument(Constants.COMP_THEME_INDEX_NAME, Constants.INDEX_TYPE,
+          formattedId, map, cbServerProperties.getElasticCompJsonPath());
+      cacheService.putCache(formattedId, competencyTheme);
+      log.info(
+          "CompetencyThemeServiceImpl::createCompTheme::created the compArea with: "
+              + formattedId);
+      response.setMessage(Constants.SUCCESSFULLY_CREATED);
+      map.put(Constants.ID, competencyThemeEntity.getId());
+      response.setResult(map);
+      response.setResponseCode(HttpStatus.OK);
+      return response;
+    }catch (Exception e){
+      log.error("Error occurred while creating compTheme", e);
+      throw new CustomException("error while processing", e.getMessage(),
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Override
+  public CustomResponse updateCompTheme(JsonNode updatedCompTheme) {
+    log.info("CompetencyThemeServiceImpl::updateCompTheme");
+    payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
+        updatedCompTheme);
+    CustomResponse response = new CustomResponse();
+    try {
+      if (updatedCompTheme.has(Constants.ID) && !updatedCompTheme.get(Constants.ID)
+          .isNull()) {
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        Optional<CompetencyThemeEntity> compTheme = competencyThemeRepository.findById(
+            updatedCompTheme.get(Constants.ID).asText());
+        CompetencyThemeEntity competencyThemeEntityUpdated = null;
+        if (compTheme.isPresent()) {
+          JsonNode dataNode = compTheme.get().getData();
+          Iterator<Entry<String, JsonNode>> fields = updatedCompTheme.fields();
+          while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String fieldName = field.getKey();
+            // Check if the field is present in the update JsonNode
+            if (dataNode.has(fieldName)) {
+              // Update the main JsonNode with the value from the update JsonNode
+              ((ObjectNode) dataNode).set(fieldName, updatedCompTheme.get(fieldName));
+            } else {
+              ((ObjectNode) dataNode).put(fieldName, updatedCompTheme.get(fieldName));
+            }
+          }
+          compTheme.get().setUpdatedOn(currentTime);
+          ((ObjectNode) dataNode).put(Constants.UPDATED_ON, new TextNode(
+              convertTimeStampToDate(compTheme.get().getUpdatedOn().getTime())));
+          competencyThemeEntityUpdated = competencyThemeRepository.save(compTheme.get());
+          ObjectNode jsonNode = objectMapper.createObjectNode();
+          jsonNode.set(Constants.ID,
+              new TextNode(updatedCompTheme.get(Constants.ID).asText()));
+          jsonNode.setAll((ObjectNode) competencyThemeEntityUpdated.getData());
+          Map<String, Object> map = objectMapper.convertValue(jsonNode, Map.class);
+          esUtilService.updateDocument(Constants.COMP_THEME_INDEX_NAME, Constants.INDEX_TYPE,
+              competencyThemeEntityUpdated.getId(), map,
+              cbServerProperties.getElasticCompJsonPath());
+          cacheService.putCache(competencyThemeEntityUpdated.getId(),
+              competencyThemeEntityUpdated.getData());
+          log.info("updated the CompTheme");
+          response.setMessage(Constants.SUCCESSFULLY_UPDATED);
+          map.put(Constants.ID, competencyThemeEntityUpdated.getId());
+          response.setResult(map);
+          response.setResponseCode(HttpStatus.OK);
+          log.info("CompetencyThemeServiceImpl::updateCompTheme::persited in Pores");
+          return response;
+        }else {
+          response.setMessage("No data found for this id");
+          response.setResponseCode(HttpStatus.BAD_REQUEST);
+          return response;
+        }
+      }else {
+        response.setMessage("Id is missing");
+        response.setResponseCode(HttpStatus.BAD_REQUEST);
+        return response;
+      }
+    }catch (Exception e){
+      log.error("Error while processing file: {}", e.getMessage());
+      throw new RuntimeException(e.getMessage());
+    }
+  }
+
+  @Override
+  public CustomResponse readCompTheme(String id) {
+    log.info("CompetencyThemeServiceImpl::readCompTheme");
+    CustomResponse response = new CustomResponse();
+    if (StringUtils.isEmpty(id)) {
+      log.error("CompetencyThemeServiceImpl::readCompTheme:Id not found");
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      response.setMessage(Constants.ID_NOT_FOUND);
+      return response;
+    }
+    try {
+      String cachedJson = cacheService.getCache(id);
+      if (StringUtils.isNotEmpty(cachedJson)) {
+        log.info("CompetencyThemeServiceImpl::readCompTheme:Record coming from redis cache");
+        response.setMessage(Constants.SUCCESSFULLY_READING);
+        response
+            .getResult()
+            .put(Constants.RESULT, objectMapper.readValue(cachedJson, new TypeReference<Object>() {
+            }));
+        response.setResponseCode(HttpStatus.OK);
+      } else {
+        Optional<CompetencyThemeEntity> entityOptional = competencyThemeRepository.findByIdAndIsActive(id, true);
+        if (entityOptional.isPresent()) {
+          CompetencyThemeEntity competencyThemeEntity = entityOptional.get();
+          cacheService.putCache(id, competencyThemeEntity.getData());
+          log.info("CompetencyThemeServiceImpl::readCompTheme:Record coming from postgres db");
+          response.setMessage(Constants.SUCCESSFULLY_READING);
+          response
+              .getResult()
+              .put(Constants.RESULT,
+                  objectMapper.convertValue(
+                      competencyThemeEntity.getData(), new TypeReference<Object>() {
+                      }));
+          response.setResponseCode(HttpStatus.OK);
+        } else {
+          log.error("Invalid Id: {}", id);
+          response.setResponseCode(HttpStatus.NOT_FOUND);
+          response.setMessage(Constants.INVALID_ID);
+        }
+      }
+    } catch (Exception e) {
+      log.error("Error while Fetching the data", id, e.getMessage(), e);
+      throw new CustomException(Constants.ERROR, "error while processing",
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return response;
+  }
+
+  @Override
+  public CustomResponse deleteCompetencyTheme(String id) {
+    log.info("CompetencyThemeServiceImpl::deleteCompetencyTheme");
+    CustomResponse response = new CustomResponse();
+    try {
+      Optional<CompetencyThemeEntity> optionalEntity = competencyThemeRepository.findByIdAndIsActive(id, true);
+      if (optionalEntity.isPresent()){
+        CompetencyThemeEntity competencyThemeEntity = optionalEntity.get();
+        competencyThemeEntity.setIsActive(false);
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        competencyThemeEntity.setUpdatedOn(currentTime);
+        ((ObjectNode) competencyThemeEntity.getData()).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) competencyThemeEntity.getData()).put(Constants.STATUS, Constants.IN_ACTIVE);
+        ((ObjectNode) competencyThemeEntity.getData()).put(Constants.IS_ACTIVE, false);
+        competencyThemeRepository.save(competencyThemeEntity);
+        Map<String, Object> map = objectMapper.convertValue(competencyThemeEntity.getData(), Map.class);
+        esUtilService.updateDocument(Constants.COMP_THEME_INDEX_NAME, Constants.INDEX_TYPE,
+            competencyThemeEntity.getId(), map, cbServerProperties.getElasticCompJsonPath());
+        cacheService.deleteCache(id);
+        response.setResponseCode(HttpStatus.OK);
+        response.setMessage(Constants.DELETED_SUCCESSFULLY);
+        return response;
+      }else {
+        response.setMessage("CompetencyThemeServiceImpl::deleteCompetencyTheme:No data found for this id");
+        response.setResponseCode(HttpStatus.BAD_REQUEST);
+        return response;
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage());
+      response.getParams().setStatus(Constants.FAILED);
+      response.setMessage(e.getMessage());
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      return response;
+    }
+  }
+
 
   public String generateRedisJwtTokenKey(Object requestPayload) {
     if (requestPayload != null) {
@@ -220,5 +433,12 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
     ((ObjectNode) jsonNode).put(Constants.REVIEWED_DATE, (JsonNode) null);
     ((ObjectNode) jsonNode).put(Constants.ADDITIONAL_PROPERTIES, (JsonNode) null);
     return jsonNode;
+  }
+
+  private String convertTimeStampToDate(long timeStamp) {
+    Instant instant = Instant.ofEpochMilli(timeStamp);
+    OffsetDateTime dateTime = instant.atOffset(ZoneOffset.UTC);
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy'T'HH:mm:ss.SSS'Z'");
+    return dateTime.format(formatter);
   }
 }

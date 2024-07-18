@@ -1,5 +1,6 @@
 package com.igot.cb.competencies.theme.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.igot.cb.competencies.theme.service.CompetencyThemeService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
@@ -8,7 +9,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +43,30 @@ public class CompetencyThemeController {
   @PostMapping("/search")
   public ResponseEntity<?> search(@RequestBody SearchCriteria searchCriteria) {
     CustomResponse response = competencyThemeService.searchCompTheme(searchCriteria);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @PostMapping("/create")
+  public ResponseEntity<CustomResponse> createCompetencyTheme(@RequestBody JsonNode competencyArea, @RequestHeader(Constants.X_AUTH_TOKEN) String token) {
+    CustomResponse response = competencyThemeService.createCompTheme(competencyArea, token);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @PutMapping(value = "/update", produces = "application/json")
+  public ResponseEntity<CustomResponse> update(@RequestBody JsonNode updatedComptheme) {
+    CustomResponse response = competencyThemeService.updateCompTheme(updatedComptheme);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @GetMapping("/read/{id}")
+  public ResponseEntity<?> competencyThemeRead(@PathVariable String id) {
+    CustomResponse response = competencyThemeService.readCompTheme(id);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @DeleteMapping("/delete/{id}")
+  public ResponseEntity<CustomResponse> deleteCompetencyArea(@PathVariable String id) {
+    CustomResponse response = competencyThemeService.deleteCompetencyTheme(id);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 }

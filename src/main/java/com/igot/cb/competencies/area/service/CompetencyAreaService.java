@@ -11,9 +11,13 @@ public interface  CompetencyAreaService {
 
   void loadCompetencyArea(MultipartFile file, String token);
 
- public CustomResponse createCompArea(JsonNode competencyArea);
+ public CustomResponse createCompArea(JsonNode competencyArea, String token);
 
   public CustomResponse updateCompArea(JsonNode updatedCompArea);
 
   public CustomResponse searchCompArea(SearchCriteria searchCriteria);
+
+  public CustomResponse readCompArea(String id);
+
+  public CustomResponse deleteCompetencyArea(String id);
 }
