@@ -40,7 +40,7 @@
   "searchTags": {
     "type": "keyword"
   },
-  "competencyArea": {
+  "competencies_v5": {
     "type": "keyword"
   }
 }

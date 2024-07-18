@@ -12,6 +12,6 @@ import java.io.Serializable;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ObjectDto implements Serializable {
-    private String identifier;
-    private JsonNode competencyArea;
+    private JsonNode contentData;
+    private JsonNode competencies_v5;
 }

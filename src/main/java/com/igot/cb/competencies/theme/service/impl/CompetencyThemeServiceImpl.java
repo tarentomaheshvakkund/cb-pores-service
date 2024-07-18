@@ -14,6 +14,9 @@ import com.igot.cb.competencies.area.entity.CompetencyAreaEntity;
 import com.igot.cb.competencies.theme.enity.CompetencyThemeEntity;
 import com.igot.cb.competencies.theme.repository.CompetencyThemeRepository;
 import com.igot.cb.competencies.theme.service.CompetencyThemeService;
+import com.igot.cb.designation.entity.DesignationEntity;
+import com.igot.cb.playlist.util.ProjectUtil;
+import com.igot.cb.pores.Service.OutboundRequestHandlerServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.dto.RespParam;
@@ -21,21 +24,15 @@ import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
-import com.igot.cb.pores.util.CbServerProperties;
-import com.igot.cb.pores.util.Constants;
-import com.igot.cb.pores.util.FileProcessService;
-import com.igot.cb.pores.util.PayloadValidation;
+import com.igot.cb.pores.util.*;
+
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +77,8 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
 
   @Autowired
   private CompetencyThemeRepository competencyThemeRepository;
+
+  private @Autowired OutboundRequestHandlerServiceImpl outboundRequestHandlerServiceImpl;
 
   @Override
   public void loadCompetencyTheme(MultipartFile file, String token) {
@@ -393,6 +392,102 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
     }
   }
 
+  @Override
+  public ApiResponse createTerm(JsonNode request) {
+    ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_COMPETENCY_THEME_CREATE);
+    try {
+      payloadValidation.validatePayload(Constants.TERM_CREATE_PAYLOAD_VALIDATION, request);
+      String name = request.get(Constants.NAME).asText();
+      String ref_Id = request.get(Constants.REF_ID).asText();
+      Optional<CompetencyThemeEntity> designationEntity = competencyThemeRepository.findByIdAndIsActive(ref_Id, Boolean.TRUE);
+      if (designationEntity.isPresent()) {
+        CompetencyThemeEntity designation = designationEntity.get();
+        if (designation.getIsActive()) {
+          ApiResponse readResponse = readTerm(ref_Id);
+          if (readResponse == null) {
+            response.getParams().setErr("Failed to validate term exists or not.");
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            response.getParams().setStatus(Constants.FAILED);
+          } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
+            Map<String, Object> reqBody = new HashMap<>();
+            request.fields().forEachRemaining(entry -> reqBody.put(entry.getKey(), entry.getValue().asText()));
+            Map<String, Object> parentObj = new HashMap<>();
+            parentObj.put(Constants.IDENTIFIER,
+                    cbServerProperties.getOdcsDesignationFramework() + "_" + cbServerProperties.getOdcsDesignationCategory());
+            reqBody.put(Constants.PARENTS, Arrays.asList(parentObj));
+            Map<String, Object> termReq = new HashMap<String, Object>();
+            termReq.put(Constants.TERM, reqBody);
+            Map<String, Object> createReq = new HashMap<String, Object>();
+            createReq.put(Constants.REQUEST, termReq);
+            StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+            strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
+                    .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
+                    .append(cbServerProperties.getOdcsDesignationCategory());
+            Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
+                    createReq);
+            if (termResponse != null
+                    && Constants.OK.equalsIgnoreCase((String) termResponse.get(Constants.RESPONSE_CODE))) {
+              Map<String, Object> resultMap = (Map<String, Object>) termResponse.get(Constants.RESULT);
+              List<String> termIdentifier = (List<String>) resultMap.getOrDefault(Constants.NODE_ID, "");
+              log.info("Created term successfully with name: " + ref_Id);
+              log.info("termIdentifier : " + termIdentifier);
+              Map<String, Object> reqBodyMap = new HashMap<>();
+              reqBodyMap.put(Constants.ID, ref_Id);
+              reqBodyMap.put(Constants.DESIGNATION, name);
+              reqBodyMap.put(Constants.REF_NODES, termIdentifier);
+              CustomResponse desgResponse = updateCompTheme(objectMapper.valueToTree(reqBodyMap));
+              if (desgResponse.getResponseCode() != HttpStatus.OK) {
+                log.error("Failed to update term: " + response.getParams().getErr());
+                response.getParams().setErr("Failed to update term.");
+                response.setResult(desgResponse.getResult());
+                response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+                response.getParams().setStatus(Constants.FAILED);
+              }
+            } else {
+              log.error("Failed to create the term with name: " + ref_Id);
+              response.getParams().setErr("Failed to create the term");
+              response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+              response.getParams().setStatus(Constants.FAILED);
+            }
+          } else if (HttpStatus.OK.equals(readResponse.getResponseCode())) {
+            String errMsg = "term already exists with name: " + ref_Id;
+            log.error(errMsg);
+            response.getParams().setErr(errMsg);
+            response.setResponseCode(HttpStatus.BAD_REQUEST);
+            response.getParams().setStatus(Constants.FAILED);
+          } else {
+            log.error("Failed to create the term with name: " + ref_Id);
+            response.getParams().setErr("Failed to create.");
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            response.getParams().setStatus(Constants.FAILED);
+          }
+        } else {
+          //if desg. is not active.
+          log.error("Failed to create term exists with name: " + ref_Id);
+          response.getParams().setErr("Failed to create term.");
+          response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+          response.getParams().setStatus(Constants.FAILED);
+        }
+      } else {
+        log.error("Failed to validate term exists with name: " + ref_Id);
+        response.getParams().setErr("term Not Exist.");
+        response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        response.getParams().setStatus(Constants.FAILED);
+      }
+    } catch (CustomException e) {
+      response.getParams().setErr(e.getMessage());
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      response.getParams().setStatus(Constants.FAILED);
+      log.error("Payload validation failed: " + e.getMessage());
+    } catch (Exception e) {
+      response.getParams().setErr("Unexpected error occurred while processing the request.");
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.getParams().setStatus(Constants.FAILED);
+      log.error("Unexpected error occurred: " + e.getMessage(), e);
+    }
+    return response;
+  }
+
 
   public String generateRedisJwtTokenKey(Object requestPayload) {
     if (requestPayload != null) {
@@ -440,5 +535,69 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
     OffsetDateTime dateTime = instant.atOffset(ZoneOffset.UTC);
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy'T'HH:mm:ss.SSS'Z'");
     return dateTime.format(formatter);
+  }
+
+  public ApiResponse readTerm(String Id) {
+    ApiResponse response = new ApiResponse();
+    try {
+      StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+      strUrl.append(cbServerProperties.getOdcsDesignationTermRead()).append("/").append(Id).append("?framework=")
+              .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
+              .append(cbServerProperties.getOdcsCompetencyThemeCategory());
+
+      Map<String, Object> map = new HashMap<String, Object>();
+      Map<String, Object> desgResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResult(strUrl.toString());
+      if (null != desgResponse) {
+        if (Constants.OK.equalsIgnoreCase((String) desgResponse.get(Constants.RESPONSE_CODE))) {
+          Map<String, Object> resultMap = (Map<String, Object>) desgResponse.get(Constants.RESULT);
+          Map<String, Object> input = (Map<String, Object>) resultMap.get(Constants.TERM);
+          processDesignation(input, map);
+          response.getResult().put(Constants.DESIGNATION, map);
+        } else {
+          response.setResponseCode(HttpStatus.NOT_FOUND);
+          response.getParams().setErr("Data not found with id : " + Id);
+        }
+      } else {
+        response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        response.getParams().setErr("Failed to read the des details for Id : " + Id);
+      }
+    } catch (Exception e) {
+      log.error("Failed to read Designation with Id: " + Id, e);
+      response.getParams().setErr("Failed to read Designation: " + e.getMessage());
+      response.getParams().setStatus(Constants.FAILED);
+      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return response;
+  }
+
+  private void processDesignation(Map<String, Object> designationInput, Map<String, Object> designationMap) {
+    for (String field : cbServerProperties.getOdcsFields()) {
+      if (designationInput.containsKey(field)) {
+        designationMap.put(field, designationInput.get(field));
+      }
+    }
+    if (designationInput.containsKey(Constants.CHILDREN)) {
+      designationMap.put(Constants.CHILDREN, new ArrayList<Map<String, Object>>());
+      processSubDesignation(designationInput, designationMap);
+    }
+  }
+
+  private void processSubDesignation(Map<String, Object> designation, Map<String, Object> newDesignation) {
+    List<Map<String, Object>> designationList = (List<Map<String, Object>>) designation.get(Constants.CHILDREN);
+    Set<String> uniqueDesg = new HashSet<String>();
+    for (Map<String, Object> desig : designationList) {
+      if (uniqueDesg.contains((String) desig.get(Constants.IDENTIFIER))) {
+        continue;
+      } else {
+        uniqueDesg.add((String) desig.get(Constants.IDENTIFIER));
+      }
+      Map<String, Object> newSubDesignation = new HashMap<String, Object>();
+      for (String field : cbServerProperties.getOdcsFields()) {
+        if (desig.containsKey(field)) {
+          newSubDesignation.put(field, desig.get(field));
+        }
+      }
+      ((List) newDesignation.get(Constants.CHILDREN)).add(newSubDesignation);
+    }
   }
 }
