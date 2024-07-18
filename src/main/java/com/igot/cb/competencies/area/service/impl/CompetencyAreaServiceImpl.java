@@ -30,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +86,19 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
   public void loadCompetencyArea(MultipartFile file, String token) {
     log.info("CompetencyAreaService::loadCompetencyArea");
     String userId = accessTokenValidator.verifyUserToken(token);
+    SearchCriteria searchCriteria = new SearchCriteria();
+    searchCriteria.setPageNumber(0);
+    searchCriteria.setPageSize(5000);
+    searchCriteria.setRequestedFields(Collections.singletonList(Constants.TITLE));
+    JsonNode dataJson = objectMapper.createObjectNode();
+    try {
+     SearchResult dataFetched = esUtilService.searchDocuments(Constants.COMP_AREA_INDEX_NAME, searchCriteria);
+     dataJson = dataFetched.getData();
+    } catch (Exception e) {
+      log.error("Error occurred while creating compArea", e);
+      throw new CustomException("error while processing", e.getMessage(),
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
     if (!StringUtils.isBlank(userId)){
       List<Map<String, String>> processedData = fileProcessService.processExcelFile(file);
       log.info("No.of processedData from excel: " + processedData.size());
@@ -93,9 +107,20 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
       CompetencyAreaEntity competencyAreaEntity = new CompetencyAreaEntity();
       jsonNode.forEach(
           eachCompArea -> {
+            for (JsonNode node : dataJson) {
+              if (node.has("title")) {
+                String title = node.get("title").asText();
+                if (title.equals(competencyAreaType)) {
+                  existsInDateJson = true;
+                  break;
+                }
+              }
+            }
+
             if (eachCompArea.has(Constants.COMPETENCY_AREA_TYPE)){
              if (!eachCompArea.get(
                  Constants.COMPETENCY_AREA_TYPE).asText().isEmpty()){
+
                String formattedId = String.format("COMAREA-%06d", startingId.incrementAndGet());
                JsonNode dataNode = objectMapper.createObjectNode();
                ((ObjectNode) dataNode).put(Constants.ID, formattedId);
@@ -125,14 +150,14 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
                competencyAreaEntity.setIsActive(true);
                competencyAreaEntity.setCreatedOn(currentTime);
                competencyAreaEntity.setUpdatedOn(currentTime);
-               competencyAreaRepository.save(competencyAreaEntity);
-               log.info(
-                   "CompetencyAreaService::loadCompetencyArea::persited CompetencyArea in postgres with id: "
-                       + formattedId);
-               Map<String, Object> map = objectMapper.convertValue(dataNode, Map.class);
-               esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
-                   formattedId, map, cbServerProperties.getElasticCompJsonPath());
-               cacheService.putCache(formattedId, dataNode);
+//               competencyAreaRepository.save(competencyAreaEntity);
+//               log.info(
+//                   "CompetencyAreaService::loadCompetencyArea::persited CompetencyArea in postgres with id: "
+//                       + formattedId);
+//               Map<String, Object> map = objectMapper.convertValue(dataNode, Map.class);
+//               esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
+//                   formattedId, map, cbServerProperties.getElasticCompJsonPath());
+//               cacheService.putCache(formattedId, dataNode);
                log.info(
                    "CompetencyAreaService::loadCompetencyArea::created the CompetencyArea with: "
                        + formattedId);
@@ -430,5 +455,14 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
     response.setParams(new RespParam());
     response.getParams().setStatus(status);
     response.setResponseCode(httpStatus);
+  }
+
+  private boolean existsInDataJson(JsonNode dateJson, String competencyAreaType) {
+    for (JsonNode node : dateJson) {
+      if (node.has("title") && node.get("title").asText().equals(competencyAreaType)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
