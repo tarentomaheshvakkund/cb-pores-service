@@ -124,13 +124,15 @@ public class DesignationServiceImpl implements DesignationService {
     searchCriteria.setRequestedFields(Collections.singletonList(Constants.DESIGNATION));
     JsonNode dataJson = objectMapper.createObjectNode();
     try {
-      SearchResult dataFetched = esUtilService.searchDocuments(Constants.DESIGNATION_INDEX_NAME, searchCriteria);
-      if (!dataFetched.getData().isEmpty() && !dataFetched.getData().isNull()){
-        dataJson = dataFetched.getData();
+      if(esUtilService.isIndexPresent(Constants.DESIGNATION_INDEX_NAME)){
+        SearchResult dataFetched = esUtilService.searchDocuments(Constants.DESIGNATION_INDEX_NAME, searchCriteria);
+        if (!dataFetched.getData().isEmpty() && !dataFetched.getData().isNull()){
+          dataJson = dataFetched.getData();
+        }
       }
     } catch (Exception e) {
-      log.error("Error occurred while creating compArea", e);
-      throw new CustomException("error while processing", e.getMessage(),
+      log.error("Error occurred while fetching data from Es for duplicate check creating Designation", e);
+      throw new CustomException("error while fetching data from Es for validation", e.getMessage(),
           HttpStatus.INTERNAL_SERVER_ERROR);
     }
     if (!StringUtils.isBlank(userId)){
@@ -411,41 +413,73 @@ public class DesignationServiceImpl implements DesignationService {
     log.info("DesignationServiceImpl::createDesignation");
     payloadValidation.validatePayload(Constants.DESIGNATION_PAYLOAD_VALIDATION,designationDetails);
     CustomResponse response = new CustomResponse();
+    SearchCriteria searchCriteria = new SearchCriteria();
+    searchCriteria.setPageNumber(0);
+    searchCriteria.setPageSize(5000);
+    searchCriteria.setRequestedFields(Collections.singletonList(Constants.DESIGNATION));
+    JsonNode dataJson = objectMapper.createObjectNode();
     try {
-      AtomicLong count = new AtomicLong(designationRepository.count());
-      DesignationEntity designationEntity = new DesignationEntity();
-      String formattedId = String.format("DESG-%06d", count.incrementAndGet());
-      ((ObjectNode) designationDetails).put(Constants.STATUS, Constants.ACTIVE);
-      ((ObjectNode) designationDetails).put(Constants.ID, formattedId);
-      Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-      ((ObjectNode) designationDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
-      ((ObjectNode) designationDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-      ((ObjectNode) designationDetails).put(Constants.VERSION, 1);
-      List<String> searchTags = new ArrayList<>();
-      searchTags.add(designationDetails.get(Constants.DESIGNATION).textValue().toLowerCase());
-      ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
-      ((ObjectNode) designationDetails).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
-      designationEntity.setId(formattedId);
-      designationEntity.setData(designationDetails);
-      designationEntity.setIsActive(true);
-      designationEntity.setCreatedOn(currentTime);
-      designationEntity.setUpdatedOn(currentTime);
-      designationRepository.save(designationEntity);
-      log.info(
-          "DesignationServiceImpl::createDesignation::persited designation in postgres with id: "
-              + formattedId);
-      Map<String, Object> map = objectMapper.convertValue(designationDetails, Map.class);
-      esUtilService.addDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
-          formattedId, map, cbServerProperties.getElasticDesignationJsonPath());
-      cacheService.putCache(formattedId, designationDetails);
-      log.info(
-          "DesignationServiceImpl::createDesignation::created the designation with: "
-              + formattedId);
-      response.setMessage(Constants.SUCCESSFULLY_CREATED);
-      map.put(Constants.ID, designationEntity.getId());
-      response.setResult(map);
-      response.setResponseCode(HttpStatus.OK);
-      return response;
+      if(esUtilService.isIndexPresent(Constants.DESIGNATION_INDEX_NAME)){
+        SearchResult dataFetched = esUtilService.searchDocuments(Constants.DESIGNATION_INDEX_NAME, searchCriteria);
+        if (!dataFetched.getData().isEmpty() && !dataFetched.getData().isNull()){
+          dataJson = dataFetched.getData();
+        }
+      }
+    } catch (Exception e) {
+      log.error("Error occurred while fetching data from Es for duplicate check creating Designation", e);
+      throw new CustomException("error while fetching data from Es for validation", e.getMessage(),
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    try {
+      List<String> titles = new ArrayList<>();
+      if (!dataJson.isEmpty() && !dataJson.isNull()){
+        dataJson.forEach(node -> {
+          if (node.has(Constants.DESIGNATION)) {
+            titles.add(node.get(Constants.DESIGNATION).asText().toLowerCase());
+          }
+        });
+      }
+      if (!titles.contains(designationDetails.get(Constants.DESIGNATION).asText().toLowerCase())) {
+        AtomicLong count = new AtomicLong(designationRepository.count());
+        DesignationEntity designationEntity = new DesignationEntity();
+        String formattedId = String.format("DESG-%06d", count.incrementAndGet());
+        ((ObjectNode) designationDetails).put(Constants.STATUS, Constants.ACTIVE);
+        ((ObjectNode) designationDetails).put(Constants.ID, formattedId);
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        ((ObjectNode) designationDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) designationDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) designationDetails).put(Constants.VERSION, 1);
+        List<String> searchTags = new ArrayList<>();
+        searchTags.add(designationDetails.get(Constants.DESIGNATION).textValue().toLowerCase());
+        ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+        ((ObjectNode) designationDetails).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+        designationEntity.setId(formattedId);
+        designationEntity.setData(designationDetails);
+        designationEntity.setIsActive(true);
+        designationEntity.setCreatedOn(currentTime);
+        designationEntity.setUpdatedOn(currentTime);
+        designationRepository.save(designationEntity);
+        log.info(
+            "DesignationServiceImpl::createDesignation::persited designation in postgres with id: "
+                + formattedId);
+        Map<String, Object> map = objectMapper.convertValue(designationDetails, Map.class);
+        esUtilService.addDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
+            formattedId, map, cbServerProperties.getElasticDesignationJsonPath());
+        cacheService.putCache(formattedId, designationDetails);
+        log.info(
+            "DesignationServiceImpl::createDesignation::created the designation with: "
+                + formattedId);
+        response.setMessage(Constants.SUCCESSFULLY_CREATED);
+        map.put(Constants.ID, designationEntity.getId());
+        response.setResult(map);
+        response.setResponseCode(HttpStatus.OK);
+        return response;
+      }else {
+        response.getParams().setErrmsg("Already Present");
+        response.setResponseCode(HttpStatus.BAD_REQUEST);
+        return response;
+      }
+
     } catch (Exception e) {
       log.error("Error occurred while creating Designation", e);
       response.getParams().setErrmsg("error while processing");

@@ -17,4 +17,6 @@ public interface EsUtilService {
 
   SearchResult searchDocuments(String esIndexName, SearchCriteria searchCriteria) throws Exception;
 
+  public boolean isIndexPresent(String indexName);
+
 }
