@@ -200,6 +200,23 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
     payloadValidation.validatePayload(Constants.COMP_AREA_PAYLOAD_VALIDATION,
         competencyArea);
     CustomResponse response = new CustomResponse();
+    SearchCriteria searchCriteria = new SearchCriteria();
+    searchCriteria.setPageNumber(0);
+    searchCriteria.setPageSize(5000);
+    searchCriteria.setRequestedFields(Collections.singletonList(Constants.DESIGNATION));
+    JsonNode dataJson = objectMapper.createObjectNode();
+    try {
+      if(esUtilService.isIndexPresent(Constants.COMP_AREA_INDEX_NAME)){
+        SearchResult dataFetched = esUtilService.searchDocuments(Constants.COMP_AREA_INDEX_NAME, searchCriteria);
+        if (!dataFetched.getData().isEmpty() && !dataFetched.getData().isNull()){
+          dataJson = dataFetched.getData();
+        }
+      }
+    } catch (Exception e) {
+      log.error("Error occurred while fetching data from Es for duplicate check creating Designation", e);
+      throw new CustomException("error while fetching data from Es for validation", e.getMessage(),
+          HttpStatus.INTERNAL_SERVER_ERROR);
+    }
     String userId = accessTokenValidator.verifyUserToken(token);
     if (StringUtils.isBlank(userId) || userId.equalsIgnoreCase(Constants.UNAUTHORIZED)) {
       response.getParams().setErrmsg(Constants.USER_ID_DOESNT_EXIST);
@@ -207,44 +224,60 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
       return response;
     }
     try {
-      AtomicLong count = new AtomicLong(competencyAreaRepository.count());
-      CompetencyAreaEntity competencyAreaEntity = new CompetencyAreaEntity();
-      String formattedId = String.format("COMAREA-%06d", count.incrementAndGet());
-      ((ObjectNode) competencyArea).put(Constants.STATUS, Constants.LIVE);
-      ((ObjectNode) competencyArea).put(Constants.ID, formattedId);
-      ((ObjectNode) competencyArea).put(Constants.IS_ACTIVE, true);
-      Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-      ((ObjectNode) competencyArea).put(Constants.CREATED_ON, String.valueOf(currentTime));
-      ((ObjectNode) competencyArea).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-      ((ObjectNode) competencyArea).put(Constants.CREATED_BY, userId);
-      ((ObjectNode) competencyArea).put(Constants.UPDATED_BY, userId);
-      List<String> searchTags = new ArrayList<>();
-      searchTags.add(competencyArea.get(Constants.TITLE).textValue().toLowerCase());
-      ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
-      ((ObjectNode) competencyArea).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
-      ((ObjectNode) competencyArea).put(Constants.TYPE, Constants.COMPETENCY_AREA_TYPE);
-      ((ObjectNode) competencyArea).put(Constants.VERSION, 1);
-      competencyAreaEntity.setId(formattedId);
-      competencyAreaEntity.setData(competencyArea);
-      competencyAreaEntity.setIsActive(true);
-      competencyAreaEntity.setCreatedOn(currentTime);
-      competencyAreaEntity.setUpdatedOn(currentTime);
-      competencyAreaRepository.save(competencyAreaEntity);
-      log.info(
-          "CompetencyAreaService::createCompArea::persited comArea in postgres with id: "
-              + formattedId);
-      Map<String, Object> map = objectMapper.convertValue(competencyArea, Map.class);
-      esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
-          formattedId, map, cbServerProperties.getElasticCompJsonPath());
-      cacheService.putCache(formattedId, competencyArea);
-      log.info(
-          "CompetencyAreaService::createCompArea::created the compArea with: "
-              + formattedId);
-      response.setMessage(Constants.SUCCESSFULLY_CREATED);
-      map.put(Constants.ID, competencyAreaEntity.getId());
-      response.setResult(map);
-      response.setResponseCode(HttpStatus.OK);
-      return response;
+      Map<String, Boolean> titles = new HashMap<>();
+      if (!dataJson.isEmpty() && !dataJson.isNull()){
+        dataJson.forEach(node -> {
+          if (node.has(Constants.TITLE)) {
+            titles.put(node.get(Constants.TITLE).asText().toLowerCase(), true);
+          }
+        });
+      }
+      if (!titles.containsKey(competencyArea.get(Constants.TITLE).asText().toLowerCase())) {
+        AtomicLong count = new AtomicLong(competencyAreaRepository.count());
+        CompetencyAreaEntity competencyAreaEntity = new CompetencyAreaEntity();
+        String formattedId = String.format("COMAREA-%06d", count.incrementAndGet());
+        ((ObjectNode) competencyArea).put(Constants.STATUS, Constants.LIVE);
+        ((ObjectNode) competencyArea).put(Constants.ID, formattedId);
+        ((ObjectNode) competencyArea).put(Constants.IS_ACTIVE, true);
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        ((ObjectNode) competencyArea).put(Constants.CREATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) competencyArea).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+        ((ObjectNode) competencyArea).put(Constants.CREATED_BY, userId);
+        ((ObjectNode) competencyArea).put(Constants.UPDATED_BY, userId);
+        List<String> searchTags = new ArrayList<>();
+        searchTags.add(competencyArea.get(Constants.TITLE).textValue().toLowerCase());
+        ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
+        ((ObjectNode) competencyArea).putArray(Constants.SEARCHTAGS).add(searchTagsArray);
+        ((ObjectNode) competencyArea).put(Constants.TYPE, Constants.COMPETENCY_AREA_TYPE);
+        ((ObjectNode) competencyArea).put(Constants.VERSION, 1);
+        competencyAreaEntity.setId(formattedId);
+        competencyAreaEntity.setData(competencyArea);
+        competencyAreaEntity.setIsActive(true);
+        competencyAreaEntity.setCreatedOn(currentTime);
+        competencyAreaEntity.setUpdatedOn(currentTime);
+        competencyAreaRepository.save(competencyAreaEntity);
+        log.info(
+            "CompetencyAreaService::createCompArea::persited comArea in postgres with id: "
+                + formattedId);
+        Map<String, Object> map = objectMapper.convertValue(competencyArea, Map.class);
+        esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
+            formattedId, map, cbServerProperties.getElasticCompJsonPath());
+        cacheService.putCache(formattedId, competencyArea);
+        log.info(
+            "CompetencyAreaService::createCompArea::created the compArea with: "
+                + formattedId);
+        response.setMessage(Constants.SUCCESSFULLY_CREATED);
+        map.put(Constants.ID, competencyAreaEntity.getId());
+        response.setResult(map);
+        response.setResponseCode(HttpStatus.OK);
+        return response;
+
+      }else {
+        response.getParams().setErrmsg("Already Present");
+        response.setResponseCode(HttpStatus.BAD_REQUEST);
+        return response;
+      }
+
     }catch (Exception e){
       log.error("Error occurred while creating compArea", e);
       throw new CustomException("error while processing", e.getMessage(),

@@ -459,15 +459,15 @@ public class DesignationServiceImpl implements DesignationService {
           HttpStatus.INTERNAL_SERVER_ERROR);
     }
     try {
-      List<String> titles = new ArrayList<>();
+      Map<String, Boolean> titles = new HashMap<>();
       if (!dataJson.isEmpty() && !dataJson.isNull()){
         dataJson.forEach(node -> {
           if (node.has(Constants.DESIGNATION)) {
-            titles.add(node.get(Constants.DESIGNATION).asText().toLowerCase());
+            titles.put(node.get(Constants.DESIGNATION).asText().toLowerCase(), true);
           }
         });
       }
-      if (!titles.contains(designationDetails.get(Constants.DESIGNATION).asText().toLowerCase())) {
+      if (!titles.containsKey(designationDetails.get(Constants.DESIGNATION).asText().toLowerCase())) {
         AtomicLong count = new AtomicLong(designationRepository.count());
         DesignationEntity designationEntity = new DesignationEntity();
         String formattedId = String.format("DESG-%06d", count.incrementAndGet());
