@@ -13,9 +13,10 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class OrgController {
 
-    private @Autowired OrgService orgService;
+    @Autowired
+    OrgService orgService;
 
-    @GetMapping(value = "/framework/read")
+    @GetMapping("/framework/read")
     public ResponseEntity<Object> readFramework(@RequestParam String frameworkName, @RequestParam String orgId, @RequestHeader(Constants.X_AUTH_TOKEN) String userAuthToken) {
         ApiResponse response = orgService.readFramework(frameworkName,orgId,userAuthToken);
         return new ResponseEntity<>(response,response.getResponseCode());

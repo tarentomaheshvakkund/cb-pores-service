@@ -11,6 +11,7 @@ import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.*;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,23 +24,28 @@ import java.util.*;
 public class OrgServiceImpl implements OrgService {
 
     @Autowired
-    private PayloadValidation payloadValidation;
+    PayloadValidation payloadValidation;
 
-    private @Autowired CassandraOperation cassandraOperation;
+    @Autowired
+    CassandraOperation cassandraOperation;
 
-    private @Autowired OutboundRequestHandlerServiceImpl outboundRequestHandlerServiceImpl;
+    @Autowired
+    OutboundRequestHandlerServiceImpl outboundRequestHandlerServiceImpl;
 
-    private @Autowired CbServerProperties cbServerProperties;
+    @Autowired
+    CbServerProperties cbServerProperties;
 
-    private @Autowired AccessTokenValidator accessTokenValidator;
+    @Autowired
+    AccessTokenValidator accessTokenValidator;
 
-    private @Autowired DemandService demandService;
+    @Autowired
+    DemandService demandService;
 
     @Override
     public ApiResponse readFramework(String frameworkName, String orgId, String userAuthToken) {
         ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_ORG_CREATE);
         try {
-            if (frameworkName == null || orgId == null) {
+            if (StringUtils.isBlank(frameworkName) || StringUtils.isBlank(orgId)) {
                 response.getParams().setStatus(Constants.FAILED);
                 response.getParams().setErrMsg("OrgID and FrameworkId is Missing");
                 response.setResponseCode(HttpStatus.BAD_REQUEST);
@@ -61,14 +67,14 @@ public class OrgServiceImpl implements OrgService {
             Map<String, Object> propertyMap = new HashMap<>();
             propertyMap.put(Constants.ID, orgId);
             List<Map<String, Object>> orgDetails = cassandraOperation.getRecordsByPropertiesWithoutFiltering(Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, propertyMap, null, 1);
-            if (orgDetails.isEmpty()) {
+            if (CollectionUtils.isEmpty(orgDetails)) {
                 response.getParams().setStatus(Constants.FAILED);
                 response.getParams().setErrMsg("Organization not found");
                 response.setResponseCode(HttpStatus.BAD_REQUEST);
                 return response;
             }
             String fwName = (String) orgDetails.get(0).get(Constants.FRAMEWORKID);
-            if (fwName == null) {
+            if (StringUtils.isBlank(fwName)) {
                 StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
                 strUrl.append(cbServerProperties.getOdcsFrameworkCreate());
                 Map<String, Object> createReq = createFrameworkRequest(orgId, frameworkName);
@@ -87,7 +93,7 @@ public class OrgServiceImpl implements OrgService {
                     map.put(Constants.ID, orgId);
                     Map<String, Object> updateOrgDetails = cassandraOperation.updateRecord(Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, map);
                     String updateResponse = (String) updateOrgDetails.get(Constants.RESPONSE);
-                    if (updateResponse.equalsIgnoreCase(Constants.SUCCESS)) {
+                    if (!StringUtils.isBlank(updateResponse) && updateResponse.equalsIgnoreCase(Constants.SUCCESS)) {
                         log.info("updated framework_id to organisation table successfully with this name : {}", fwName);
                     } else {
                         log.error("Failed to update organization details with the new framework ID");
@@ -148,8 +154,6 @@ public class OrgServiceImpl implements OrgService {
         }
         return response;
     }
-
-
 
     public static Map<String, Object> createFrameworkRequest(String channelId, String frameworkName) {
         Map<String, Object> framework = createFramework(channelId, frameworkName);
