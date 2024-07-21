@@ -10,10 +10,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.igot.cb.cios.dto.ObjectDto;
-import com.igot.cb.cios.entity.ExternalContentEntity;
 import com.igot.cb.cios.entity.CiosContentEntity;
+import com.igot.cb.cios.entity.CornellContentEntity;
 import com.igot.cb.cios.repository.CiosRepository;
-import com.igot.cb.cios.repository.ExternalContentRepository;
+import com.igot.cb.cios.repository.CornellContentRepository;
 import com.igot.cb.cios.service.CiosContentService;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
@@ -22,6 +22,7 @@ import com.igot.cb.pores.elasticsearch.service.EsUtilService;
 import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
+import com.igot.cb.pores.util.PayloadValidation;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
@@ -36,14 +37,19 @@ import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
 @Service
 @Slf4j
 public class CiosContentServiceImpl implements CiosContentService {
+    private static long environmentId = 10000000;
+    private static String shardId = "1";
+    private static AtomicInteger aInteger = new AtomicInteger(1);
+
     @Autowired
-    private ExternalContentRepository contentRepository;
+    private CornellContentRepository cornellContentRepository;
 
     @Autowired
     private CiosRepository ciosRepository;
@@ -51,6 +57,9 @@ public class CiosContentServiceImpl implements CiosContentService {
     ObjectMapper objectMapper;
     @Autowired
     EsUtilService esUtilService;
+
+    @Autowired
+    private PayloadValidation payloadValidation;
 
     @Autowired
     private RedisTemplate<String, SearchResult> redisTemplate;
@@ -65,9 +74,10 @@ public class CiosContentServiceImpl implements CiosContentService {
     private CacheService cacheService;
 
     public String generateId() {
-        long nanoTime = System.nanoTime();
-        long count = new AtomicLong().incrementAndGet();
-        return Constants.ID_PREFIX + nanoTime + count;
+        long env = environmentId / 10000000;
+        long uid = System.currentTimeMillis();
+        uid = uid << 13;
+        return Constants.ID_PREFIX+env + "" + uid + "" + shardId + "" + aInteger.getAndIncrement();
     }
 
     @Override
@@ -130,22 +140,54 @@ public class CiosContentServiceImpl implements CiosContentService {
 
     }
 
+    @Override
+    public Object fetchDataByExternalId(String externalid) {
+        log.info("getting content by id: " + externalid);
+        if (StringUtils.isEmpty(externalid)) {
+            log.error("CiosContentServiceImpl::read:Id not found");
+            throw new CustomException(Constants.ERROR,"externalid is mandatory",HttpStatus.BAD_REQUEST);
+        }
+        String cachedJson = cacheService.getCache(externalid);
+        Object response = null;
+        if (StringUtils.isNotEmpty(cachedJson)) {
+            log.info("CiosContentServiceImpl::read:Record coming from redis cache");
+            try {
+                response=objectMapper.readValue(cachedJson, new TypeReference<Object>() {
+                });
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }else{
+            Optional<CiosContentEntity> optionalJsonNodeEntity = ciosRepository.findByExternalId(externalid);
+            if (optionalJsonNodeEntity.isPresent()) {
+                CiosContentEntity ciosContentEntity = optionalJsonNodeEntity.get();
+                cacheService.putCache(externalid, ciosContentEntity.getCiosData());
+                log.info("CiosContentServiceImpl::read:Record coming from postgres db");
+                response=objectMapper.convertValue(ciosContentEntity.getCiosData(), new TypeReference<Object>() {
+                });
+            } else {
+                log.error("Invalid Id: {}", externalid);
+                throw new CustomException(Constants.ERROR,"No data found for given Id",HttpStatus.BAD_REQUEST);
+            }
+        }
+        return response;
+    }
 
 
     @Override
-    public Object onboardContent(List<ObjectDto> data) {
+    public Object onboardCornellContent(List<ObjectDto> data) {
         try {
             log.info("CiosContentServiceImpl::createOrUpdateContent");
             for (ObjectDto dto : data) {
                 CiosContentEntity ciosContentEntity = null;
-                Optional<ExternalContentEntity> dataFetched =
-                        contentRepository.findByExternalId(dto.getIdentifier());
+                Optional<CornellContentEntity> dataFetched =
+                        cornellContentRepository.findByExternalId(dto.getContentData().get("content").get("externalId").asText());
                 if (dataFetched.isPresent()) {
                     log.info("data present in external table");
-                    ciosContentEntity = createNewContent(dataFetched.get().getCiosData(),dto);
-                    ExternalContentEntity externalContentEntity = dataFetched.get();
+                    ciosContentEntity = createNewContent(dto);
+                    CornellContentEntity externalContentEntity = dataFetched.get();
                     externalContentEntity.setIsActive(true);
-                    contentRepository.save(externalContentEntity);
+                    cornellContentRepository.save(externalContentEntity);
                 }
                 ciosRepository.save(ciosContentEntity);
                 log.info("Id of content created: {}",ciosContentEntity.getContentId());
@@ -160,36 +202,44 @@ public class CiosContentServiceImpl implements CiosContentService {
         }
     }
 
-    private CiosContentEntity createNewContent(JsonNode jsonNode,ObjectDto dto) {
+    private CiosContentEntity createNewContent(ObjectDto dto) {
         log.info("SidJobServiceImpl::createOrUpdateContent:updating the content");
         try {
+            JsonNode jsonNode=dto.getContentData();
+            payloadValidation.validatePayload(Constants.CIOS_CONTENT_VALIDATION_FILE_JSON,dto.getContentData());
+            payloadValidation.validatePayload(Constants.COMPETENCY_AREA_VALIDATION_FILE_JSON, dto.getCompetencies_v5());
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
             CiosContentEntity igotContent = new CiosContentEntity();
             String externalId = jsonNode.path("content").path("externalId").asText();
-            Optional<CiosContentEntity> igotContentEntity = ciosRepository.findByExternalId(externalId);
-            if (!igotContentEntity.isPresent()) {
+            Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalId(externalId);
+            if (!ciosContentEntity.isPresent()) {
                 igotContent.setContentId(generateId());
                 igotContent.setExternalId(externalId);
                 igotContent.setCreatedOn(currentTime);
                 igotContent.setLastUpdatedOn(currentTime);
                 igotContent.setIsActive(Constants.ACTIVE_STATUS);
-                ((ObjectNode) jsonNode.path("content")).put("contentId", generateId());
+                String appIcon="https://portal.karmayogiqa.nic.in/content-store/content/do_1140936641201520641494/artifact/do_1140936641201520641494_1720420145273_red-shield-copy-final.jpg";
+                ((ObjectNode) jsonNode.path("content")).put("appIcon", appIcon);
+                ((ObjectNode) jsonNode.path("content")).put("contentId", igotContent.getContentId());
                 ((ObjectNode) jsonNode.path("content")).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
-                ((ObjectNode) jsonNode.path("content")).put(Constants.COMPETENCY,dto.getCompetencyArea());
+                ((ObjectNode) jsonNode.path("content")).put(Constants.COMPETENCIES_V5,dto.getCompetencies_v5());
                 addSearchTags(jsonNode);
                 igotContent.setCiosData(jsonNode);
             } else {
-                igotContent.setContentId(igotContentEntity.get().getContentId());
-                igotContent.setExternalId(igotContentEntity.get().getExternalId());
-                igotContent.setCreatedOn(igotContentEntity.get().getCreatedOn());
+                igotContent.setContentId(ciosContentEntity.get().getContentId());
+                igotContent.setExternalId(ciosContentEntity.get().getExternalId());
+                igotContent.setCreatedOn(ciosContentEntity.get().getCreatedOn());
                 igotContent.setLastUpdatedOn(currentTime);
                 igotContent.setIsActive(Constants.ACTIVE_STATUS);
-                ((ObjectNode) jsonNode.path("content")).put("contentId", igotContentEntity.get().getContentId());
+                String appIcon="https://portal.karmayogiqa.nic.in/content-store/content/do_1140936641201520641494/artifact/do_1140936641201520641494_1720420145273_red-shield-copy-final.jpg";
+                ((ObjectNode) jsonNode.path("content")).put("appIcon", appIcon);
+                ((ObjectNode) jsonNode.path("content")).put("contentId", ciosContentEntity.get().getContentId());
                 ((ObjectNode) jsonNode.path("content")).put(Constants.CREATED_ON, String.valueOf(igotContent.getCreatedOn()));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
-                ((ObjectNode) jsonNode.path("content")).put(Constants.COMPETENCY,dto.getCompetencyArea());
+                ((ObjectNode) jsonNode.path("content")).put(Constants.COMPETENCIES_V5,dto.getCompetencies_v5());
+                addSearchTags(jsonNode);
                 igotContent.setCiosData(jsonNode);
             }
             return igotContent;

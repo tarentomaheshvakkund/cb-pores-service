@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.igot.cb.competencies.subtheme.service.CompetencySubThemeService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
+import com.igot.cb.pores.util.ApiResponse;
 import com.igot.cb.pores.util.Constants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +69,12 @@ public class CompetencySubThemeController {
   @DeleteMapping("/delete/{id}")
   public ResponseEntity<CustomResponse> deleteCompetencySubTheme(@PathVariable String id) {
     CustomResponse response = competencySubThemeService.deleteCompetencySubTheme(id);
+    return new ResponseEntity<>(response, response.getResponseCode());
+  }
+
+  @PostMapping("/term/create")
+  public ResponseEntity<ApiResponse> createTerm(@RequestBody JsonNode request) {
+    ApiResponse response = competencySubThemeService.createTerm(request);
     return new ResponseEntity<>(response, response.getResponseCode());
   }
 

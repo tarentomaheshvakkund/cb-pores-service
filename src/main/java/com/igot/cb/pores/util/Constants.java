@@ -265,8 +265,15 @@ public class Constants {
     public static final String DESIGNATION = "designation";
     public static final String DESCRIPTION_PAYLOAD = "Description";
     public static final String DESIGNATION_INDEX_NAME = "designation_entity";
-    public static final String VERSION = "version";
+    public static final String TERM_CREATE_PAYLOAD_VALIDATION = "/payloadValidation/termCreateValidation.json";
+    public static final String REF_ID = "refId";
+    public static final String REF_TYPE = "refType";
+    public static final String CODE = "code";
+    public static final String PARENTS = "parents";
+    public static final String NODE_ID = "node_id";
     public static final String REF_NODES = "refNodes";
+    public static final String API_DESIGNATION_CREATE = "api.designation.create";
+    public static final String VERSION = "version";
     public static final String COMP_AREA_INDEX_NAME = "comp_area_entity";
     public static final String COMP_THEME_INDEX_NAME = "comp_theme_entity";
     public static final String COMP_SUB_THEME_INDEX_NAME = "comp_sub_theme_entity";
@@ -285,7 +292,24 @@ public class Constants {
     public static final String UPDATED_BY = "updatedBy";
     public static final String  COMPETENCY_TYPE = "Competency Type";
     public static final String THEME_TYPE = "themeType";
-
+    public static final String COMPETENCY_AREA_VALIDATION_FILE_JSON = "/payloadValidation/competencyAreaPayloadValidation.json";
+    public static final String CIOS_CONTENT_VALIDATION_FILE_JSON = "/payloadValidation/ciosContentValidation.json";
+    public static final String API_COMPETENCY_THEME_CREATE = "api.competency.theme.create";
+    public static final String API_COMPETENCY_SUB_THEME_CREATE = "api.competency.sub.theme.create";
+    public static final String API_ORG_CREATE = "api.org.create";
+    public static final String MDO_ADMIN ="MDO_ADMIN";
+    public static final String FRAMEWORKID  = "frameworkid";
+    public static final String X_CHANNEL_ID = "X-Channel-Id";
+    public static final String UPDATE = "UPDATE ";
+    public static final String SET = " SET ";
+    public static final String WHERE_ID = "where id";
+    public static final String EQUAL_WITH_QUE_MARK = " = ? ";
+    public static final String SEMICOLON = ";";
+    public static final String USER = "user";
+    public static final String UNKNOWN_IDENTIFIER = "Unknown identifier ";
+    public static final String EXCEPTION_MSG_UPDATE = "Exception occurred while updating record to ";
+    public static final String FRAMEWORK = "framework";
+    public static final String CHANNELS = "channels";
     private Constants() {
     }
 }
