@@ -154,7 +154,7 @@ public class OrgFrameworkConsumer {
     private void publishFramework(String fwName, String orgId) {
         try {
             StringBuilder strUrl = new StringBuilder(configuration.getKnowledgeMS());
-            strUrl.append("/").append(fwName);
+            strUrl.append(configuration.getFrameworkPublish()).append("/").append(fwName);
             Map<String, String> headers = new HashMap<>();
             headers.put(Constants.X_CHANNEL_ID, orgId);
             Map<String, Object> response = outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(), "", headers);
