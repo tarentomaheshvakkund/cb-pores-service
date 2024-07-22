@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.igot.cb.competencies.subtheme.repository.CompetencySubThemeRepository;
+import com.igot.cb.competencies.theme.repository.CompetencyThemeRepository;
 import com.igot.cb.designation.entity.DesignationEntity;
 import com.igot.cb.designation.repository.DesignationRepository;
 import com.igot.cb.designation.service.DesignationService;
@@ -105,6 +107,12 @@ public class DesignationServiceImpl implements DesignationService {
   private long searchResultRedisTtl;
 
   private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
+
+  @Autowired
+  CompetencySubThemeRepository competencySubThemeRepository;
+
+  @Autowired
+  CompetencyThemeRepository competencyThemeRepository;
 
 
   @Override
@@ -252,11 +260,6 @@ public class DesignationServiceImpl implements DesignationService {
       response.setResponseCode(HttpStatus.BAD_REQUEST);
       response.getParams().setStatus(Constants.FAILED);
       log.error("Payload validation failed: " + e.getMessage());
-    } catch (Exception e) {
-      response.getParams().setErr("Unexpected error occurred while processing the request.");
-      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
-      response.getParams().setStatus(Constants.FAILED);
-      log.error("Unexpected error occurred: " + e.getMessage(), e);
     }
     return response;
   }
@@ -791,5 +794,4 @@ public class DesignationServiceImpl implements DesignationService {
       return jsonNode.asText();
     }
   }
-
 }
