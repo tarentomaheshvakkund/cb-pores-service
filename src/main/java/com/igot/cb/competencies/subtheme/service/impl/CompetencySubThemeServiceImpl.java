@@ -424,10 +424,6 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
           } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
             Map<String, Object> reqBody = new HashMap<>();
             request.fields().forEachRemaining(entry -> reqBody.put(entry.getKey(), toJavaObject(entry.getValue())));
-            Map<String, Object> parentObj = new HashMap<>();
-            parentObj.put(Constants.IDENTIFIER,
-                    cbServerProperties.getOdcsDesignationFramework() + "_" + cbServerProperties.getOdcsCompetencyThemeCategory());
-            reqBody.put(Constants.PARENTS, Arrays.asList(parentObj));
             Map<String, Object> termReq = new HashMap<String, Object>();
             termReq.put(Constants.TERM, reqBody);
             Map<String, Object> createReq = new HashMap<String, Object>();
@@ -446,7 +442,7 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
               log.info("termIdentifier : " + termIdentifier);
               Map<String, Object> reqBodyMap = new HashMap<>();
               reqBodyMap.put(Constants.ID, ref_Id);
-              reqBodyMap.put(Constants.DESIGNATION, name);
+              reqBodyMap.put(Constants.TITLE, name);
               reqBodyMap.put(Constants.REF_NODES, termIdentifier);
               CustomResponse desgResponse = updateCompSubTheme(objectMapper.valueToTree(reqBodyMap));
               if (desgResponse.getResponseCode() != HttpStatus.OK) {
@@ -550,14 +546,14 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
           response.getParams().setErr("Data not found with id : " + Id);
         }
       } else {
-        response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        response.setResponseCode(HttpStatus.NOT_FOUND);
         response.getParams().setErr("Failed to read the term details for Id : " + Id);
       }
     } catch (Exception e) {
       log.error("Failed to read term with Id: " + Id, e);
       response.getParams().setErr("Failed to read term: " + e.getMessage());
       response.getParams().setStatus(Constants.FAILED);
-      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.setResponseCode(HttpStatus.NOT_FOUND);
     }
     return response;
   }
