@@ -206,10 +206,10 @@ public class DesignationServiceImpl implements DesignationService {
             reqBodyMap.put(Constants.DESIGNATION, name);
             reqBodyMap.put(Constants.REF_NODES, termIdentifier);
             CustomResponse desgResponse = updateIdentifiersToDesignation(objectMapper.valueToTree(reqBodyMap));
+            response.getResult().put(Constants.IDENTIFIER, termIdentifier);
             if (desgResponse.getResponseCode() != HttpStatus.OK) {
               log.error("Failed to update designation: " + response.getParams().getErr());
               response.getParams().setErr("Failed to update designation.");
-              response.getResult().put(Constants.IDENTIFIER, termIdentifier);
               response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
               response.getParams().setStatus(Constants.FAILED);
             }
