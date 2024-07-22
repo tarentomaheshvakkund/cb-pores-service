@@ -108,13 +108,6 @@ public class DesignationServiceImpl implements DesignationService {
 
   private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
 
-  @Autowired
-  CompetencySubThemeRepository competencySubThemeRepository;
-
-  @Autowired
-  CompetencyThemeRepository competencyThemeRepository;
-
-
   @Override
   public void loadDesignation(MultipartFile file) {
     log.info("DesignationServiceImpl::loadDesignationFromExcel");
