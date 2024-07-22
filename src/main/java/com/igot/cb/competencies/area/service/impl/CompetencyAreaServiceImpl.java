@@ -139,21 +139,21 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
     }
   }
 
-  private void poresBulkSave(List<CompetencyAreaEntity> competencyAreaEntityList, List<JsonNode> competencydataNodeList) {
-    competencyAreaRepository.saveAll(competencyAreaEntityList);
-    competencydataNodeList.forEach(dataNode -> {
-      String formattedId = dataNode.get(Constants.ID).asText();
-      log.info(
-          "CompetencyAreaService::loadCompetencyArea::persited CompetencyArea in postgres with id: "
-              + formattedId);
-      Map<String, Object> map = objectMapper.convertValue(dataNode, Map.class);
-      esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
-          formattedId, map, cbServerProperties.getElasticCompJsonPath());
-      cacheService.putCache(formattedId, dataNode);
-      log.info(
-          "CompetencyAreaService::loadCompetencyArea::created the CompetencyArea with: "
-              + formattedId);
-    });
+  private void poresBulkSave(List<CompetencyAreaEntity> competencyAreaEntityList,
+      List<JsonNode> competencydataNodeList) {
+    log.info("CompetencyAreaService::poresBulkSave");
+    try {
+      competencyAreaRepository.saveAll(competencyAreaEntityList);
+      esUtilService.saveAll(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
+          competencydataNodeList);
+      competencydataNodeList.forEach(dataNode -> {
+        String formattedId = dataNode.get(Constants.ID).asText();
+        cacheService.putCache(formattedId, dataNode);
+      });
+    } catch (Exception e) {
+      log.error(e.getMessage());
+    }
+
   }
 
   private CompetencyAreaEntity createCompetencyArea(JsonNode dataNode, String formattedId) {

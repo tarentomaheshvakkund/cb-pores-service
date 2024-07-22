@@ -107,12 +107,10 @@ public class DesignationServiceImpl implements DesignationService {
   @Value("${search.result.redis.ttl}")
   private long searchResultRedisTtl;
 
-  private Logger logger = LoggerFactory.getLogger(InterestServiceImpl.class);
+  private Logger logger = LoggerFactory.getLogger(DesignationServiceImpl.class);
 
   @Autowired
   private AccessTokenValidator accessTokenValidator;
-
-  StopWatch stopWatch = new StopWatch();
 
 
   @Override
@@ -172,30 +170,38 @@ public class DesignationServiceImpl implements DesignationService {
                 designationDataNodeList.add(dataNode);
                 titles.put(dataNode.get(Constants.DESIGNATION).asText().toLowerCase(), true);
               }
+
             }
 
           });
-      poresBulkSave(designationEntityList, designationDataNodeList);
+      try {
+        poresBulkSave(designationEntityList, designationDataNodeList);
+
+      }catch (Exception e){
+        logger.error(e.getMessage());
+        throw new CustomException("error while bulk indexing the data in es", e.getMessage(),
+            HttpStatus.INTERNAL_SERVER_ERROR);
+      }
       log.info("DesignationServiceImpl::loadDesignationFromExcel::created the designations");
     }
   }
 
-  private void poresBulkSave(List<DesignationEntity> designationEntityList, List<JsonNode> designationDataNodeList) {
+  private void poresBulkSave(List<DesignationEntity> designationEntityList,
+      List<JsonNode> designationDataNodeList)
+      throws IOException {
     log.info("DesignationServiceImpl::poresBulkSave");
-    designationRepository.saveAll(designationEntityList);
-    designationDataNodeList.forEach(dataNode -> {
-      String formattedId = dataNode.get(Constants.ID).asText();
-      log.info(
-          "DesignationServiceImpl::poresBulkSave::persited designation in postgres with id: "
-              + formattedId);
-      Map<String, Object> map = objectMapper.convertValue(dataNode, Map.class);
-      esUtilService.addDocument(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
-          formattedId, map, cbServerProperties.getElasticDesignationJsonPath());
-      cacheService.putCache(formattedId, dataNode);
-      log.info(
-          "DesignationServiceImpl::poresBulkSave::created the designation with: "
-              + formattedId);
-    });
+    try {
+      designationRepository.saveAll(designationEntityList);
+      esUtilService.saveAll(Constants.DESIGNATION_INDEX_NAME, Constants.INDEX_TYPE,
+          designationDataNodeList);
+      designationDataNodeList.forEach(dataNode -> {
+        String formattedId = dataNode.get(Constants.ID).asText();
+        cacheService.putCache(formattedId, dataNode);
+      });
+    } catch (Exception e) {
+      logger.error(e.getMessage());
+    }
+
   }
 
   private DesignationEntity createDesignationEntity(JsonNode eachDesignation, String formattedId) {
@@ -236,27 +242,29 @@ public class DesignationServiceImpl implements DesignationService {
   @Override
   public ApiResponse createTerm(JsonNode request) {
     ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_DESIGNATION_CREATE);
-    try {
     payloadValidation.validatePayload(Constants.TERM_CREATE_PAYLOAD_VALIDATION, request);
     String name = request.get(Constants.NAME).asText();
     String ref_Id = request.get(Constants.REF_ID).asText();
     String framework = request.get(Constants.FRAMEWORK).asText();
     String category = request.get(Constants.CATEGORY).asText();
-    Optional<DesignationEntity> designationEntity = designationRepository.findByIdAndIsActive(ref_Id, Boolean.TRUE);
+    Optional<DesignationEntity> designationEntity = designationRepository.findByIdAndIsActive(
+        ref_Id, Boolean.TRUE);
     if (designationEntity.isPresent()) {
       DesignationEntity designation = designationEntity.get();
       if (designation.getIsActive()) {
-        ApiResponse readResponse = readTerm(ref_Id,framework,category);
+        ApiResponse readResponse = readTerm(ref_Id, framework, category);
         if (readResponse == null) {
           response.getParams().setErr("Failed to validate sector exists or not.");
           response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
           response.getParams().setStatus(Constants.FAILED);
         } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
           Map<String, Object> reqBody = new HashMap<>();
-          request.fields().forEachRemaining(entry -> reqBody.put(entry.getKey(), toJavaObject(entry.getValue())));
+          request.fields().forEachRemaining(
+              entry -> reqBody.put(entry.getKey(), toJavaObject(entry.getValue())));
           Map<String, Object> parentObj = new HashMap<>();
           parentObj.put(Constants.IDENTIFIER,
-                  cbServerProperties.getOdcsDesignationFramework() + "_" + cbServerProperties.getOdcsDesignationCategory());
+              cbServerProperties.getOdcsDesignationFramework() + "_"
+                  + cbServerProperties.getOdcsDesignationCategory());
           reqBody.put(Constants.PARENTS, Arrays.asList(parentObj));
           Map<String, Object> termReq = new HashMap<String, Object>();
           termReq.put(Constants.TERM, reqBody);
@@ -264,21 +272,26 @@ public class DesignationServiceImpl implements DesignationService {
           createReq.put(Constants.REQUEST, termReq);
           StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
           strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
-                  .append(framework).append("&category=")
-                  .append(category);
-          Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
-                  createReq);
+              .append(framework).append("&category=")
+              .append(category);
+          Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(
+              strUrl.toString(),
+              createReq);
           if (termResponse != null
-                  && Constants.OK.equalsIgnoreCase((String) termResponse.get(Constants.RESPONSE_CODE))) {
-            Map<String, Object> resultMap = (Map<String, Object>) termResponse.get(Constants.RESULT);
-            List<String> termIdentifier = (List<String>) resultMap.getOrDefault(Constants.NODE_ID, "");
+              && Constants.OK.equalsIgnoreCase(
+              (String) termResponse.get(Constants.RESPONSE_CODE))) {
+            Map<String, Object> resultMap = (Map<String, Object>) termResponse.get(
+                Constants.RESULT);
+            List<String> termIdentifier = (List<String>) resultMap.getOrDefault(Constants.NODE_ID,
+                "");
             log.info("Created Designation successfully with name: " + ref_Id);
             log.info("termIdentifier : " + termIdentifier);
             Map<String, Object> reqBodyMap = new HashMap<>();
             reqBodyMap.put(Constants.ID, ref_Id);
             reqBodyMap.put(Constants.DESIGNATION, name);
             reqBodyMap.put(Constants.REF_NODES, termIdentifier);
-            CustomResponse desgResponse = updateIdentifiersToDesignation(objectMapper.valueToTree(reqBodyMap));
+            CustomResponse desgResponse = updateIdentifiersToDesignation(
+                objectMapper.valueToTree(reqBodyMap));
             if (desgResponse.getResponseCode() != HttpStatus.OK) {
               log.error("Failed to update designation: " + response.getParams().getErr());
               response.getParams().setErr("Failed to update designation.");
@@ -316,17 +329,6 @@ public class DesignationServiceImpl implements DesignationService {
       response.getParams().setErr("Designation Not Exist.");
       response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
       response.getParams().setStatus(Constants.FAILED);
-    }
-  } catch (CustomException e) {
-      response.getParams().setErr(e.getMessage());
-      response.setResponseCode(HttpStatus.BAD_REQUEST);
-      response.getParams().setStatus(Constants.FAILED);
-      log.error("Payload validation failed: " + e.getMessage());
-    } catch (Exception e) {
-      response.getParams().setErr("Unexpected error occurred while processing the request.");
-      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
-      response.getParams().setStatus(Constants.FAILED);
-      log.error("Unexpected error occurred: " + e.getMessage(), e);
     }
     return response;
   }
@@ -659,7 +661,7 @@ public class DesignationServiceImpl implements DesignationService {
             rowData.put(excelHeader, cellValue);
           }
         }
-        log.info("Data Rows: " + rowData);
+//        log.info("Data Rows: " + rowData);
         if (allBlank) {
           break; // If all cells are blank in the current row, stop processing
         }
@@ -698,7 +700,7 @@ public class DesignationServiceImpl implements DesignationService {
           }
           rowData.put(header, cellValue);
         }
-        log.info("Data Rows: " + rowData);
+//        log.info("Data Rows: " + rowData);
         if (allBlank) {
           break; // If all cells are blank in the current row, stop processing
         }
