@@ -483,11 +483,6 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
       response.setResponseCode(HttpStatus.BAD_REQUEST);
       response.getParams().setStatus(Constants.FAILED);
       log.error("Payload validation failed: " + e.getMessage());
-    } catch (Exception e) {
-      response.getParams().setErr("Unexpected error occurred while processing the request.");
-      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
-      response.getParams().setStatus(Constants.FAILED);
-      log.error("Unexpected error occurred: " + e.getMessage(), e);
     }
     return response;
   }
