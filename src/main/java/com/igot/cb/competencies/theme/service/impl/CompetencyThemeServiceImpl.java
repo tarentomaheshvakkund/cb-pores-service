@@ -475,92 +475,93 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
   @Override
   public ApiResponse createTerm(JsonNode request) {
     ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_COMPETENCY_THEME_CREATE);
-    payloadValidation.validatePayload(Constants.TERM_CREATE_PAYLOAD_VALIDATION, request);
-    String name = request.get(Constants.NAME).asText();
-    String ref_Id = request.get(Constants.REF_ID).asText();
-    String framework = request.get(Constants.FRAMEWORK).asText();
-    String category = request.get(Constants.CATEGORY).asText();
-    Optional<CompetencyThemeEntity> designationEntity = competencyThemeRepository.findByIdAndIsActive(
-        ref_Id, Boolean.TRUE);
-    if (designationEntity.isPresent()) {
-      CompetencyThemeEntity designation = designationEntity.get();
-      if (designation.getIsActive()) {
-        ApiResponse readResponse = readTerm(ref_Id, framework, category);
-        if (readResponse == null) {
-          response.getParams().setErr("Failed to validate term exists or not.");
-          response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
-          response.getParams().setStatus(Constants.FAILED);
-        } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
-          Map<String, Object> reqBody = new HashMap<>();
-          request.fields()
-              .forEachRemaining(entry -> reqBody.put(entry.getKey(), entry.getValue().asText()));
-          Map<String, Object> parentObj = new HashMap<>();
-          parentObj.put(Constants.IDENTIFIER,
-              cbServerProperties.getOdcsDesignationFramework() + "_"
-                  + cbServerProperties.getOdcsDesignationCategory());
-          reqBody.put(Constants.PARENTS, Arrays.asList(parentObj));
-          Map<String, Object> termReq = new HashMap<String, Object>();
-          termReq.put(Constants.TERM, reqBody);
-          Map<String, Object> createReq = new HashMap<String, Object>();
-          createReq.put(Constants.REQUEST, termReq);
-          StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
-          strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
-              .append(framework).append("&category=")
-              .append(category);
-          Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(
-              strUrl.toString(),
-              createReq);
-          if (termResponse != null
-              && Constants.OK.equalsIgnoreCase(
-              (String) termResponse.get(Constants.RESPONSE_CODE))) {
-            Map<String, Object> resultMap = (Map<String, Object>) termResponse.get(
-                Constants.RESULT);
-            List<String> termIdentifier = (List<String>) resultMap.getOrDefault(Constants.NODE_ID,
-                "");
-            log.info("Created term successfully with name: " + ref_Id);
-            log.info("termIdentifier : " + termIdentifier);
-            Map<String, Object> reqBodyMap = new HashMap<>();
-            reqBodyMap.put(Constants.ID, ref_Id);
-            reqBodyMap.put(Constants.DESIGNATION, name);
-            reqBodyMap.put(Constants.REF_NODES, termIdentifier);
-            CustomResponse desgResponse = updateCompTheme(objectMapper.valueToTree(reqBodyMap));
-            if (desgResponse.getResponseCode() != HttpStatus.OK) {
-              log.error("Failed to update term: " + response.getParams().getErr());
-              response.getParams().setErr("Failed to update term.");
-              response.setResult(desgResponse.getResult());
+    try {
+      payloadValidation.validatePayload(Constants.TERM_CREATE_PAYLOAD_VALIDATION, request);
+      String name = request.get(Constants.NAME).asText();
+      String ref_Id = request.get(Constants.REF_ID).asText();
+      String framework = request.get(Constants.FRAMEWORK).asText();
+      String category = request.get(Constants.CATEGORY).asText();
+      Optional<CompetencyThemeEntity> designationEntity = competencyThemeRepository.findByIdAndIsActive(ref_Id, Boolean.TRUE);
+      if (designationEntity.isPresent()) {
+        CompetencyThemeEntity designation = designationEntity.get();
+        if (designation.getIsActive()) {
+          ApiResponse readResponse = readTerm(ref_Id, framework, category);
+          if (readResponse == null) {
+            response.getParams().setErr("Failed to validate term exists or not.");
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            response.getParams().setStatus(Constants.FAILED);
+          } else if (HttpStatus.NOT_FOUND.equals(readResponse.getResponseCode())) {
+            Map<String, Object> reqBody = new HashMap<>();
+            request.fields().forEachRemaining(entry -> reqBody.put(entry.getKey(), entry.getValue().asText()));
+            Map<String, Object> termReq = new HashMap<String, Object>();
+            termReq.put(Constants.TERM, reqBody);
+            Map<String, Object> createReq = new HashMap<String, Object>();
+            createReq.put(Constants.REQUEST, termReq);
+            StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+            strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
+                    .append(framework).append("&category=")
+                    .append(category);
+            Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
+                    createReq);
+            if (termResponse != null
+                    && Constants.OK.equalsIgnoreCase((String) termResponse.get(Constants.RESPONSE_CODE))) {
+              Map<String, Object> resultMap = (Map<String, Object>) termResponse.get(Constants.RESULT);
+              List<String> termIdentifier = (List<String>) resultMap.getOrDefault(Constants.NODE_ID, "");
+              log.info("Created term successfully with name: " + ref_Id);
+              log.info("termIdentifier : " + termIdentifier);
+              Map<String, Object> reqBodyMap = new HashMap<>();
+              reqBodyMap.put(Constants.ID, ref_Id);
+              reqBodyMap.put(Constants.TITLE, name);
+              reqBodyMap.put(Constants.REF_NODES, termIdentifier);
+              CustomResponse desgResponse = updateCompTheme(objectMapper.valueToTree(reqBodyMap));
+              response.getResult().put(Constants.IDENTIFIER, termIdentifier);
+              if (desgResponse.getResponseCode() != HttpStatus.OK) {
+                log.error("Failed to update term: " + response.getParams().getErr());
+                response.getParams().setErr("Failed to update term.");
+                response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+                response.getParams().setStatus(Constants.FAILED);
+              }
+            } else {
+              log.error("Failed to create the term with name: " + ref_Id);
+              response.getParams().setErr("Failed to create the term");
               response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
               response.getParams().setStatus(Constants.FAILED);
             }
+          } else if (HttpStatus.OK.equals(readResponse.getResponseCode())) {
+            String errMsg = "term already exists with name: " + ref_Id;
+            log.error(errMsg);
+            response.getParams().setErr(errMsg);
+            response.setResponseCode(HttpStatus.BAD_REQUEST);
+            response.getParams().setStatus(Constants.FAILED);
           } else {
             log.error("Failed to create the term with name: " + ref_Id);
-            response.getParams().setErr("Failed to create the term");
+            response.getParams().setErr("Failed to create.");
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             response.getParams().setStatus(Constants.FAILED);
           }
-        } else if (HttpStatus.OK.equals(readResponse.getResponseCode())) {
-          String errMsg = "term already exists with name: " + ref_Id;
-          log.error(errMsg);
-          response.getParams().setErr(errMsg);
-          response.setResponseCode(HttpStatus.BAD_REQUEST);
-          response.getParams().setStatus(Constants.FAILED);
         } else {
-          log.error("Failed to create the term with name: " + ref_Id);
-          response.getParams().setErr("Failed to create.");
+          //if desg. is not active.
+          log.error("Failed to create term exists with name: " + ref_Id);
+          response.getParams().setErr("Failed to create term.");
           response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
           response.getParams().setStatus(Constants.FAILED);
         }
       } else {
-        //if desg. is not active.
-        log.error("Failed to create term exists with name: " + ref_Id);
-        response.getParams().setErr("Failed to create term.");
+        log.error("Failed to validate term exists with name: " + ref_Id);
+        response.getParams().setErr("term Not Exist.");
         response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
         response.getParams().setStatus(Constants.FAILED);
       }
-    } else {
-      log.error("Failed to validate term exists with name: " + ref_Id);
-      response.getParams().setErr("term Not Exist.");
+    } catch (CustomException e) {
+      response.getParams().setErr(e.getMessage());
+      response.setResponseCode(HttpStatus.BAD_REQUEST);
+      response.getParams().setStatus(Constants.FAILED);
+      log.error("Payload validation failed: " + e.getMessage());
+    } catch (Exception e) {
+      response.getParams().setErr("Unexpected error occurred while processing the request.");
       response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
       response.getParams().setStatus(Constants.FAILED);
+      log.error("Unexpected error occurred: " + e.getMessage(), e);
     }
     return response;
   }
@@ -635,14 +636,14 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
           response.getParams().setErr("Data not found with id : " + Id);
         }
       } else {
-        response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        response.setResponseCode(HttpStatus.NOT_FOUND);
         response.getParams().setErr("Failed to read the des details for Id : " + Id);
       }
     } catch (Exception e) {
       log.error("Failed to read Designation with Id: " + Id, e);
       response.getParams().setErr("Failed to read Designation: " + e.getMessage());
       response.getParams().setStatus(Constants.FAILED);
-      response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+      response.setResponseCode(HttpStatus.NOT_FOUND);
     }
     return response;
   }

@@ -98,7 +98,6 @@ public class OrgFrameworkConsumer {
 
 
     private String frameworkRead(String frameworkId) {
-
         String code = null;
         try {
             StringBuilder strUrl = new StringBuilder(configuration.getKnowledgeMS());
@@ -128,7 +127,7 @@ public class OrgFrameworkConsumer {
     private void createOrgTerm(String termName, String framework, String masterFramework) {
         try {
             String category = frameworkRead(masterFramework);
-            logger.info("OrgFrameWorkConsumer::createOrgTerm:catergory::"+category);
+            logger.info("category first "+category);
             if (StringUtils.isNotEmpty(category)) {
                 Map<String, Object> termMap = createTermMap(termName, category);
                 Map<String, Object> requestMap = createRequestMap(termMap);
