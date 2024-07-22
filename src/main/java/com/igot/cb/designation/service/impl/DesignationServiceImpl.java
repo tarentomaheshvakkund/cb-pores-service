@@ -209,7 +209,7 @@ public class DesignationServiceImpl implements DesignationService {
             if (desgResponse.getResponseCode() != HttpStatus.OK) {
               log.error("Failed to update designation: " + response.getParams().getErr());
               response.getParams().setErr("Failed to update designation.");
-              response.setResult(desgResponse.getResult());
+              response.getResult().put(Constants.IDENTIFIER, termIdentifier);
               response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
               response.getParams().setStatus(Constants.FAILED);
             }
