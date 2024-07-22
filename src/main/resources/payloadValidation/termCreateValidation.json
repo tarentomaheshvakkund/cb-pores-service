@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "dataType": "string"
+    },
+    "code": {
+      "dataType": "string"
+    },
+    "category": {
+      "dataType": "string"
+    },
+    "translations": {
+      "dataType": "object"
+    },
+    "index": {
+      "dataType": "number"
+    },
+    "description": {
+      "dataType": "string"
+    },
+    "status": {
+      "dataType": "string",
+      "enum": [
+        "Draft",
+        "Live",
+        "Review",
+        "Retired"
+      ],
+      "default": "Live"
+    },
+    "createdBy": {
+      "dataType": "string"
+    },
+    "createdOn": {
+      "dataType": "string"
+    },
+    "lastUpdatedBy": {
+      "dataType": "string"
+    },
+    "lastUpdatedOn": {
+      "dataType": "string"
+    },
+    "consumerId": {
+      "dataType": "string"
+    },
+    "appId": {
+      "dataType": "string"
+    },
+    "channel": {
+      "dataType": "string"
+    },
+    "lastStatusChangedOn": {
+      "dataType": "string"
+    },
+    "label": {
+      "dataType": "string"
+    },
+    "value": {
+      "dataType": "string"
+    },
+    "displayName": {
+      "dataType": "string"
+    },
+    "refId": {
+      "dataType": "string"
+    },
+    "refType": {
+      "dataType": "string"
+    },
+    "framework": {
+      "dataType": "string"
+    }
+  },
+  "required": [
+    "refId",
+    "name",
+    "code",
+    "category",
+    "framework"
+  ]
+}

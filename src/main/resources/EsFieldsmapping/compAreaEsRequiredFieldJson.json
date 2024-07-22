@@ -1,0 +1,67 @@
+{
+  "id": {
+    "type": "keyword"
+  },
+  "title": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "refNodes": {
+    "type": "keyword"
+  },
+  "version": {
+    "type": "keyword"
+  },
+  "searchTags": {
+    "type": "keyword"
+  },
+  "additionalProperties": {
+    "type": "keyword"
+  },
+  "source": {
+    "type": "keyword"
+  },
+  "level": {
+    "type": "keyword"
+  },
+  "levelId": {
+    "type": "keyword"
+  },
+  "isActive": {
+    "type": "boolean"
+  },
+  "createdBy": {
+    "type": "keyword"
+  },
+  "updatedBy": {
+    "type": "keyword"
+  },
+  "reviewedDate": {
+    "type": "keyword"
+  },
+  "reviewedBy": {
+    "type": "keyword"
+  },
+  "wfId": {
+    "type": "keyword"
+  }
+}

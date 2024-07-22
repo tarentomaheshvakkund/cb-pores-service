@@ -1,4 +1,4 @@
-package com.igot.cb.pores;
+package com.igot.cb;
 
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.CloseableHttpClient;

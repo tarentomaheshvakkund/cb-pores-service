@@ -13,6 +13,7 @@ import org.hibernate.annotations.TypeDef;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import java.io.Serializable;
 import java.sql.Timestamp;
 
@@ -21,8 +22,9 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@Table(name="cornell_content_entity")
 @TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
-public class ExternalContentEntity implements Serializable {
+public class CornellContentEntity implements Serializable {
     @Id
     private String externalId;
     @Type(type = "jsonb")

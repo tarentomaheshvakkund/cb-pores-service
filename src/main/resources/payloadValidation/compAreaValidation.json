@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "refNodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source": {
+      "type": "string"
+    },
+    "level": {
+      "type": "string"
+    },
+    "levelId": {
+      "type": "integer"
+    },
+    "reviewedDate": {
+      "type": "string"
+    },
+    "reviewedBy": {
+      "type": "string"
+    },
+    "wfId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

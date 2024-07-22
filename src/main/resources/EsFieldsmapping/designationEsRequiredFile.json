@@ -1,0 +1,37 @@
+{
+  "id": {
+    "type": "keyword"
+  },
+  "designation": {
+    "type": "keyword"
+  },
+  "description": {
+    "type": "text"
+  },
+  "status": {
+    "type": "keyword"
+  },
+  "createdOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "updatedOn": {
+    "type": "date",
+    "format": [
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+      "epoch_millis"
+    ]
+  },
+  "refNodes": {
+    "type": "keyword"
+  },
+  "version": {
+    "type": "keyword"
+  },
+  "searchTags": {
+    "type": "keyword"
+  }
+}
