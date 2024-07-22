@@ -445,10 +445,10 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
               reqBodyMap.put(Constants.TITLE, name);
               reqBodyMap.put(Constants.REF_NODES, termIdentifier);
               CustomResponse desgResponse = updateCompSubTheme(objectMapper.valueToTree(reqBodyMap));
+              response.getResult().put(Constants.IDENTIFIER, termIdentifier);
               if (desgResponse.getResponseCode() != HttpStatus.OK) {
                 log.error("Failed to update term: " + response.getParams().getErr());
                 response.getParams().setErr("Failed to update term.");
-                response.getResult().put(Constants.IDENTIFIER, termIdentifier);
                 response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
                 response.getParams().setStatus(Constants.FAILED);
               }
