@@ -490,11 +490,13 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
       payloadValidation.validatePayload(Constants.TERM_CREATE_PAYLOAD_VALIDATION, request);
       String name = request.get(Constants.NAME).asText();
       String ref_Id = request.get(Constants.REF_ID).asText();
+      String framework = request.get(Constants.FRAMEWORK).asText();
+      String category = request.get(Constants.CATEGORY).asText();
       Optional<CompetencySubThemeEntity> designationEntity = competencySubThemeRepository.findByIdAndIsActive(ref_Id, Boolean.TRUE);
       if (designationEntity.isPresent()) {
         CompetencySubThemeEntity designation = designationEntity.get();
         if (designation.getIsActive()) {
-          ApiResponse readResponse = readTerm(ref_Id);
+          ApiResponse readResponse = readTerm(ref_Id, framework, category);
           if (readResponse == null) {
             response.getParams().setErr("Failed to validate term exists or not.");
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -512,8 +514,8 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
             createReq.put(Constants.REQUEST, termReq);
             StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
             strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
-                    .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
-                    .append(cbServerProperties.getOdcsDesignationCategory());
+                    .append(framework).append("&category=")
+                    .append(category);
             Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
                     createReq);
             if (termResponse != null
@@ -612,13 +614,13 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
     return dateTime.format(formatter);
   }
 
-  public ApiResponse readTerm(String Id) {
+  public ApiResponse readTerm(String Id, String framework, String category) {
     ApiResponse response = new ApiResponse();
     try {
       StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
       strUrl.append(cbServerProperties.getOdcsDesignationTermRead()).append("/").append(Id).append("?framework=")
-              .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
-              .append(cbServerProperties.getOdcsCompetencySubThemeCategory());
+              .append(framework).append("&category=")
+              .append(category);
 
       Map<String, Object> map = new HashMap<String, Object>();
       Map<String, Object> desgResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResult(strUrl.toString());

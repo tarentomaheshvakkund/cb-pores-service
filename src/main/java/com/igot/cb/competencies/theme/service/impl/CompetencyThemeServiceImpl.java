@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.authentication.util.AccessTokenValidator;
 import com.igot.cb.competencies.area.entity.CompetencyAreaEntity;
+import com.igot.cb.competencies.subtheme.repository.CompetencySubThemeRepository;
 import com.igot.cb.competencies.theme.enity.CompetencyThemeEntity;
 import com.igot.cb.competencies.theme.repository.CompetencyThemeRepository;
 import com.igot.cb.competencies.theme.service.CompetencyThemeService;
@@ -79,6 +80,7 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
   private CompetencyThemeRepository competencyThemeRepository;
 
   private @Autowired OutboundRequestHandlerServiceImpl outboundRequestHandlerServiceImpl;
+
 
   @Override
   public void loadCompetencyTheme(MultipartFile file, String token) {
@@ -479,11 +481,13 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
       payloadValidation.validatePayload(Constants.TERM_CREATE_PAYLOAD_VALIDATION, request);
       String name = request.get(Constants.NAME).asText();
       String ref_Id = request.get(Constants.REF_ID).asText();
+      String framework = request.get(Constants.FRAMEWORK).asText();
+      String category = request.get(Constants.CATEGORY).asText();
       Optional<CompetencyThemeEntity> designationEntity = competencyThemeRepository.findByIdAndIsActive(ref_Id, Boolean.TRUE);
       if (designationEntity.isPresent()) {
         CompetencyThemeEntity designation = designationEntity.get();
         if (designation.getIsActive()) {
-          ApiResponse readResponse = readTerm(ref_Id);
+          ApiResponse readResponse = readTerm(ref_Id, framework, category);
           if (readResponse == null) {
             response.getParams().setErr("Failed to validate term exists or not.");
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -501,8 +505,8 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
             createReq.put(Constants.REQUEST, termReq);
             StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
             strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
-                    .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
-                    .append(cbServerProperties.getOdcsDesignationCategory());
+                    .append(framework).append("&category=")
+                    .append(category);
             Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
                     createReq);
             if (termResponse != null
@@ -617,13 +621,13 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
     return dateTime.format(formatter);
   }
 
-  public ApiResponse readTerm(String Id) {
+  public ApiResponse readTerm(String Id, String framework, String category) {
     ApiResponse response = new ApiResponse();
     try {
       StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
       strUrl.append(cbServerProperties.getOdcsDesignationTermRead()).append("/").append(Id).append("?framework=")
-              .append(cbServerProperties.getOdcsDesignationFramework()).append("&category=")
-              .append(cbServerProperties.getOdcsCompetencyThemeCategory());
+              .append(framework).append("&category=")
+              .append(category);
 
       Map<String, Object> map = new HashMap<String, Object>();
       Map<String, Object> desgResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResult(strUrl.toString());
@@ -690,4 +694,5 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
       return jsonNode.asText();
     }
   }
+
 }
