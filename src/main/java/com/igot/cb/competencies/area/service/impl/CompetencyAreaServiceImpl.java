@@ -524,4 +524,5 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
     }
     return false;
   }
+
 }
