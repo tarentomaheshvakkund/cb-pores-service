@@ -362,7 +362,6 @@ public class PlayListServiceImpl implements PlayListSerive {
           }
         }
         optionalJsonNodeEntity.get(0).setUpdatedOn(currentTime);
-        PlayListEntity saveJsonEntity = playListRepository.save(playListEntity);
         ((ObjectNode) playListDetails).put(Constants.KEY_PLAYLIST,
             playListEntity.getOrgId() + playListEntity.getRequestType());
         playListEntity.setData(fetchedData);
