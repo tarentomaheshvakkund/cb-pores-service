@@ -313,6 +313,23 @@ public class Constants {
     public static final String MASTER = "master";
     public static final String CONTENT_PROVIDER_INDEX_NAME = "content_provider";
     public static final String CONTENT_PARTNER = "contentPartner";
+    public static final String CATEGORIES  = "categories";
+    public static final String ASSOCIATIONS = "associations";
+    public static final String PREV_TERM_CODE = "previousTermCode";
+    public static final String PARENT_CATEGORY = "previousCategoryCode";
+    public static final String FRAMEWORK_STATUS = "frameworkstatus";
+    public static final String COMPLETED = "Completed";
+    public static final String FRAMEWORK_PUBLISH_WAIT_MSG = "Framework creation request has been published Awaiting processing.";
+    public static final String FRAMEWORK_PROCESS_ALREADY_INITIALISED ="Already this framework creation request is initialised";
+    public static final String API_PARTNER_CREATE = "api.partner.create";
+    public static final String API_PARTNER_UPDATE = "api.partner.update";
+    public static final String API_PARTNER_READ = "api.partner.read";
+    public static final String API_PARTNER_DELETE = "api.partner.delete";
+    public static final String API_PARTNER_SEARCH = "api.partner.search";
+    public static final String ALREADY_INITIALIZED = "Already this request have initialized by another event. So Skipping this event";
+    public static final String ORG_NOT_FOUND = "OrgDetails are not found for this orgId";
+    public static final String TERM_CREATION_NOT_POSSIBLE = "Term creation failed. A term with the reference ID already exists. Please use a unique reference ID.";
+
     private Constants() {
     }
 }
