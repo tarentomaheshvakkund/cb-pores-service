@@ -144,10 +144,11 @@ public class CompetencyAreaServiceImpl implements CompetencyAreaService {
     log.info("CompetencyAreaService::poresBulkSave");
     try {
       competencyAreaRepository.saveAll(competencyAreaEntityList);
-      esUtilService.saveAll(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
-          competencydataNodeList);
       competencydataNodeList.forEach(dataNode -> {
         String formattedId = dataNode.get(Constants.ID).asText();
+        Map<String, Object> map = objectMapper.convertValue(dataNode, Map.class);
+        esUtilService.addDocument(Constants.COMP_AREA_INDEX_NAME, Constants.INDEX_TYPE,
+            formattedId, map, cbServerProperties.getElasticCompJsonPath());
         cacheService.putCache(formattedId, dataNode);
       });
     } catch (Exception e) {

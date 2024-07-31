@@ -139,14 +139,16 @@ public class CompetencySubThemeServiceImpl implements CompetencySubThemeService 
     }
   }
 
-  private void poresBulkSave(List<CompetencySubThemeEntity> competencySubThemeEntityList, List<JsonNode> competencySubThemeDataNodesList){
+  private void poresBulkSave(List<CompetencySubThemeEntity> competencySubThemeEntityList,
+      List<JsonNode> competencySubThemeDataNodesList) {
     log.info("CompetencySubThemeService::poresBulkSave");
     try {
       competencySubThemeRepository.saveAll(competencySubThemeEntityList);
-      esUtilService.saveAll(Constants.COMP_SUB_THEME_INDEX_NAME, Constants.INDEX_TYPE,
-          competencySubThemeDataNodesList);
       competencySubThemeDataNodesList.forEach(dataNode -> {
         String formattedId = dataNode.get(Constants.ID).asText();
+        Map<String, Object> map = objectMapper.convertValue(dataNode, Map.class);
+        esUtilService.addDocument(Constants.COMP_SUB_THEME_INDEX_NAME, Constants.INDEX_TYPE,
+            formattedId, map, cbServerProperties.getElasticCompJsonPath());
         cacheService.putCache(formattedId, dataNode);
       });
     } catch (Exception e) {

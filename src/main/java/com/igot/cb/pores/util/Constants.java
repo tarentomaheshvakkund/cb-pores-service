@@ -329,6 +329,8 @@ public class Constants {
     public static final String ALREADY_INITIALIZED = "Already this request have initialized by another event. So Skipping this event";
     public static final String ORG_NOT_FOUND = "OrgDetails are not found for this orgId";
     public static final String TERM_CREATION_NOT_POSSIBLE = "Term creation failed. A term with the reference ID already exists. Please use a unique reference ID.";
+    public static final String NO_DATA_FOR_ID = "No data found for this Id: ";
+    public static final String ID_MISSING = "Id is missing in the request";
 
     private Constants() {
     }

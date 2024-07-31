@@ -147,10 +147,11 @@ public class CompetencyThemeServiceImpl implements CompetencyThemeService {
     log.info("CompetencyThemeService::poresBulkSave");
     try {
       competencyThemeRepository.saveAll(competencyThemeEntityList);
-      esUtilService.saveAll(Constants.COMP_THEME_INDEX_NAME, Constants.INDEX_TYPE,
-          compThemeDataNodeList);
       compThemeDataNodeList.forEach(dataNode -> {
         String formattedId = dataNode.get(Constants.ID).asText();
+        Map<String, Object> map = objectMapper.convertValue(dataNode, Map.class);
+        esUtilService.addDocument(Constants.COMP_THEME_INDEX_NAME, Constants.INDEX_TYPE,
+            formattedId, map, cbServerProperties.getElasticCompJsonPath());
         cacheService.putCache(formattedId, dataNode);
       });
     } catch (Exception e) {
