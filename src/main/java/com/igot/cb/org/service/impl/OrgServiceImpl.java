@@ -175,7 +175,7 @@ public class OrgServiceImpl implements OrgService {
         Map<String, Object> responseMap = (Map<String, Object>) result.get(Constants.RESPONSE);
         List roles = (List) responseMap.get(Constants.ROLES);
 
-        if (requiredRoles != null && !requiredRoles.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(requiredRoles)) {
             for (String requiredRole : requiredRoles) {
                 if (roles.contains(requiredRole)) {
                     return true;
