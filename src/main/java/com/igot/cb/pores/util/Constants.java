@@ -331,6 +331,7 @@ public class Constants {
     public static final String TERM_CREATION_NOT_POSSIBLE = "Term creation failed. A term with the reference ID already exists. Please use a unique reference ID.";
     public static final String NO_DATA_FOR_ID = "No data found for this Id: ";
     public static final String ID_MISSING = "Id is missing in the request";
+    public static final String MDO_LEADER ="MDO_LEADER";
 
     private Constants() {
     }

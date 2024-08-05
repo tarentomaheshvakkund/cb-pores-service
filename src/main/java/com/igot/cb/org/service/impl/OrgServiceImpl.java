@@ -11,6 +11,7 @@ import com.igot.cb.pores.exceptions.CustomException;
 import com.igot.cb.pores.util.*;
 import com.igot.cb.producer.Producer;
 import com.igot.cb.transactional.cassandrautils.CassandraOperation;
+import com.igot.cb.transactional.service.RequestHandlerServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -46,6 +47,12 @@ public class OrgServiceImpl implements OrgService {
     @Autowired
     Producer kafkaProducer;
 
+    @Autowired
+    RequestHandlerServiceImpl requestHandlerService;
+
+    @Autowired
+    CbServerProperties propertiesConfig;
+
     @Override
     public ApiResponse readFramework(String frameworkName, String orgId, String termName, String userAuthToken) {
         ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_ORG_CREATE);
@@ -63,7 +70,7 @@ public class OrgServiceImpl implements OrgService {
                 response.setResponseCode(HttpStatus.BAD_REQUEST);
                 return response;
             }
-            if (!demandService.isSpvRequest(userId, Constants.MDO_ADMIN)) {
+            if (!isSpvRequest(userId, Arrays.asList(Constants.MDO_ADMIN,Constants.MDO_LEADER))) {
                 response.getParams().setStatus(Constants.FAILED);
                 response.getParams().setErrMsg("User does not have the required role:");
                 response.setResponseCode(HttpStatus.BAD_REQUEST);
@@ -158,5 +165,23 @@ public class OrgServiceImpl implements OrgService {
         Map<String, String> channel = new HashMap<>();
         channel.put(Constants.IDENTIFIER, channelId);
         return channel;
+    }
+    public boolean isSpvRequest(String userId, List<String> requiredRoles) {
+        Map<String, String> header = new HashMap<>();
+        Map<String, Object> readData = (Map<String, Object>) requestHandlerService
+                .fetchUsingGetWithHeadersProfile(propertiesConfig.getSbUrl() + propertiesConfig.getUserReadEndPoint() + userId,
+                        header);
+        Map<String, Object> result = (Map<String, Object>) readData.get(Constants.RESULT);
+        Map<String, Object> responseMap = (Map<String, Object>) result.get(Constants.RESPONSE);
+        List roles = (List) responseMap.get(Constants.ROLES);
+
+        if (CollectionUtils.isNotEmpty(requiredRoles)) {
+            for (String requiredRole : requiredRoles) {
+                if (roles.contains(requiredRole)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
