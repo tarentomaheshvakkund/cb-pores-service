@@ -96,8 +96,8 @@ public class OrgServiceImpl implements OrgService {
                     log.info("copy framework id : ",name);
                     if (StringUtils.isNotEmpty(name)) {
                         log.info("copy framework id : ",name);
-                        publishFramework(name,orgId);
                         createOrgTerm(termName, name, frameworkName, orgId);
+                        publishFramework(name,orgId);
                         log.info("copy framework published and term creation also done.");
                         updateOrganizationFramework(name,orgId);
                         response.getResult().put(Constants.FRAMEWORK, name);
