@@ -1,7 +1,6 @@
-package com.igot.cb.contentprovider.service;
+package com.igot.cb.contentpartner.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.util.ApiResponse;
 

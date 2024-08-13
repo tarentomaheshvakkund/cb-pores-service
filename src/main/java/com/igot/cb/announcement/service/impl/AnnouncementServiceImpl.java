@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.igot.cb.announcement.entity.AnnouncementEntity;
 import com.igot.cb.announcement.repository.AnnouncementRepository;
 import com.igot.cb.announcement.service.AnnouncementService;
-import com.igot.cb.contentprovider.service.impl.ContentPartnerServiceImpl;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.dto.CustomResponse;
 import com.igot.cb.pores.dto.RespParam;
@@ -44,7 +43,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
   @Autowired
   private PayloadValidation payloadValidation;
 
-  private Logger logger = LoggerFactory.getLogger(ContentPartnerServiceImpl.class);
+  private Logger logger = LoggerFactory.getLogger(AnnouncementServiceImpl.class);
   
   @Autowired
   private AnnouncementRepository announcementRepository;
