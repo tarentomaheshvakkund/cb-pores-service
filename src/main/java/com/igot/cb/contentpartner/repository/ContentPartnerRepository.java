@@ -1,6 +1,6 @@
-package com.igot.cb.contentprovider.repository;
+package com.igot.cb.contentpartner.repository;
 
-import com.igot.cb.contentprovider.entity.ContentPartnerEntity;
+import com.igot.cb.contentpartner.entity.ContentPartnerEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
