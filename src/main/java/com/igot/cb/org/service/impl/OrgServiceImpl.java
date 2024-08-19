@@ -96,7 +96,7 @@ public class OrgServiceImpl implements OrgService {
                     log.info("copy framework id : ",name);
                     if (StringUtils.isNotEmpty(name)) {
                         log.info("copy framework id : ",name);
-                        createOrgTerm(termName, name, frameworkName, orgId);
+                        createOrgTerm(termName, name, frameworkName, orgId, userId);
                         publishFramework(name,orgId);
                         log.info("copy framework published and term creation also done.");
                         updateOrganizationFramework(name,orgId);
@@ -237,7 +237,7 @@ public class OrgServiceImpl implements OrgService {
         Map<String, Object> framework = new HashMap<>();
         StringBuilder name = new StringBuilder(channelId).append("_").append(frameworkName);
         framework.put(Constants.NAME, name);
-        framework.put(Constants.DESCRIPTION, "Master Framework Copy");
+        framework.put(Constants.DESCRIPTION, "Framework for Channel " + channelId + ". This framework is a customized copy derived from the Master Framework");
         framework.put(Constants.CODE, name);
         framework.put(Constants.OWNER, channelId);
         return framework;
@@ -279,12 +279,12 @@ public class OrgServiceImpl implements OrgService {
         return code;
     }
 
-    private void createOrgTerm(String termName, String copyfw, String masterFramework, String orgId) {
+    private void createOrgTerm(String termName, String copyfw, String masterFramework, String orgId, String createdBy) {
         try {
             String category = frameworkReadV1(masterFramework);
             log.info("category first "+category);
             if (StringUtils.isNotEmpty(category)) {
-                Map<String, Object> termMap = createTermMap(termName, category);
+                Map<String, Object> termMap = createTermMap(termName, category, createdBy);
                 Map<String, Object> requestMap = createRequestMap(termMap);
                 Map<String, Object> outerMap = createOuterMap(requestMap);
                 StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
@@ -343,7 +343,7 @@ public class OrgServiceImpl implements OrgService {
         return outerMap;
     }
 
-    public static Map<String, Object> createTermMap(String termName, String category) {
+    public static Map<String, Object> createTermMap(String termName, String category, String createdBy) {
         Map<String, Object> termMap = new HashMap<>();
         termMap.put(Constants.NAME, termName);
         termMap.put(Constants.DESCRIPTION, termName);
@@ -351,6 +351,10 @@ public class OrgServiceImpl implements OrgService {
         termMap.put(Constants.REF_TYPE, "");
         termMap.put(Constants.REF_ID, "");
         termMap.put(Constants.CATEGORY, category);
+        Map<String, Object> additionalProperties = new HashMap<>();
+        additionalProperties.put(Constants.TIMESTAMP, System.currentTimeMillis());
+        additionalProperties.put(Constants.CREATED_BY, createdBy);
+        termMap.put(Constants.ADDITIONAL_PROPERTIES, additionalProperties);
         return termMap;
     }
 
