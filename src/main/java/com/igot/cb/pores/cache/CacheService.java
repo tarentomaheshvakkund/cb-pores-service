@@ -61,19 +61,4 @@ public class CacheService {
       return null;
     }
   }
-
-  public Long deleteContentCache(String key) {
-    try (Jedis jedis = jedisPool.getResource()) {
-      Long result = jedis.del(key);
-      if (result == 1) {
-        log.info("Field {} deleted successfully from key {}.", key);
-      } else {
-        log.warn("Field {} not found in key {}.", key);
-      }
-      return result;
-    } catch (Exception e) {
-      log.error("Error while deleting data from Redis cache: {} ", e.getMessage());
-      return null;
-    }
-  }
 }
