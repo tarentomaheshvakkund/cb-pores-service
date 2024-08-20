@@ -14,6 +14,7 @@ import com.igot.cb.transactional.cassandrautils.CassandraOperation;
 import com.igot.cb.transactional.service.RequestHandlerServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,16 +92,23 @@ public class OrgServiceImpl implements OrgService {
                 .equalsIgnoreCase(Constants.FAILED)) {
                 String fwName = (String) orgDetails.get(0).get(Constants.FRAMEWORKID);
                 if (StringUtils.isBlank(fwName)) {
-                    Map<String, Object> dataMap = new HashMap<>();
-                    dataMap.put("orgId", orgId);
-                    dataMap.put("frameworkName", frameworkName);
-                    dataMap.put("termName", termName);
-                    log.info("printing createReq {}", dataMap);
-                    kafkaProducer.push(cbServerProperties.getTopicFrameworkCreate(), dataMap);
-                    log.info("kafka message pushed for broadcast type");
-                    response.getResult().put(Constants.FRAMEWORK,
-                        Constants.FRAMEWORK_PUBLISH_WAIT_MSG);
-                    response.setResponseCode(HttpStatus.OK);
+                    String name = processFrameworkCreate(frameworkName,orgId);
+                    log.info("copy framework id : ",name);
+                    if (StringUtils.isNotEmpty(name)) {
+                        log.info("copy framework id : ",name);
+                        createOrgTerm(termName, name, frameworkName, orgId, userId);
+                        publishFramework(name,orgId);
+                        log.info("copy framework published and term creation also done.");
+                        updateOrganizationFramework(name,orgId);
+                        response.getResult().put(Constants.FRAMEWORK, name);
+                        response.setResponseCode(HttpStatus.OK);
+                    } else {
+                        log.info("unable to copy a framework");
+                        response.getParams().setStatus(Constants.FAILED);
+                        response.getParams()
+                                .setErrMsg(Constants.FRAMEWORK_PROCESS_ALREADY_INITIALISED);
+                        response.setResponseCode(HttpStatus.BAD_REQUEST);
+                    }
                 } else {
                     response.getResult().put(Constants.FRAMEWORK, fwName);
                     response.setResponseCode(HttpStatus.OK);
@@ -184,4 +192,193 @@ public class OrgServiceImpl implements OrgService {
         }
         return false;
     }
+
+    public String processFrameworkCreate(String masterFramework, String orgId) {
+        String fwName = "";
+        try {
+            log.info("processFrameworkCreate started");
+            Map<String, Object> createReq = createFrameworkRequest(orgId, masterFramework);
+            Map<String, Object> request = new HashMap<>();
+            request.put(Constants.REQUEST, createReq);
+            Map<String, String> headers = new HashMap<>();
+            headers.put(Constants.X_CHANNEL_ID, orgId);
+            StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+            strUrl.append(cbServerProperties.getFrameworkCopy()).append("/").append(masterFramework);
+            log.info("Printing URL for copy: {}", strUrl);
+            log.info("Printing request: {}", request);
+            Map<String, Object> frameworkResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(
+                    strUrl.toString(),
+                    request, headers);
+            if (MapUtils.isNotEmpty(frameworkResponse) && Constants.OK.equalsIgnoreCase(
+                    (String) frameworkResponse.get(Constants.RESPONSE_CODE))) {
+                Map<String, Object> result = (Map<String, Object>) frameworkResponse.get(
+                        Constants.RESULT);
+               fwName = (String) result.getOrDefault(Constants.NODE_ID, "");
+               log.info("copy framework node id: {}", fwName);
+            } else {
+                log.error("Failed to copy the framework: {}",
+                        frameworkResponse.get(Constants.RESPONSE_CODE));
+            }
+
+        } catch (Exception e) {
+            log.error("Unexpected error occurred in processFrameworkCreate", e);
+        }
+        return fwName;
+    }
+
+    public static Map<String, Object> createFrameworkRequest(String channelId, String frameworkName) {
+        Map<String, Object> framework = createFramework(channelId, frameworkName);
+        Map<String, Object> request = new HashMap<>();
+        request.put("framework", framework);
+        return request;
+    }
+
+    private static Map<String, Object> createFramework(String channelId, String frameworkName) {
+        Map<String, Object> framework = new HashMap<>();
+        StringBuilder name = new StringBuilder(channelId).append("_").append(frameworkName);
+        framework.put(Constants.NAME, name);
+        framework.put(Constants.DESCRIPTION, "Framework for Channel " + channelId + ". This framework is a customized copy derived from the Master Framework");
+        framework.put(Constants.CODE, name);
+        framework.put(Constants.OWNER, channelId);
+        return framework;
+    }
+
+    private void updateStatusToFailed(String orgId) {
+        Map<String, Object> map = new HashMap<>();
+        map.put(Constants.ID, orgId);
+        map.put(Constants.FRAMEWORK_STATUS, Constants.FAILED);
+        Map<String, Object> updateOrgDetails = cassandraOperation.updateRecord(
+                Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, map);
+    }
+
+
+    private String frameworkReadV1(String frameworkId) {
+        String code = null;
+        try {
+            StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+            strUrl.append(cbServerProperties.getOdcsFrameworkRead()).append("/").append(frameworkId);
+            log.info("prinitng framework read url "+strUrl.toString());
+            Map<String, Object> framworkResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResult(strUrl.toString());
+            if (null != framworkResponse) {
+                if (Constants.OK.equalsIgnoreCase((String) framworkResponse.get(Constants.RESPONSE_CODE))) {
+                    Map<String, Object> resultMap = (Map<String, Object>) framworkResponse.get(Constants.RESULT);
+                    Map<String, Object> framework = (Map<String, Object>) resultMap.get(Constants.FRAMEWORK);
+                    List categoriesList = (List<Map<String,Object>>) framework.get("categories");
+                    Map<String,Object> map = (Map<String,Object>) categoriesList.get(0);
+                    code = (String) map.get(Constants.CODE);
+                    return code;
+                } else {
+                    log.info("Data not found with id : " + frameworkId);
+                }
+            } else {
+                log.info("Data not found with ID: {}", frameworkId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to read framework with ID: {}", frameworkId, e);
+        }
+        return code;
+    }
+
+    private void createOrgTerm(String termName, String copyfw, String masterFramework, String orgId, String createdBy) {
+        try {
+            String category = frameworkReadV1(masterFramework);
+            log.info("category first "+category);
+            if (StringUtils.isNotEmpty(category)) {
+                Map<String, Object> termMap = createTermMap(termName, category, createdBy);
+                Map<String, Object> requestMap = createRequestMap(termMap);
+                Map<String, Object> outerMap = createOuterMap(requestMap);
+                StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+                strUrl.append(cbServerProperties.getOdcsTermCrete()).append("?framework=")
+                        .append(copyfw).append("&category=")
+                        .append(category);
+                log.info("Created term strUrl {}", strUrl);
+                Map<String, Object> termResponse = (Map<String, Object>) outboundRequestHandlerServiceImpl.fetchResultUsingPost(strUrl.toString(),
+                        outerMap);
+                if (termResponse != null
+                        && Constants.OK.equalsIgnoreCase((String) termResponse.get(Constants.RESPONSE_CODE))) {
+                    Map<String, Object> resultMap = (Map<String, Object>) termResponse.get(Constants.RESULT);
+                    List<String> termIdentifier = (List<String>) resultMap.getOrDefault(Constants.NODE_ID, "");
+                    log.info("Created term successfully with name: {}", termName);
+                    log.info("Term identifier: {}", termIdentifier);
+                } else {
+                    log.info("Unable to create term with name: {}", termName);
+                    updateStatusToFailed(orgId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Unexpected error occurred while creating term", e);
+        }
+    }
+
+    private void publishFramework(String fwName, String orgId) {
+        try {
+            log.info("publishFramework started: {}", fwName);
+            StringBuilder strUrl = new StringBuilder(cbServerProperties.getKnowledgeMS());
+            strUrl.append(cbServerProperties.getFrameworkPublish()).append("/").append(fwName);
+            Map<String, String> headers = new HashMap<>();
+            headers.put(Constants.X_CHANNEL_ID, orgId);
+            Map<String, Object> response = outboundRequestHandlerServiceImpl.fetchResultUsingPost(
+                    strUrl.toString(), "", headers);
+            log.info("framework publish url: {}", strUrl.toString());
+            if (response != null
+                    && Constants.OK.equalsIgnoreCase((String) response.get(Constants.RESPONSE_CODE))) {
+                log.info("Published the framework: {}", fwName);
+            } else {
+                log.info("Unable to publish the framework with name: {}", fwName);
+                updateStatusToFailed(orgId);
+            }
+        } catch (Exception e) {
+            log.error("Unexpected error occurred while publishing the framework", e);
+        }
+    }
+    public static Map<String, Object> createRequestMap(Map<String, Object> termMap) {
+        Map<String, Object> requestMap = new HashMap<>();
+        requestMap.put("term", termMap);
+        return requestMap;
+    }
+
+    public static Map<String, Object> createOuterMap(Map<String, Object> requestMap) {
+        Map<String, Object> outerMap = new HashMap<>();
+        outerMap.put("request", requestMap);
+        return outerMap;
+    }
+
+    public static Map<String, Object> createTermMap(String termName, String category, String createdBy) {
+        Map<String, Object> termMap = new HashMap<>();
+        termMap.put(Constants.NAME, termName);
+        termMap.put(Constants.DESCRIPTION, termName);
+        termMap.put(Constants.CODE, UUID.randomUUID());
+        termMap.put(Constants.REF_TYPE, "");
+        termMap.put(Constants.REF_ID, "");
+        termMap.put(Constants.CATEGORY, category);
+        Map<String, Object> additionalProperties = new HashMap<>();
+        additionalProperties.put(Constants.TIMESTAMP, System.currentTimeMillis());
+        additionalProperties.put(Constants.CREATED_BY, createdBy);
+        termMap.put(Constants.ADDITIONAL_PROPERTIES, additionalProperties);
+        return termMap;
+    }
+
+    public void updateOrganizationFramework(String frameworkId, String orgId) {
+        log.info("updateOrganizationFramework function started : {}");
+        Map<String, Object> updateFields = new HashMap<>();
+        updateFields.put(Constants.FRAMEWORKID, frameworkId);
+        updateFields.put(Constants.ID, orgId);
+        updateFields.put(Constants.FRAMEWORK_STATUS, Constants.COMPLETED);
+        log.info("updateOrganizationFramework map : {}", updateFields);
+        try {
+            Map<String, Object> updateOrgDetails = cassandraOperation.updateRecord(
+                    Constants.KEYSPACE_SUNBIRD, Constants.ORG_TABLE, updateFields);
+
+            String updateResponse = (String) updateOrgDetails.get(Constants.RESPONSE);
+            if (StringUtils.isNotEmpty(updateResponse) && updateResponse.equalsIgnoreCase(Constants.SUCCESS)) {
+                log.info("Updated framework_id in organization table successfully with name: {}", frameworkId);
+            } else {
+                log.error("Failed to update organization details with the new framework ID");
+            }
+        } catch (Exception e) {
+            log.error("An error occurred while updating organization details", e);
+        }
+
+    }
+
 }
