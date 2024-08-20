@@ -332,8 +332,7 @@ public class Constants {
     public static final String NO_DATA_FOR_ID = "No data found for this Id: ";
     public static final String ID_MISSING = "Id is missing in the request";
     public static final String MDO_LEADER ="MDO_LEADER";
-    public static final String CONTENT_PARTNER_REDIS_KEY_PREFIX = "contentpartner_";
-
+    public static final String COMPETENCIESVALIDATION_FILE_JSON = "/payloadValidation/competenciesValidation.json";
     private Constants() {
     }
 }

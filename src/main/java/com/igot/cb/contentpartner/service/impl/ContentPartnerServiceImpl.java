@@ -119,7 +119,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                 });
                         esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
                         cacheService.putCache(updateJsonEntity.getId(), updateJsonEntity.getData());
-                        cacheService.deleteContentCache(Constants.CONTENT_PARTNER_REDIS_KEY_PREFIX+objectNode.get("contentPartnerName").asText());
+                        cacheService.deleteCache(objectNode.get("contentPartnerName").asText());
                         log.info("updated the content partner");
                         response.setResult(jsonMap);
                         response.setResponseCode(HttpStatus.OK);
@@ -248,5 +248,36 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
             response.getParams().setErrMsg("Error deleting Entity with ID " + id + " " + e.getMessage());
         }
         return response;
+    }
+
+    public ApiResponse getContentDetailsByPartnerName(String name) {
+        log.info("CiosContentService:: ContentPartnerEntity: getContentDetailsByPartnerName {}",name);
+        try {
+            ApiResponse response=ProjectUtil.createDefaultResponse(Constants.API_PARTNER_DELETE);
+            ContentPartnerEntity entity=null;
+            String cachedJson = cacheService.getCache(name);
+            if (StringUtils.isNotEmpty(cachedJson)) {
+                log.info("Record coming from redis cache");
+                response.setResponseCode(HttpStatus.OK);
+                response.setResult(objectMapper.readValue(cachedJson, new TypeReference<Map>() {}));
+            } else {
+                Optional<ContentPartnerEntity> entityOptional = entityRepository.findByContentPartnerName(name);
+                if (entityOptional.isPresent()) {
+                    log.info("Record coming from postgres db");
+                    entity = entityOptional.get();
+                    cacheService.putCache(name,entity);
+                    response.setResponseCode(HttpStatus.OK);
+                    response.setResult(objectMapper.convertValue(entity.getData(), Map.class));
+                } else {
+                    response.getParams().setErrMsg("Invalid name");
+                    response.getParams().setStatus(Constants.FAILED);
+                    response.setResponseCode(HttpStatus.BAD_REQUEST);
+                }
+            }
+            return response;
+        } catch (Exception e) {
+            log.error("error while processing", e);
+        }
+        return null;
     }
 }

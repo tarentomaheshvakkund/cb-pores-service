@@ -16,9 +16,9 @@ public interface CiosContentService {
 
     Object deleteContent(String contentId);
 
-    Object onboardCornellContent(List<ObjectDto> data);
+    Object onboardContent(List<ObjectDto> data);
 
-    Object fetchDataByExternalId(String externalid);
+    Object fetchDataByExternalIdAndPartnerId(String externalid,String partnerid);
 
 
 
