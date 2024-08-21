@@ -52,7 +52,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
 
     @Override
     public ApiResponse createOrUpdate(JsonNode partnerDetails) {
-        ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_CREATE);;
+        ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_CREATE);
         payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, partnerDetails);
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         try {
