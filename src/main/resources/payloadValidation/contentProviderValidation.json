@@ -27,7 +27,10 @@
       "type": "string"
     },
     "providerTips": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "createdDate": {
       "type": "string",
@@ -45,12 +48,16 @@
     },
     "trasformCertificateJson": {
       "type": "object"
+    },
+    "certificateTemplateUrl": {
+      "type": "string"
     }
   },
   "required": [
     "contentPartnerName",
     "websiteUrl",
-    "thumbnailUrl"
+    "thumbnailUrl",
+    "description"
   ],
   "additionalProperties": false
 }
