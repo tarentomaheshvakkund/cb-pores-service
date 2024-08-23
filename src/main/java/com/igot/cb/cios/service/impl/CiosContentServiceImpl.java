@@ -201,6 +201,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                             ciosContentEntity = createNewContent(dto);
                             CornellContentEntity externalContentEntity = cornellData.get();
                             externalContentEntity.setIsActive(true);
+                            externalContentEntity.setPublishedOn(ciosContentEntity.getCreatedOn().toString());
                             cornellContentRepository.save(externalContentEntity);
                         }
                         break;
