@@ -17,7 +17,7 @@
     "role": {
       "type": "string"
     },
-    "thumbnailUrl": {
+    "link": {
       "type": "string"
     },
     "websiteUrl": {
@@ -51,13 +51,28 @@
     },
     "certificateTemplateUrl": {
       "type": "string"
+    },
+    "orgId": {
+      "type": "string"
+    },
+    "isAuthenticate": {
+      "type": "boolean"
+    },
+    "contentUploadLastUpdatedDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "contentProgressLastUpdatedDate": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [
     "contentPartnerName",
     "websiteUrl",
-    "thumbnailUrl",
-    "description"
+    "link",
+    "description",
+    "orgId"
   ],
   "additionalProperties": false
 }
