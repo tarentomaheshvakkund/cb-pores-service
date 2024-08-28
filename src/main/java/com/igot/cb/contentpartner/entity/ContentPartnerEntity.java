@@ -50,7 +50,7 @@ public class ContentPartnerEntity {
 
     private Timestamp contentUploadLastUpdatedDate;
 
-    private boolean isAuthenticate;
+    private Boolean isAuthenticate;
 
     private Timestamp contentProgressLastUpdatedDate;
 

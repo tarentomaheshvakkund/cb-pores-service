@@ -83,7 +83,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 jsonNodeEntity.setCreatedOn(currentTime);
                 jsonNodeEntity.setUpdatedOn(currentTime);
                 jsonNodeEntity.setIsActive(Constants.ACTIVE_STATUS);
-                jsonNodeEntity.setAuthenticate(isAuthenticate);
+                jsonNodeEntity.setIsAuthenticate(isAuthenticate);
                 jsonNodeEntity.setOrgId(orgId);
                 jsonNodeEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                 jsonNodeEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
@@ -116,7 +116,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     josnEntity.setUpdatedOn(currentTime);
                     josnEntity.setIsActive(Constants.ACTIVE_STATUS);
                     josnEntity.setOrgId(orgId);
-                    josnEntity.setAuthenticate(isAuthenticate);
+                    josnEntity.setIsAuthenticate(isAuthenticate);
                     josnEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                     josnEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                     josnEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
@@ -239,8 +239,8 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     Timestamp currentTime = new Timestamp(System.currentTimeMillis());
                     josnEntity.setUpdatedOn(currentTime);
                     josnEntity.setIsActive(Constants.ACTIVE_STATUS_FALSE);
-                    entityRepository.save(josnEntity);
                     ((ObjectNode) josnEntity.getData()).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS_FALSE);
+                    entityRepository.save(josnEntity);
                     Map<String, Object> map = objectMapper.convertValue(josnEntity.getData(), Map.class);
                     esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());
                     cacheService.deleteCache(id);
