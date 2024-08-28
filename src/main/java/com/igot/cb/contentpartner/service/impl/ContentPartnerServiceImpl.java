@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.igot.cb.cios.service.CiosContentService;
 import com.igot.cb.contentpartner.entity.ContentPartnerEntity;
 import com.igot.cb.contentpartner.repository.ContentPartnerRepository;
 import com.igot.cb.contentpartner.service.ContentPartnerService;
@@ -56,6 +57,10 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, partnerDetails);
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         try {
+            boolean isAuthenticate = Constants.ACTIVE_STATUS_AUTHENTICATE;
+            if (partnerDetails.has(Constants.IS_AUTHENTICATE) && partnerDetails.get(Constants.IS_AUTHENTICATE).asBoolean()) {
+                isAuthenticate = true;
+            }
             if (partnerDetails.get(Constants.ID) == null) {
                 Optional<ContentPartnerEntity> optionalEntity=entityRepository.findByContentPartnerName(partnerDetails.get("contentPartnerName").asText());
                 if(optionalEntity.isPresent()){
@@ -70,11 +75,16 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+                ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+                ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, isAuthenticate);
+                String orgId = partnerDetails.get(Constants.ORG_ID).asText();
                 ContentPartnerEntity jsonNodeEntity = new ContentPartnerEntity();
                 jsonNodeEntity.setId(id);
                 jsonNodeEntity.setCreatedOn(currentTime);
                 jsonNodeEntity.setUpdatedOn(currentTime);
                 jsonNodeEntity.setIsActive(Constants.ACTIVE_STATUS);
+                jsonNodeEntity.setAuthenticate(isAuthenticate);
+                jsonNodeEntity.setOrgId(orgId);
                 jsonNodeEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                 jsonNodeEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                 jsonNodeEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
@@ -97,12 +107,16 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 String exitingId = partnerDetails.get("id").asText();
                 Optional<ContentPartnerEntity> content = entityRepository.findById(exitingId);
                 if (content.isPresent()) {
+                    String orgId = partnerDetails.get(Constants.ORG_ID).asText();
                     ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+                    ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, isAuthenticate);
                     ContentPartnerEntity josnEntity = content.get();
                     josnEntity.setUpdatedOn(currentTime);
                     josnEntity.setIsActive(Constants.ACTIVE_STATUS);
+                    josnEntity.setOrgId(orgId);
+                    josnEntity.setAuthenticate(isAuthenticate);
                     josnEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                     josnEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                     josnEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
@@ -267,7 +281,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     entity = entityOptional.get();
                     cacheService.putCache(name,entity);
                     response.setResponseCode(HttpStatus.OK);
-                    response.setResult(objectMapper.convertValue(entity.getData(), Map.class));
+                    response.setResult(objectMapper.convertValue(entity, Map.class));
                 } else {
                     response.getParams().setErrMsg("Invalid name");
                     response.getParams().setStatus(Constants.FAILED);

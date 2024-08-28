@@ -18,6 +18,8 @@ import com.igot.cb.cios.repository.CornellContentRepository;
 import com.igot.cb.cios.repository.UpgradContentRepository;
 import com.igot.cb.cios.service.CiosContentService;
 import com.igot.cb.cios.util.ContentSource;
+import com.igot.cb.contentpartner.entity.ContentPartnerEntity;
+import com.igot.cb.contentpartner.repository.ContentPartnerRepository;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
@@ -42,7 +44,6 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -82,6 +83,9 @@ public class CiosContentServiceImpl implements CiosContentService {
 
     @Autowired
     private UpgradContentRepository upgradContentRepository;
+
+    @Autowired
+    private ContentPartnerRepository contentPartnerRepository;
 
     public String generateId() {
         long env = environmentId / 10000000;
@@ -225,6 +229,29 @@ public class CiosContentServiceImpl implements CiosContentService {
                 cacheService.putCache(ciosContentEntity.getContentId(), ciosContentEntity.getCiosData());
                 esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE, ciosContentEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
             }
+            String partnerId = data.get(0).getContentPartner().get(Constants.ID).asText();
+            Optional<ContentPartnerEntity> partnerEntityOptional = contentPartnerRepository.findById(partnerId);
+            if (partnerEntityOptional.isPresent()) {
+                ContentPartnerEntity contentPartnerEntity = partnerEntityOptional.get();
+                log.info("Partner entity found with partnerId: {}", partnerId);
+
+                // Set the ContentUploadLastUpdatedDate to current timestamp
+                Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+                contentPartnerEntity.setContentUploadLastUpdatedDate(currentTime);
+                ObjectNode dataNode = (ObjectNode) contentPartnerEntity.getData();
+                dataNode.put(Constants.CONTENT_UPLOAD_LAST_UPDATED_DATE, currentTime.toString());
+                contentPartnerEntity.setData(dataNode);
+
+                // Save the updated partner entity
+                ContentPartnerEntity saveIntoPartnerDb = contentPartnerRepository.save(contentPartnerEntity);
+                Map<String, Object> map = objectMapper.convertValue(saveIntoPartnerDb.getData(), Map.class);
+                esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, partnerId, map, cbServerProperties.getElasticContentJsonPath());
+                cacheService.putCache(partnerId, saveIntoPartnerDb.getData());
+                log.info("Updated ContentUploadLastUpdatedDate for partnerId: {}", partnerId);
+            } else {
+                log.warn("No partner entity found with partnerId while updating ContentUploadLastUpdateDate in to contentPartner: {}", partnerId);
+            }
+
             return "Success";
         } catch (Exception e) {
             throw new CustomException("ERROR", e.getMessage(), HttpStatus.BAD_REQUEST);

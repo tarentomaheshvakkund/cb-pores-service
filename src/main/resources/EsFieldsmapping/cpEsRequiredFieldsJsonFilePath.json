@@ -11,7 +11,7 @@
   "websiteUrl": {
     "type": "string"
   },
-  "thumbnailUrl": {
+  "link": {
     "type": "string"
   },
   "documentUrl": {
@@ -35,6 +35,20 @@
     "type": "keyword"
   },
   "certificateTemplateUrl": {
+    "type": "string"
+  },
+  "contentUploadLastUpdatedDate": {
+    "type": "date",
+    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
+  },
+  "contentProgressLastUpdatedDate": {
+    "type": "date",
+    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
+  },
+  "isAuthenticate": {
+    "type": "boolean"
+  },
+  "orgId": {
     "type": "string"
   }
 }
