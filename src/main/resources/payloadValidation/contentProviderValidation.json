@@ -32,11 +32,11 @@
         "type": "string"
       }
     },
-    "createdDate": {
+    "createdOn": {
       "type": "string",
       "format": "date-time"
     },
-    "updatedDate": {
+    "updatedOn": {
       "type": "string",
       "format": "date-time"
     },
@@ -65,6 +65,15 @@
     "contentProgressLastUpdatedDate": {
       "type": "string",
       "format": "date-time"
+    },
+    "totalCourseCount": {
+      "type": "number"
+    },
+    "searchTags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [

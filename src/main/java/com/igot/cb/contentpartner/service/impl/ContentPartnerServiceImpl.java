@@ -75,7 +75,6 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-                ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, isAuthenticate);
                 String orgId = partnerDetails.get(Constants.ORG_ID).asText();
                 ContentPartnerEntity jsonNodeEntity = new ContentPartnerEntity();
