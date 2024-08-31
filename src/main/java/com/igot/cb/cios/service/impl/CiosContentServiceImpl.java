@@ -155,7 +155,7 @@ public class CiosContentServiceImpl implements CiosContentService {
     }
 
     @Override
-    public Object fetchDataByExternalIdAndPartnerId(String externalid,String partnerid) {
+    public Object fetchDataByExternalIdAndPartnerId(String externalid) {
         log.info("getting content by id: " + externalid);
         if (StringUtils.isEmpty(externalid)) {
             log.error("CiosContentServiceImpl::read:Id not found");
@@ -172,7 +172,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                 throw new RuntimeException(e);
             }
         } else {
-            Optional<CiosContentEntity> optionalJsonNodeEntity = ciosRepository.findByExternalIdAndPartnerId(externalid,partnerid);
+            Optional<CiosContentEntity> optionalJsonNodeEntity = ciosRepository.findByExternalId(externalid);
             if (optionalJsonNodeEntity.isPresent()) {
                 CiosContentEntity ciosContentEntity = optionalJsonNodeEntity.get();
                 cacheService.putCache(externalid, ciosContentEntity.getCiosData());

@@ -18,7 +18,7 @@ public interface CiosContentService {
 
     Object onboardContent(List<ObjectDto> data);
 
-    Object fetchDataByExternalIdAndPartnerId(String externalid,String partnerid);
+    Object fetchDataByExternalIdAndPartnerId(String externalid);
 
 
 
