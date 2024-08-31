@@ -50,5 +50,8 @@
   },
   "orgId": {
     "type": "string"
+  },
+  "totalCourseCount": {
+    "type": "number"
   }
 }

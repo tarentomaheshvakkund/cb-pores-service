@@ -59,8 +59,7 @@
       "type": "boolean"
     },
     "contentUploadLastUpdatedDate": {
-      "type": "string",
-      "format": "date-time"
+      "type": "string"
     },
     "contentProgressLastUpdatedDate": {
       "type": "string",
