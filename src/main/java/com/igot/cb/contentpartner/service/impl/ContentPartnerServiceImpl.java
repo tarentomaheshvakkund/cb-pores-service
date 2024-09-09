@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.igot.cb.cios.service.CiosContentService;
 import com.igot.cb.contentpartner.entity.ContentPartnerEntity;
 import com.igot.cb.contentpartner.repository.ContentPartnerRepository;
 import com.igot.cb.contentpartner.service.ContentPartnerService;
@@ -57,12 +56,8 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, partnerDetails);
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         try {
-            boolean isAuthenticate = Constants.ACTIVE_STATUS_AUTHENTICATE;
-            if (partnerDetails.has(Constants.IS_AUTHENTICATE) && partnerDetails.get(Constants.IS_AUTHENTICATE).asBoolean()) {
-                isAuthenticate = true;
-            }
             if (partnerDetails.get(Constants.ID) == null) {
-                Optional<ContentPartnerEntity> optionalEntity=entityRepository.findByContentPartnerName(partnerDetails.get("contentPartnerName").asText());
+                Optional<ContentPartnerEntity> optionalEntity=entityRepository.findByContentPartnerNameAndOrgId(partnerDetails.get("contentPartnerName").asText(),partnerDetails.get("orgId").asText());
                 if(optionalEntity.isPresent()){
                     response.getParams().setErrMsg("Content partner name already present in DB");
                     response.getParams().setStatus(Constants.FAILED);
@@ -75,30 +70,30 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-                ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, isAuthenticate);
+                ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.ACTIVE_STATUS_AUTHENTICATE);
                 String orgId = partnerDetails.get(Constants.ORG_ID).asText();
-                ContentPartnerEntity jsonNodeEntity = new ContentPartnerEntity();
-                jsonNodeEntity.setId(id);
-                jsonNodeEntity.setCreatedOn(currentTime);
-                jsonNodeEntity.setUpdatedOn(currentTime);
-                jsonNodeEntity.setIsActive(Constants.ACTIVE_STATUS);
-                jsonNodeEntity.setIsAuthenticate(isAuthenticate);
-                jsonNodeEntity.setOrgId(orgId);
-                jsonNodeEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
-                jsonNodeEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
-                jsonNodeEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
+                ContentPartnerEntity contentPartnerEntity = new ContentPartnerEntity();
+                contentPartnerEntity.setId(id);
+                contentPartnerEntity.setCreatedOn(currentTime);
+                contentPartnerEntity.setUpdatedOn(currentTime);
+                contentPartnerEntity.setIsActive(Constants.ACTIVE_STATUS);
+                contentPartnerEntity.setOrgId(orgId);
+                contentPartnerEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
+                contentPartnerEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
+                contentPartnerEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
                 ObjectNode objectNode= (ObjectNode) partnerDetails;
                 objectNode.remove("trasformContentJson");
                 objectNode.remove("transformProgressJson");
                 objectNode.remove("trasformCertificateJson");
                 addSearchTags(objectNode);
-                jsonNodeEntity.setData(objectNode);
-                ContentPartnerEntity saveJsonEntity = entityRepository.save(jsonNodeEntity);
+                contentPartnerEntity.setData(objectNode);
+                ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
                 Map<String, Object> map = objectMapper.convertValue(saveJsonEntity.getData(), Map.class);
                 esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());
                 cacheService.putCache(saveJsonEntity.getId(), saveJsonEntity.getData());
                 log.info("Content partner created");
-                response.setResult(map);
+                Map<String,Object> result=objectMapper.convertValue(contentPartnerEntity, Map.class);
+                response.setResult(result);
                 response.setResponseCode(HttpStatus.OK);
             } else {
                 log.info("Updating content partner entity");
@@ -106,35 +101,40 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 String exitingId = partnerDetails.get("id").asText();
                 Optional<ContentPartnerEntity> content = entityRepository.findById(exitingId);
                 if (content.isPresent()) {
-                    String orgId = partnerDetails.get(Constants.ORG_ID).asText();
+                    if(partnerDetails.get("orgId").asText()!=null) {
+                        ((ObjectNode) partnerDetails).put(Constants.ORG_ID, partnerDetails.get("orgId").asText());
+                    }else{
+                        ((ObjectNode) partnerDetails).put(Constants.ORG_ID, content.get().getOrgId());
+                    }
+                    ((ObjectNode) partnerDetails).put(Constants.ORG_ID, content.get().getOrgId());
                     ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-                    ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, isAuthenticate);
-                    ContentPartnerEntity josnEntity = content.get();
-                    josnEntity.setUpdatedOn(currentTime);
-                    josnEntity.setIsActive(Constants.ACTIVE_STATUS);
-                    josnEntity.setOrgId(orgId);
-                    josnEntity.setIsAuthenticate(isAuthenticate);
-                    josnEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
-                    josnEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
-                    josnEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
+                    ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.ACTIVE_STATUS_AUTHENTICATE);
+                    ContentPartnerEntity jsonEntity = content.get();
+                    jsonEntity.setUpdatedOn(currentTime);
+                    jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
+                    jsonEntity.setOrgId(jsonEntity.getOrgId());
+                    jsonEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
+                    jsonEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
+                    jsonEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
                     ObjectNode objectNode= (ObjectNode) partnerDetails;
                     objectNode.remove("trasformContentJson");
                     objectNode.remove("transformProgressJson");
                     objectNode.remove("trasformCertificateJson");
                     addSearchTags(objectNode);
-                    josnEntity.setData(objectNode);
-                    ContentPartnerEntity updateJsonEntity = entityRepository.save(josnEntity);
+                    jsonEntity.setData(objectNode);
+                    ContentPartnerEntity updateJsonEntity = entityRepository.save(jsonEntity);
                     if (!ObjectUtils.isEmpty(updateJsonEntity)) {
                         Map<String, Object> jsonMap =
                                 objectMapper.convertValue(updateJsonEntity.getData(), new TypeReference<Map<String, Object>>() {
                                 });
                         esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
                         cacheService.putCache(updateJsonEntity.getId(), updateJsonEntity.getData());
-                        cacheService.deleteCache(objectNode.get("contentPartnerName").asText());
+                        cacheService.deleteCache(objectNode.get("orgId").asText());
                         log.info("updated the content partner");
-                        response.setResult(jsonMap);
+                        Map<String,Object> result=objectMapper.convertValue(jsonEntity, Map.class);
+                        response.setResult(result);
                         response.setResponseCode(HttpStatus.OK);
                     }
                 }else {
@@ -263,22 +263,22 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         return response;
     }
 
-    public ApiResponse getContentDetailsByPartnerName(String name) {
-        log.info("CiosContentService:: ContentPartnerEntity: getContentDetailsByPartnerName {}",name);
+    public ApiResponse getContentDetailsByOrgId(String orgId) {
+        log.info("CiosContentService:: ContentPartnerEntity: getContentDetailsByPartnerName {}",orgId);
         try {
-            ApiResponse response=ProjectUtil.createDefaultResponse(Constants.API_PARTNER_DELETE);
+            ApiResponse response=ProjectUtil.createDefaultResponse(Constants.API_PARTNER_READ);
             ContentPartnerEntity entity=null;
-            String cachedJson = cacheService.getCache(name);
+            String cachedJson = cacheService.getCache(orgId);
             if (StringUtils.isNotEmpty(cachedJson)) {
                 log.info("Record coming from redis cache");
                 response.setResponseCode(HttpStatus.OK);
                 response.setResult(objectMapper.readValue(cachedJson, new TypeReference<Map>() {}));
             } else {
-                Optional<ContentPartnerEntity> entityOptional = entityRepository.findByContentPartnerName(name);
+                Optional<ContentPartnerEntity> entityOptional = entityRepository.findByContentOrgId(orgId);
                 if (entityOptional.isPresent()) {
                     log.info("Record coming from postgres db");
                     entity = entityOptional.get();
-                    cacheService.putCache(name,entity);
+                    cacheService.putCache(orgId,entity);
                     response.setResponseCode(HttpStatus.OK);
                     response.setResult(objectMapper.convertValue(entity, Map.class));
                 } else {

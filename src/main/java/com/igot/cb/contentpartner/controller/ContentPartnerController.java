@@ -1,7 +1,6 @@
 package com.igot.cb.contentpartner.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.igot.cb.contentpartner.entity.ContentPartnerEntity;
 import com.igot.cb.contentpartner.service.ContentPartnerService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.util.ApiResponse;
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/contentpartner")
-public class ContentProviderController {
+public class ContentPartnerController {
     @Autowired
     private ContentPartnerService partnerService;
 
@@ -45,9 +44,9 @@ public class ContentProviderController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/v1/readbyname/{name}")
-    public ResponseEntity<?> fetchContentDetailsByName(@PathVariable String name) {
-        ApiResponse response = partnerService.getContentDetailsByPartnerName(name);
+    @GetMapping("/v1/readbyorgid/{orgid}")
+    public ResponseEntity<?> fetchContentDetailsByName(@PathVariable String orgid) {
+        ApiResponse response = partnerService.getContentDetailsByOrgId(orgid);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

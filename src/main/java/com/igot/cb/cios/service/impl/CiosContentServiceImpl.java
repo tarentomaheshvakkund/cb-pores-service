@@ -237,7 +237,6 @@ public class CiosContentServiceImpl implements CiosContentService {
 
                 // Set the ContentUploadLastUpdatedDate to current timestamp
                 Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-                contentPartnerEntity.setContentUploadLastUpdatedDate(currentTime);
                 ObjectNode dataNode = (ObjectNode) contentPartnerEntity.getData();
                 dataNode.put(Constants.CONTENT_UPLOAD_LAST_UPDATED_DATE, currentTime.toString());
                 contentPartnerEntity.setData(dataNode);

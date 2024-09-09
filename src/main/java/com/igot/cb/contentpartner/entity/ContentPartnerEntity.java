@@ -48,11 +48,5 @@ public class ContentPartnerEntity {
     @Column(columnDefinition = "jsonb")
     private JsonNode trasformCertificateJson;
 
-    private Timestamp contentUploadLastUpdatedDate;
-
-    private Boolean isAuthenticate;
-
-    private Timestamp contentProgressLastUpdatedDate;
-
     private String orgId;
 }
