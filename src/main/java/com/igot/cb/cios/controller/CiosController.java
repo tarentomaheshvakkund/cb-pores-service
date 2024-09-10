@@ -23,7 +23,7 @@ public class CiosController {
 
     @PostMapping(value = "/v1/onboardContent")
     public ResponseEntity<Object> onboardContent(@RequestBody List<ObjectDto> data) {
-        return new ResponseEntity<>(ciosContentService.onboardCornellContent(data), HttpStatus.OK);
+        return new ResponseEntity<>(ciosContentService.onboardContent(data), HttpStatus.OK);
     }
 
     @PostMapping(value = "/v1/search/content")
@@ -44,6 +44,6 @@ public class CiosController {
 
     @GetMapping("/v1/content/readby/externalid/{externalid}")
     public ResponseEntity<Object> fetchDataByExternalId(@PathVariable String externalid) {
-        return new ResponseEntity<>(ciosContentService.fetchDataByExternalId(externalid), HttpStatus.OK);
+        return new ResponseEntity<>(ciosContentService.fetchDataByExternalIdAndPartnerId(externalid), HttpStatus.OK);
     }
 }

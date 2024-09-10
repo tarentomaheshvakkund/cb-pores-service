@@ -1,4 +1,4 @@
-package com.igot.cb.contentprovider.entity;
+package com.igot.cb.contentpartner.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
@@ -35,4 +35,18 @@ public class ContentPartnerEntity {
     private Timestamp updatedOn;
 
     private Boolean isActive;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private JsonNode trasformContentJson;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private JsonNode transformProgressJson;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private JsonNode trasformCertificateJson;
+
+    private String orgId;
 }

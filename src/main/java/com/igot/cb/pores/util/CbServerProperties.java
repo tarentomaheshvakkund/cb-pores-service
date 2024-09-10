@@ -152,6 +152,4 @@ public class CbServerProperties {
 
   @Value("${kafka.topic.framework.create}")
   private String topicFrameworkCreate;
-
-
 }

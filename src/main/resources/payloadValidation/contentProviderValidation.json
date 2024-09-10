@@ -2,11 +2,17 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "id": {
+      "type": "string"
+    },
     "contentPartnerName": {
       "type": "string"
     },
     "description": {
       "type": "string"
+    },
+    "isActive": {
+      "type": "boolean"
     },
     "role": {
       "type": "string"
@@ -14,21 +20,67 @@
     "link": {
       "type": "string"
     },
-    "image": {
+    "websiteUrl": {
       "type": "string"
     },
-    "createdDate": {
+    "documentUrl": {
+      "type": "string"
+    },
+    "providerTips": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "createdOn": {
       "type": "string",
       "format": "date-time"
     },
-    "updatedDate": {
+    "updatedOn": {
       "type": "string",
       "format": "date-time"
+    },
+    "trasformContentJson": {
+      "type": "array"
+    },
+    "transformProgressJson": {
+      "type": "array"
+    },
+    "trasformCertificateJson": {
+      "type": "object"
+    },
+    "certificateTemplateUrl": {
+      "type": "string"
+    },
+    "orgId": {
+      "type": "string"
+    },
+    "isAuthenticate": {
+      "type": "boolean"
+    },
+    "contentUploadLastUpdatedDate": {
+      "type": "string"
+    },
+    "contentProgressLastUpdatedDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "totalCourseCount": {
+      "type": "number"
+    },
+    "searchTags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [
     "contentPartnerName",
-    "role",
-    "link"
-  ]
+    "websiteUrl",
+    "link",
+    "description",
+    "orgId"
+  ],
+  "additionalProperties": false
 }

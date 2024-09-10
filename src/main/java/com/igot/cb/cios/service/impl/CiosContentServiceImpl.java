@@ -18,6 +18,8 @@ import com.igot.cb.cios.repository.CornellContentRepository;
 import com.igot.cb.cios.repository.UpgradContentRepository;
 import com.igot.cb.cios.service.CiosContentService;
 import com.igot.cb.cios.util.ContentSource;
+import com.igot.cb.contentpartner.entity.ContentPartnerEntity;
+import com.igot.cb.contentpartner.repository.ContentPartnerRepository;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
@@ -42,7 +44,9 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 
 @Service
@@ -79,6 +83,9 @@ public class CiosContentServiceImpl implements CiosContentService {
 
     @Autowired
     private UpgradContentRepository upgradContentRepository;
+
+    @Autowired
+    private ContentPartnerRepository contentPartnerRepository;
 
     public String generateId() {
         long env = environmentId / 10000000;
@@ -148,7 +155,7 @@ public class CiosContentServiceImpl implements CiosContentService {
     }
 
     @Override
-    public Object fetchDataByExternalId(String externalid) {
+    public Object fetchDataByExternalIdAndPartnerId(String externalid) {
         log.info("getting content by id: " + externalid);
         if (StringUtils.isEmpty(externalid)) {
             log.error("CiosContentServiceImpl::read:Id not found");
@@ -182,7 +189,7 @@ public class CiosContentServiceImpl implements CiosContentService {
 
 
     @Override
-    public Object onboardCornellContent(List<ObjectDto> data) {
+    public Object onboardContent(List<ObjectDto> data) {
         try {
             log.info("CiosContentServiceImpl::createOrUpdateContent");
             for (ObjectDto dto : data) {
@@ -198,6 +205,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                             ciosContentEntity = createNewContent(dto);
                             CornellContentEntity externalContentEntity = cornellData.get();
                             externalContentEntity.setIsActive(true);
+                            externalContentEntity.setPublishedOn(ciosContentEntity.getCreatedOn().toString());
                             cornellContentRepository.save(externalContentEntity);
                         }
                         break;
@@ -221,6 +229,28 @@ public class CiosContentServiceImpl implements CiosContentService {
                 cacheService.putCache(ciosContentEntity.getContentId(), ciosContentEntity.getCiosData());
                 esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE, ciosContentEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
             }
+            String partnerId = data.get(0).getContentPartner().get(Constants.ID).asText();
+            Optional<ContentPartnerEntity> partnerEntityOptional = contentPartnerRepository.findById(partnerId);
+            if (partnerEntityOptional.isPresent()) {
+                ContentPartnerEntity contentPartnerEntity = partnerEntityOptional.get();
+                log.info("Partner entity found with partnerId: {}", partnerId);
+
+                // Set the ContentUploadLastUpdatedDate to current timestamp
+                Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+                ObjectNode dataNode = (ObjectNode) contentPartnerEntity.getData();
+                dataNode.put(Constants.CONTENT_UPLOAD_LAST_UPDATED_DATE, currentTime.toString());
+                contentPartnerEntity.setData(dataNode);
+
+                // Save the updated partner entity
+                ContentPartnerEntity saveIntoPartnerDb = contentPartnerRepository.save(contentPartnerEntity);
+                Map<String, Object> map = objectMapper.convertValue(saveIntoPartnerDb.getData(), Map.class);
+                esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, partnerId, map, cbServerProperties.getElasticContentJsonPath());
+                cacheService.putCache(partnerId, saveIntoPartnerDb.getData());
+                log.info("Updated ContentUploadLastUpdatedDate for partnerId: {}", partnerId);
+            } else {
+                log.warn("No partner entity found with partnerId while updating ContentUploadLastUpdateDate in to contentPartner: {}", partnerId);
+            }
+
             return "Success";
         } catch (Exception e) {
             throw new CustomException("ERROR", e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -232,19 +262,20 @@ public class CiosContentServiceImpl implements CiosContentService {
         try {
             JsonNode jsonNode = dto.getContentData();
             payloadValidation.validatePayload(Constants.CIOS_CONTENT_VALIDATION_FILE_JSON, dto.getContentData());
-            payloadValidation.validatePayload(Constants.COMPETENCY_AREA_VALIDATION_FILE_JSON, dto.getCompetencies_v5());
+            payloadValidation.validatePayload(Constants.COMPETENCIESVALIDATION_FILE_JSON, dto.getCompetencies_v5());
             payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, dto.getContentPartner());
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
             CiosContentEntity igotContent = new CiosContentEntity();
             String externalId = jsonNode.path("content").path("externalId").asText();
-            Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalId(externalId);
+            String partnerId = dto.getContentPartner().get("id").asText();
+            Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalIdAndPartnerId(externalId,partnerId);
             if (!ciosContentEntity.isPresent()) {
                 igotContent.setContentId(generateId());
                 igotContent.setExternalId(externalId);
                 igotContent.setCreatedOn(currentTime);
                 igotContent.setLastUpdatedOn(currentTime);
                 igotContent.setIsActive(Constants.ACTIVE_STATUS);
-                igotContent.setPartnerId(dto.getContentPartner().get("id").asText());
+                igotContent.setPartnerId(partnerId);
                 ((ObjectNode) jsonNode.path("content")).put("contentId", igotContent.getContentId());
                 ((ObjectNode) jsonNode.path("content")).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
@@ -259,7 +290,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                 igotContent.setCreatedOn(ciosContentEntity.get().getCreatedOn());
                 igotContent.setLastUpdatedOn(currentTime);
                 igotContent.setIsActive(Constants.ACTIVE_STATUS);
-                igotContent.setPartnerId(dto.getContentPartner().get("id").asText());
+                igotContent.setPartnerId(partnerId);
                 ((ObjectNode) jsonNode.path("content")).put("contentId", ciosContentEntity.get().getContentId());
                 ((ObjectNode) jsonNode.path("content")).put(Constants.CREATED_ON, String.valueOf(igotContent.getCreatedOn()));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
@@ -275,12 +306,37 @@ public class CiosContentServiceImpl implements CiosContentService {
     }
 
     private JsonNode addSearchTags(JsonNode formattedData) {
+        addCompetenciesToSearchTag(formattedData);
         List<String> searchTags = new ArrayList<>();
         searchTags.add(formattedData.path("content").get("name").textValue().toLowerCase());
         searchTags.add(formattedData.path("content").path("contentPartner").get("contentPartnerName").asText().toLowerCase());
+        JsonNode competenciesNode = formattedData.path("content").path("competencies_v5");
+        if (competenciesNode.isArray() && competenciesNode.size() > 0) {
+            // Use StreamSupport to handle JsonNode arrays
+            searchTags.addAll(
+                    StreamSupport.stream(competenciesNode.spliterator(), false)
+                            .flatMap(node -> Stream.of(
+                                    node.path("competencyArea").asText(),
+                                    node.path("competencyTheme").asText(),
+                                    node.path("competencyThemeType").asText(),
+                                    node.path("competencySubTheme").asText()
+                            ))
+                            .map(String::toLowerCase)
+                            .collect(Collectors.toList())
+            );
+        }
         ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
         ((ObjectNode) formattedData.path("content")).set("searchTags", searchTagsArray);
         return formattedData;
+    }
+
+    private void addCompetenciesToSearchTag(JsonNode formattedData) {
+        JsonNode competenciesNode = formattedData.path("content").path("competencies_v5");
+        if (competenciesNode.isArray() && competenciesNode.size() > 0) {
+            for(int i = 0; i < competenciesNode.size(); i++){
+                competenciesNode.get(0).path("competencyArea").asText().toLowerCase();
+            }
+        }
     }
 
     @Override
