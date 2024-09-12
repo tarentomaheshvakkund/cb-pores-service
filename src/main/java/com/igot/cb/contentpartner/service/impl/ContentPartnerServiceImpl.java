@@ -66,12 +66,12 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 }
                 log.info("ContentPartnerServiceImpl::createOrUpdate:creating content partner provider");
                 String id = String.valueOf(UUID.randomUUID());
+                ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE,partnerDetails.path("partnerCode").asText(null));
                 ((ObjectNode) partnerDetails).put(Constants.ID, id);
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.ACTIVE_STATUS_AUTHENTICATE);
-
                 ContentPartnerEntity contentPartnerEntity = new ContentPartnerEntity();
                 contentPartnerEntity.setId(id);
                 contentPartnerEntity.setCreatedOn(currentTime);
@@ -100,6 +100,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 String exitingId = partnerDetails.get("id").asText();
                 Optional<ContentPartnerEntity> content = entityRepository.findById(exitingId);
                 if (content.isPresent()) {
+                    ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE,partnerDetails.path("partnerCode").asText(null));
                     ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
@@ -123,7 +124,6 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                 });
                         esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
                         cacheService.putCache(updateJsonEntity.getId(), updateJsonEntity.getData());
-                        cacheService.deleteCache(objectNode.get("partnerCode").asText());
                         log.info("updated the content partner");
                         Map<String,Object> result=objectMapper.convertValue(jsonEntity, Map.class);
                         response.setResult(result);
