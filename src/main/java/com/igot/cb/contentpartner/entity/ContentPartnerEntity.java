@@ -47,6 +47,4 @@ public class ContentPartnerEntity {
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
     private JsonNode trasformCertificateJson;
-
-    private String orgId;
 }

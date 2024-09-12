@@ -52,7 +52,7 @@
     "certificateTemplateUrl": {
       "type": "string"
     },
-    "orgId": {
+    "partnerCode": {
       "type": "string"
     },
     "isAuthenticate": {
@@ -79,8 +79,7 @@
     "contentPartnerName",
     "websiteUrl",
     "link",
-    "description",
-    "orgId"
+    "description"
   ],
   "additionalProperties": false
 }

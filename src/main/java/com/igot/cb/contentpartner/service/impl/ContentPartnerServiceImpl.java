@@ -57,7 +57,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         try {
             if (partnerDetails.get(Constants.ID) == null) {
-                Optional<ContentPartnerEntity> optionalEntity=entityRepository.findByContentPartnerNameAndOrgId(partnerDetails.get("contentPartnerName").asText(),partnerDetails.get("orgId").asText());
+                Optional<ContentPartnerEntity> optionalEntity=entityRepository.findByContentPartnerName(partnerDetails.get("contentPartnerName").asText());
                 if(optionalEntity.isPresent()){
                     response.getParams().setErrMsg("Content partner name already present in DB");
                     response.getParams().setStatus(Constants.FAILED);
@@ -71,13 +71,12 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.ACTIVE_STATUS_AUTHENTICATE);
-                String orgId = partnerDetails.get(Constants.ORG_ID).asText();
+
                 ContentPartnerEntity contentPartnerEntity = new ContentPartnerEntity();
                 contentPartnerEntity.setId(id);
                 contentPartnerEntity.setCreatedOn(currentTime);
                 contentPartnerEntity.setUpdatedOn(currentTime);
                 contentPartnerEntity.setIsActive(Constants.ACTIVE_STATUS);
-                contentPartnerEntity.setOrgId(orgId);
                 contentPartnerEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                 contentPartnerEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                 contentPartnerEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
@@ -101,12 +100,6 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 String exitingId = partnerDetails.get("id").asText();
                 Optional<ContentPartnerEntity> content = entityRepository.findById(exitingId);
                 if (content.isPresent()) {
-                    if(partnerDetails.get("orgId").asText()!=null) {
-                        ((ObjectNode) partnerDetails).put(Constants.ORG_ID, partnerDetails.get("orgId").asText());
-                    }else{
-                        ((ObjectNode) partnerDetails).put(Constants.ORG_ID, content.get().getOrgId());
-                    }
-                    ((ObjectNode) partnerDetails).put(Constants.ORG_ID, content.get().getOrgId());
                     ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
@@ -114,7 +107,6 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     ContentPartnerEntity jsonEntity = content.get();
                     jsonEntity.setUpdatedOn(currentTime);
                     jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
-                    jsonEntity.setOrgId(jsonEntity.getOrgId());
                     jsonEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                     jsonEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                     jsonEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
@@ -131,7 +123,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                 });
                         esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
                         cacheService.putCache(updateJsonEntity.getId(), updateJsonEntity.getData());
-                        cacheService.deleteCache(objectNode.get("orgId").asText());
+                        cacheService.deleteCache(objectNode.get("partnerCode").asText());
                         log.info("updated the content partner");
                         Map<String,Object> result=objectMapper.convertValue(jsonEntity, Map.class);
                         response.setResult(result);
@@ -263,22 +255,22 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         return response;
     }
 
-    public ApiResponse getContentDetailsByOrgId(String orgId) {
-        log.info("CiosContentService:: ContentPartnerEntity: getContentDetailsByPartnerName {}",orgId);
+    public ApiResponse getContentDetailsByOrgId(String partnercode) {
+        log.info("CiosContentService:: ContentPartnerEntity: getContentDetailsByPartnerName {}",partnercode);
         try {
             ApiResponse response=ProjectUtil.createDefaultResponse(Constants.API_PARTNER_READ);
             ContentPartnerEntity entity=null;
-            String cachedJson = cacheService.getCache(orgId);
+            String cachedJson = cacheService.getCache(partnercode);
             if (StringUtils.isNotEmpty(cachedJson)) {
                 log.info("Record coming from redis cache");
                 response.setResponseCode(HttpStatus.OK);
                 response.setResult(objectMapper.readValue(cachedJson, new TypeReference<Map>() {}));
             } else {
-                Optional<ContentPartnerEntity> entityOptional = entityRepository.findByContentOrgId(orgId);
+                Optional<ContentPartnerEntity> entityOptional = entityRepository.findByPartnerCode(partnercode);
                 if (entityOptional.isPresent()) {
                     log.info("Record coming from postgres db");
                     entity = entityOptional.get();
-                    cacheService.putCache(orgId,entity);
+                    cacheService.putCache(partnercode,entity);
                     response.setResponseCode(HttpStatus.OK);
                     response.setResult(objectMapper.convertValue(entity, Map.class));
                 } else {
