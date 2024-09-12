@@ -14,6 +14,6 @@ public interface ContentPartnerService {
 
     ApiResponse delete(String id);
 
-    ApiResponse getContentDetailsByOrgId(String orgId);
+    ApiResponse getContentDetailsByOrgId(String partnercode);
 
 }

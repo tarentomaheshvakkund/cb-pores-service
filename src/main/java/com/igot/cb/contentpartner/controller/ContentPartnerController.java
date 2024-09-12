@@ -44,9 +44,9 @@ public class ContentPartnerController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/v1/readbyorgid/{orgid}")
-    public ResponseEntity<?> fetchContentDetailsByName(@PathVariable String orgid) {
-        ApiResponse response = partnerService.getContentDetailsByOrgId(orgid);
+    @GetMapping("/v1/readbypartnercode/{partnercode}")
+    public ResponseEntity<?> fetchContentDetailsByName(@PathVariable String partnercode) {
+        ApiResponse response = partnerService.getContentDetailsByOrgId(partnercode);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

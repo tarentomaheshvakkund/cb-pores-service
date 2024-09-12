@@ -48,7 +48,7 @@
   "isAuthenticate": {
     "type": "boolean"
   },
-  "orgId": {
+  "partnerCode": {
     "type": "string"
   },
   "totalCourseCount": {

@@ -12,9 +12,9 @@ import java.util.Optional;
 public interface ContentPartnerRepository extends JpaRepository<ContentPartnerEntity, String>{
     Optional<ContentPartnerEntity> findByIdAndIsActive(String exitingId,Boolean isActive);
 
-    @Query(value = "SELECT * FROM content_partner WHERE data->>'orgId' = :orgId", nativeQuery = true)
-    Optional<ContentPartnerEntity> findByContentOrgId(String orgId);
+    @Query(value = "SELECT * FROM content_partner WHERE data->>'partnerCode' = :partnercode", nativeQuery = true)
+    Optional<ContentPartnerEntity> findByPartnerCode(String partnercode);
 
-    @Query(value = "SELECT * FROM content_partner WHERE data->>'contentPartnerName' = :partnerName AND data->>'orgId' = :orgId", nativeQuery = true)
-    Optional<ContentPartnerEntity> findByContentPartnerNameAndOrgId(@Param("partnerName") String partnerName, @Param("orgId") String orgId);
+    @Query(value = "SELECT * FROM content_partner WHERE data->>'contentPartnerName' = :partnerName", nativeQuery = true)
+    Optional<ContentPartnerEntity> findByContentPartnerName(@Param("partnerName") String partnerName);
 }
