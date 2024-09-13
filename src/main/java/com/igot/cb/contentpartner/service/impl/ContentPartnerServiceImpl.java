@@ -57,16 +57,24 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         try {
             if (partnerDetails.get(Constants.ID) == null) {
-                Optional<ContentPartnerEntity> optionalEntity=entityRepository.findByContentPartnerName(partnerDetails.get("contentPartnerName").asText());
-                if(optionalEntity.isPresent()){
+                Optional<ContentPartnerEntity> optionalEntity = entityRepository.findByContentPartnerName(partnerDetails.get("contentPartnerName").asText());
+                if (optionalEntity.isPresent()) {
                     response.getParams().setErrMsg("Content partner name already present in DB");
                     response.getParams().setStatus(Constants.FAILED);
                     response.setResponseCode(HttpStatus.BAD_REQUEST);
                     return response;
                 }
+                if (partnerDetails.path("partnerCode").asText() != null && !partnerDetails.path("partnerCode").asText().isEmpty()) {
+                    if (entityRepository.findByPartnerCode(partnerDetails.get("partnerCode").asText()).isPresent()) {
+                        response.getParams().setErrMsg("Content partner code already present in DB");
+                        response.getParams().setStatus(Constants.FAILED);
+                        response.setResponseCode(HttpStatus.BAD_REQUEST);
+                        return response;
+                    }
+                }
                 log.info("ContentPartnerServiceImpl::createOrUpdate:creating content partner provider");
                 String id = String.valueOf(UUID.randomUUID());
-                ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE,partnerDetails.path("partnerCode").asText(null));
+                ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE, partnerDetails.path("partnerCode").asText(null));
                 ((ObjectNode) partnerDetails).put(Constants.ID, id);
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
@@ -80,7 +88,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 contentPartnerEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                 contentPartnerEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                 contentPartnerEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
-                ObjectNode objectNode= (ObjectNode) partnerDetails;
+                ObjectNode objectNode = (ObjectNode) partnerDetails;
                 objectNode.remove("trasformContentJson");
                 objectNode.remove("transformProgressJson");
                 objectNode.remove("trasformCertificateJson");
@@ -89,22 +97,37 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
                 Map<String, Object> map = objectMapper.convertValue(saveJsonEntity.getData(), Map.class);
                 esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());
-                cacheService.putCache(saveJsonEntity.getId(), saveJsonEntity.getData());
+                Map<String,Object> result=objectMapper.convertValue(saveJsonEntity, Map.class);
+                cacheService.putCache(saveJsonEntity.getId(), result);
                 log.info("Content partner created");
-                Map<String,Object> result=objectMapper.convertValue(contentPartnerEntity, Map.class);
                 response.setResult(result);
                 response.setResponseCode(HttpStatus.OK);
             } else {
                 log.info("Updating content partner entity");
                 response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_UPDATE);
-                String exitingId = partnerDetails.get("id").asText();
-                Optional<ContentPartnerEntity> content = entityRepository.findById(exitingId);
+                String existingId = partnerDetails.get("id").asText();
+                Optional<ContentPartnerEntity> content = entityRepository.findById(existingId);
                 if (content.isPresent()) {
-                    ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE,partnerDetails.path("partnerCode").asText(null));
+                    if (partnerDetails.path("partnerCode").asText() != null&&!partnerDetails.path("partnerCode").asText().isEmpty()) {
+                        Optional<ContentPartnerEntity> existingPartnerCodeEntity = entityRepository.findByPartnerCode(partnerDetails.get("partnerCode").asText());
+                        if (existingPartnerCodeEntity.isPresent() && !existingPartnerCodeEntity.get().getId().equals(existingId)) {
+                            response.getParams().setErrMsg("Content partner code already present in DB");
+                            response.getParams().setStatus(Constants.FAILED);
+                            response.setResponseCode(HttpStatus.BAD_REQUEST);
+                            return response;
+                        }
+                    }
+
+                    if (entityRepository.findByContentPartnerName(partnerDetails.get("contentPartnerName").asText()).filter(entity -> !entity.getId().equals(existingId)).isPresent()) {
+                        response.getParams().setErrMsg("Content partner name already present in DB");
+                        response.getParams().setStatus(Constants.FAILED);
+                        response.setResponseCode(HttpStatus.BAD_REQUEST);
+                        return response;
+                    }
+                    ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE, partnerDetails.path("partnerCode").asText(null));
                     ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-                    ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.ACTIVE_STATUS_AUTHENTICATE);
                     ContentPartnerEntity jsonEntity = content.get();
                     jsonEntity.setUpdatedOn(currentTime);
                     jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
@@ -122,10 +145,10 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                         Map<String, Object> jsonMap =
                                 objectMapper.convertValue(updateJsonEntity.getData(), new TypeReference<Map<String, Object>>() {
                                 });
-                        esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, exitingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
-                        cacheService.putCache(updateJsonEntity.getId(), updateJsonEntity.getData());
+                        esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, existingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
+                        Map<String,Object> result=objectMapper.convertValue(updateJsonEntity, Map.class);
+                        cacheService.putCache(updateJsonEntity.getId(), result);
                         log.info("updated the content partner");
-                        Map<String,Object> result=objectMapper.convertValue(jsonEntity, Map.class);
                         response.setResult(result);
                         response.setResponseCode(HttpStatus.OK);
                     }
