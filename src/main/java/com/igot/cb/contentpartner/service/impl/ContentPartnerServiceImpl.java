@@ -97,9 +97,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
                 Map<String, Object> map = objectMapper.convertValue(saveJsonEntity.getData(), Map.class);
                 esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());
-                cacheService.putCache(saveJsonEntity.getId(), saveJsonEntity.getData());
+                Map<String,Object> result=objectMapper.convertValue(saveJsonEntity, Map.class);
+                cacheService.putCache(saveJsonEntity.getId(), result);
                 log.info("Content partner created");
-                Map<String,Object> result=objectMapper.convertValue(contentPartnerEntity, Map.class);
                 response.setResult(result);
                 response.setResponseCode(HttpStatus.OK);
             } else {
@@ -128,7 +128,6 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
-                    ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.ACTIVE_STATUS_AUTHENTICATE);
                     ContentPartnerEntity jsonEntity = content.get();
                     jsonEntity.setUpdatedOn(currentTime);
                     jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
@@ -147,9 +146,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                                 objectMapper.convertValue(updateJsonEntity.getData(), new TypeReference<Map<String, Object>>() {
                                 });
                         esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, existingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
-                        cacheService.putCache(updateJsonEntity.getId(), updateJsonEntity.getData());
+                        Map<String,Object> result=objectMapper.convertValue(updateJsonEntity, Map.class);
+                        cacheService.putCache(updateJsonEntity.getId(), result);
                         log.info("updated the content partner");
-                        Map<String,Object> result=objectMapper.convertValue(jsonEntity, Map.class);
                         response.setResult(result);
                         response.setResponseCode(HttpStatus.OK);
                     }
