@@ -195,10 +195,10 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 Optional<ContentPartnerEntity> entityOptional = entityRepository.findByIdAndIsActive(id,true);
                 if (entityOptional.isPresent()) {
                     ContentPartnerEntity entity = entityOptional.get();
-                    cacheService.putCache(id, entity.getData());
+                    cacheService.putCache(id, entity);
                     log.info("Record coming from postgres db");
                     response.setResponseCode(HttpStatus.OK);
-                    response.setResult(objectMapper.convertValue(entity.getData(), Map.class));
+                    response.setResult(objectMapper.convertValue(entity, Map.class));
                 } else {
                     response.getParams().setErrMsg(Constants.INVALID_ID);
                     response.getParams().setStatus(Constants.FAILED);
