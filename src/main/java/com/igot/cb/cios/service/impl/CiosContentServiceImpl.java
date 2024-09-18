@@ -36,17 +36,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+
 
 
 @Service
@@ -86,6 +85,9 @@ public class CiosContentServiceImpl implements CiosContentService {
 
     @Autowired
     private ContentPartnerRepository contentPartnerRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     public String generateId() {
         long env = environmentId / 10000000;
@@ -280,9 +282,17 @@ public class CiosContentServiceImpl implements CiosContentService {
                 ((ObjectNode) jsonNode.path("content")).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
-                ((ObjectNode) jsonNode.path("content")).put(Constants.COMPETENCIES_V5, dto.getCompetencies_v5());
-                ((ObjectNode) jsonNode.path("content")).put(Constants.CONTENT_PARTNER, dto.getContentPartner());
-                addSearchTags(jsonNode);
+                ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
+                if (dto.getCompetencies_v5() != null) {
+                    contentNode.set(Constants.COMPETENCIES_V5, dto.getCompetencies_v5());
+                }
+                if (dto.getContentPartner() != null) {
+                    contentNode.set(Constants.CONTENT_PARTNER, dto.getContentPartner());
+                }
+                if (dto.getTags() != null) {
+                    contentNode.set("searchTags", objectMapper.valueToTree(dto.getTags()));
+                }
+
                 igotContent.setCiosData(jsonNode);
             } else {
                 igotContent.setContentId(ciosContentEntity.get().getContentId());
@@ -294,9 +304,16 @@ public class CiosContentServiceImpl implements CiosContentService {
                 ((ObjectNode) jsonNode.path("content")).put("contentId", ciosContentEntity.get().getContentId());
                 ((ObjectNode) jsonNode.path("content")).put(Constants.CREATED_ON, String.valueOf(igotContent.getCreatedOn()));
                 ((ObjectNode) jsonNode.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
-                ((ObjectNode) jsonNode.path("content")).put(Constants.COMPETENCIES_V5, dto.getCompetencies_v5());
-                ((ObjectNode) jsonNode.path("content")).put(Constants.CONTENT_PARTNER, dto.getContentPartner());
-                addSearchTags(jsonNode);
+                ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
+                if (dto.getCompetencies_v5() != null) {
+                    contentNode.set(Constants.COMPETENCIES_V5, dto.getCompetencies_v5());
+                }
+                if (dto.getContentPartner() != null) {
+                    contentNode.set(Constants.CONTENT_PARTNER, dto.getContentPartner());
+                }
+                if (dto.getTags() != null) {
+                    contentNode.set("searchTags", objectMapper.valueToTree(dto.getTags()));
+                }
                 igotContent.setCiosData(jsonNode);
             }
             return igotContent;
@@ -305,38 +322,12 @@ public class CiosContentServiceImpl implements CiosContentService {
         }
     }
 
-    private JsonNode addSearchTags(JsonNode formattedData) {
-        addCompetenciesToSearchTag(formattedData);
-        List<String> searchTags = new ArrayList<>();
-        searchTags.add(formattedData.path("content").get("name").textValue().toLowerCase());
-        searchTags.add(formattedData.path("content").path("contentPartner").get("contentPartnerName").asText().toLowerCase());
-        JsonNode competenciesNode = formattedData.path("content").path("competencies_v5");
-        if (competenciesNode.isArray() && competenciesNode.size() > 0) {
-            // Use StreamSupport to handle JsonNode arrays
-            searchTags.addAll(
-                    StreamSupport.stream(competenciesNode.spliterator(), false)
-                            .flatMap(node -> Stream.of(
-                                    node.path("competencyArea").asText(),
-                                    node.path("competencyTheme").asText(),
-                                    node.path("competencyThemeType").asText(),
-                                    node.path("competencySubTheme").asText()
-                            ))
-                            .map(String::toLowerCase)
-                            .collect(Collectors.toList())
-            );
-        }
-        ArrayNode searchTagsArray = objectMapper.valueToTree(searchTags);
-        ((ObjectNode) formattedData.path("content")).set("searchTags", searchTagsArray);
-        return formattedData;
-    }
-
-    private void addCompetenciesToSearchTag(JsonNode formattedData) {
-        JsonNode competenciesNode = formattedData.path("content").path("competencies_v5");
-        if (competenciesNode.isArray() && competenciesNode.size() > 0) {
-            for(int i = 0; i < competenciesNode.size(); i++){
-                competenciesNode.get(0).path("competencyArea").asText().toLowerCase();
-            }
-        }
+    private JsonNode addSearchTags(List<String> tags) {
+//        List<String> searchTags = new ArrayList<>();
+//        searchTags.add(formattedData.path("content").get("name").textValue().toLowerCase());
+//        searchTags.add(formattedData.path("content").path("contentPartner").get("contentPartnerName").asText().toLowerCase());
+        ArrayNode searchTagsArray = objectMapper.valueToTree(tags);
+        return searchTagsArray;
     }
 
     @Override
