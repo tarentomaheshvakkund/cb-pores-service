@@ -45,7 +45,7 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.stream.Collectors;
 
 
 @Service
@@ -270,7 +270,7 @@ public class CiosContentServiceImpl implements CiosContentService {
             CiosContentEntity igotContent = new CiosContentEntity();
             String externalId = jsonNode.path("content").path("externalId").asText();
             String partnerId = dto.getContentPartner().get("id").asText();
-            Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalIdAndPartnerId(externalId,partnerId);
+            Optional<CiosContentEntity> ciosContentEntity = ciosRepository.findByExternalIdAndPartnerId(externalId, partnerId);
             if (!ciosContentEntity.isPresent()) {
                 igotContent.setContentId(generateId());
                 igotContent.setExternalId(externalId);
@@ -290,9 +290,8 @@ public class CiosContentServiceImpl implements CiosContentService {
                     contentNode.set(Constants.CONTENT_PARTNER, dto.getContentPartner());
                 }
                 if (dto.getTags() != null) {
-                    contentNode.set("searchTags", objectMapper.valueToTree(dto.getTags()));
+                    contentNode.set("searchTags", addSearchTags(dto.getTags()));
                 }
-
                 igotContent.setCiosData(jsonNode);
             } else {
                 igotContent.setContentId(ciosContentEntity.get().getContentId());
@@ -312,7 +311,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                     contentNode.set(Constants.CONTENT_PARTNER, dto.getContentPartner());
                 }
                 if (dto.getTags() != null) {
-                    contentNode.set("searchTags", objectMapper.valueToTree(dto.getTags()));
+                    contentNode.set("searchTags", addSearchTags(dto.getTags()));
                 }
                 igotContent.setCiosData(jsonNode);
             }
@@ -323,10 +322,10 @@ public class CiosContentServiceImpl implements CiosContentService {
     }
 
     private JsonNode addSearchTags(List<String> tags) {
-//        List<String> searchTags = new ArrayList<>();
-//        searchTags.add(formattedData.path("content").get("name").textValue().toLowerCase());
-//        searchTags.add(formattedData.path("content").path("contentPartner").get("contentPartnerName").asText().toLowerCase());
-        ArrayNode searchTagsArray = objectMapper.valueToTree(tags);
+        List<String> lowercaseTags = tags.stream()
+                .map(String::toLowerCase)
+                .collect(Collectors.toList());
+        ArrayNode searchTagsArray = objectMapper.valueToTree(lowercaseTags);
         return searchTagsArray;
     }
 
