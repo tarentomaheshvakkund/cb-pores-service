@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.List;
+
 @Setter
 @Getter
 @AllArgsConstructor
@@ -15,4 +17,5 @@ public class ObjectDto implements Serializable {
     private JsonNode contentData;
     private JsonNode competencies_v5;
     private JsonNode contentPartner;
+    private List<String> tags;
 }
