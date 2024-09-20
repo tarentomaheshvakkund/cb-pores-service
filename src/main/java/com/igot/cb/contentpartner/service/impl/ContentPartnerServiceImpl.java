@@ -101,6 +101,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 esUtilService.addDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, id, map, cbServerProperties.getElasticContentJsonPath());
                 Map<String,Object> result=objectMapper.convertValue(saveJsonEntity, Map.class);
                 cacheService.putCache(saveJsonEntity.getId(), result);
+                if (!partnerDetails.path(Constants.PARTNERCODE).isMissingNode()) {
+                    cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
+                }
                 log.info("Content partner created");
                 response.setResult(result);
                 response.setResponseCode(HttpStatus.OK);
@@ -153,6 +156,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                         esUtilService.updateDocument(Constants.CONTENT_PROVIDER_INDEX_NAME, Constants.INDEX_TYPE, existingId, jsonMap, cbServerProperties.getElasticContentJsonPath());
                         Map<String,Object> result=objectMapper.convertValue(updateJsonEntity, Map.class);
                         cacheService.putCache(updateJsonEntity.getId(), result);
+                        if (!partnerDetails.path(Constants.PARTNERCODE).isMissingNode()) {
+                            cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
+                        }
                         log.info("updated the content partner");
                         response.setResult(result);
                         response.setResponseCode(HttpStatus.OK);
