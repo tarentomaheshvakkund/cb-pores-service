@@ -13,9 +13,10 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ObjectDto implements Serializable {
+public class ObjectDto{
     private JsonNode contentData;
     private JsonNode competencies_v5;
     private JsonNode contentPartner;
     private List<String> tags;
+    private String status;
 }

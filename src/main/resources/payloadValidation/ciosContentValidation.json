@@ -42,6 +42,9 @@
         "contentId": {
           "type": "string"
         },
+        "searchTags": {
+          "type": "string"
+        },
         "isActive": {
           "type": "boolean"
         }

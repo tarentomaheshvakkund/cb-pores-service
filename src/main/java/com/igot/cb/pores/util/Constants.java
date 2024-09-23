@@ -336,8 +336,10 @@ public class Constants {
     public static final String TIMESTAMP = "timeStamp";
     public static final String IS_AUTHENTICATE = "isAuthenticate";
     public static final Boolean ACTIVE_STATUS_AUTHENTICATE = false;
-    public static final String CONTENT_UPLOAD_LAST_UPDATED_DATE = "contentUploadLastUpdatedDate";
     public static final String PARTNERCODE = "partnerCode";
+    public static final String TOTAL_COURSES_COUNT = "totalCoursesCount";
+    public static final String DRAFT_COURSES_COUNT = "draftCoursesCount";
+    public static final String LIVE_COURSES_COUNT = "liveCoursesCount";
 
     private Constants() {
     }

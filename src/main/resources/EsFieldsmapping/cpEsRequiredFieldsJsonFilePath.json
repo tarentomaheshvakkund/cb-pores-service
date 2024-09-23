@@ -37,21 +37,19 @@
   "certificateTemplateUrl": {
     "type": "string"
   },
-  "contentUploadLastUpdatedDate": {
-    "type": "date",
-    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
-  },
-  "contentProgressLastUpdatedDate": {
-    "type": "date",
-    "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
-  },
   "isAuthenticate": {
     "type": "boolean"
   },
   "partnerCode": {
     "type": "string"
   },
-  "totalCourseCount": {
+  "totalCoursesCount": {
+    "type": "number"
+  },
+  "draftCoursesCount": {
+    "type": "number"
+  },
+  "liveCoursesCount": {
     "type": "number"
   }
 }
