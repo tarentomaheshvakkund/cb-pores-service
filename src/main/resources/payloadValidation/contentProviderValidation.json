@@ -58,14 +58,13 @@
     "isAuthenticate": {
       "type": "boolean"
     },
-    "contentUploadLastUpdatedDate": {
-      "type": "string"
+    "totalCoursesCount": {
+      "type": "number"
     },
-    "contentProgressLastUpdatedDate": {
-      "type": "string",
-      "format": "date-time"
+    "draftCoursesCount": {
+      "type": "number"
     },
-    "totalCourseCount": {
+    "liveCoursesCount": {
       "type": "number"
     },
     "searchTags": {
@@ -79,7 +78,10 @@
     "contentPartnerName",
     "websiteUrl",
     "link",
-    "description"
+    "description",
+    "totalCoursesCount",
+    "draftCoursesCount",
+    "liveCoursesCount"
   ],
   "additionalProperties": false
 }

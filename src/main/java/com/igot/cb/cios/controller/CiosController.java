@@ -22,8 +22,9 @@ public class CiosController {
     CiosContentService ciosContentService;
 
     @PostMapping(value = "/v1/onboardContent")
-    public ResponseEntity<Object> onboardContent(@RequestBody List<ObjectDto> data) {
-        return new ResponseEntity<>(ciosContentService.onboardContent(data), HttpStatus.OK);
+    public ResponseEntity<Object> onboardContent(@RequestBody List<ObjectDto> objectDtos) {
+
+        return new ResponseEntity<>(ciosContentService.onboardContent(objectDtos), HttpStatus.OK);
     }
 
     @PostMapping(value = "/v1/search/content")

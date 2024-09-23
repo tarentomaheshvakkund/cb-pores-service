@@ -1,17 +1,21 @@
 package com.igot.cb.cios.util;
 
 public enum ContentSource {
-    CORNELL,
-    UPGRAD;
+    CORNELL("${cornell.partner.code}"),
+    UPGRAD("${upgrad.partner.code}");
 
-    public static ContentSource fromProviderName(String providerName) {
-        switch (providerName) {
-            case "eCornell":
-                return CORNELL;
-            case "upGrad":
-                return UPGRAD;
-            default:
-                throw new RuntimeException("Unknown provider name: " + providerName);
+    private String value;
+
+    ContentSource(String value) {
+        this.value = value;
+    }
+
+    public static ContentSource fromPartnerCode(String text) {
+        for (ContentSource b : ContentSource.values()) {
+            if (String.valueOf(b).equals(text)) {
+                return b;
+            }
         }
+        return null;
     }
 }
