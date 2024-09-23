@@ -304,7 +304,8 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         return response;
     }
 
-    public ApiResponse getContentDetailsByOrgId(String partnercode) {
+    @Override
+    public ApiResponse getContentDetailsByPartnerCode(String partnercode) {
         log.info("CiosContentService:: ContentPartnerEntity: getContentDetailsByPartnerName {}",partnercode);
         try {
             ApiResponse response=ProjectUtil.createDefaultResponse(Constants.API_PARTNER_READ);
