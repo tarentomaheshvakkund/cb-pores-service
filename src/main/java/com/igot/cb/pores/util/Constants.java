@@ -340,6 +340,8 @@ public class Constants {
     public static final String TOTAL_COURSES_COUNT = "totalCoursesCount";
     public static final String DRAFT_COURSES_COUNT = "draftCoursesCount";
     public static final String LIVE_COURSES_COUNT = "liveCoursesCount";
+    public static final String PUBLISHED_ON = "publishedOn";
+    public static final String UPDATED_DATE = "updatedDate";
 
     private Constants() {
     }

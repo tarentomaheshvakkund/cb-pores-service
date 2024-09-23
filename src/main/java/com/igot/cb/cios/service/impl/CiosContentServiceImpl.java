@@ -188,11 +188,13 @@ public class CiosContentServiceImpl implements CiosContentService {
     public Object onboardContent(List<ObjectDto> data) {
         try {
             log.info("CiosContentServiceImpl::createOrUpdateContent");
+            Timestamp timestamp=new Timestamp(System.currentTimeMillis());
             for (ObjectDto eachData : data) {
                 if (eachData.getStatus().equalsIgnoreCase("draft")) {
+                    log.info("Status of the data {}",eachData.getStatus());
                     JsonNode jsonNode = eachData.getContentData();
                     ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
-                    contentNode.put("status", eachData.getStatus());
+                    contentNode.put(Constants.STATUS, eachData.getStatus());
                     if (eachData.getCompetencies_v5() != null) {
                         contentNode.set(Constants.COMPETENCIES_V5, eachData.getCompetencies_v5());
                     }
@@ -206,7 +208,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                     JsonNode draftResponse=apiCallToCiosSecondaryDbForUpdateData(jsonNode);
                     ObjectNode payload = objectMapper.createObjectNode();
                     ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
-                    filterCriteriaMap.put("partnerCode", "CORNELL");
+                    filterCriteriaMap.put("partnerCode", eachData.getContentPartner().get("partnerCode").asText());
                     ArrayNode requestedFields = objectMapper.createArrayNode();
                     requestedFields.add("status");
                     requestedFields.add("externalId");
@@ -228,13 +230,13 @@ public class CiosContentServiceImpl implements CiosContentService {
                             liveCount = facet.get("count").asLong();
                         }
                     }
-                    ApiResponse response = contentPartnerService.getContentDetailsByPartnerCode("CORNELL");
+                    ApiResponse response = contentPartnerService.getContentDetailsByPartnerCode(eachData.getContentPartner().get("partnerCode").asText());
                     Map<String, Object> contentPartnerResponse = response.getResult();
                     if (contentPartnerResponse != null && contentPartnerResponse.containsKey("data")) {
                         Map<String, Object> contentPartnerResponseData = (Map<String, Object>) contentPartnerResponse.get("data");
-                        contentPartnerResponseData.put("totalCoursesCount", totalCount);
-                        contentPartnerResponseData.put("draftCoursesCount", draftCount);
-                        contentPartnerResponseData.put("liveCoursesCount", liveCount);
+                        contentPartnerResponseData.put(Constants.TOTAL_COURSES_COUNT, totalCount);
+                        contentPartnerResponseData.put(Constants.DRAFT_COURSES_COUNT, draftCount);
+                        contentPartnerResponseData.put(Constants.LIVE_COURSES_COUNT, liveCount);
                         JsonNode contentPartnerRequestData = objectMapper.convertValue(contentPartnerResponse, JsonNode.class);
                         contentPartnerService.createOrUpdate(contentPartnerRequestData);
                     } else {
@@ -242,10 +244,13 @@ public class CiosContentServiceImpl implements CiosContentService {
                     }
                     return draftResponse;
                 } else {
+                    log.info("Status of the data {}",eachData.getStatus());
                     JsonNode jsonNode = eachData.getContentData();
                     ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
                     contentNode.put(Constants.STATUS, eachData.getStatus());
                     contentNode.put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
+                    contentNode.put(Constants.PUBLISHED_ON, timestamp.toString());
+                    contentNode.put(Constants.UPDATED_DATE, timestamp.toString());
                     if (eachData.getCompetencies_v5() != null) {
                         contentNode.set(Constants.COMPETENCIES_V5, eachData.getCompetencies_v5());
                     }
@@ -259,7 +264,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                     apiCallToCiosSecondaryDbForUpdateData(jsonNode);
                     ObjectNode payload = objectMapper.createObjectNode();
                     ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
-                    filterCriteriaMap.put("partnerCode", "CORNELL");
+                    filterCriteriaMap.put("partnerCode", eachData.getContentPartner().get("partnerCode").asText());
                     ArrayNode requestedFields = objectMapper.createArrayNode();
                     requestedFields.add("status");
                     requestedFields.add("externalId");
@@ -281,13 +286,13 @@ public class CiosContentServiceImpl implements CiosContentService {
                             liveCount = facet.get("count").asLong();
                         }
                     }
-                    ApiResponse response = contentPartnerService.getContentDetailsByPartnerCode("CORNELL");
+                    ApiResponse response = contentPartnerService.getContentDetailsByPartnerCode(eachData.getContentPartner().get("partnerCode").asText());
                     Map<String, Object> contentPartnerResponse = response.getResult();
                     if (contentPartnerResponse != null && contentPartnerResponse.containsKey("data")) {
                         Map<String, Object> contentPartnerResponseData = (Map<String, Object>) contentPartnerResponse.get("data");
-                        contentPartnerResponseData.put("totalCoursesCount", totalCount);
-                        contentPartnerResponseData.put("draftCoursesCount", draftCount);
-                        contentPartnerResponseData.put("liveCoursesCount", liveCount);
+                        contentPartnerResponseData.put(Constants.TOTAL_COURSES_COUNT, totalCount);
+                        contentPartnerResponseData.put(Constants.DRAFT_COURSES_COUNT, draftCount);
+                        contentPartnerResponseData.put(Constants.LIVE_COURSES_COUNT, liveCount);
                         JsonNode contentPartnerRequestData = objectMapper.convertValue(contentPartnerResponse, JsonNode.class);
                         contentPartnerService.createOrUpdate(contentPartnerRequestData);
                     } else {
@@ -352,16 +357,6 @@ public class CiosContentServiceImpl implements CiosContentService {
                 ((ObjectNode) ciosRequestInput.path("content")).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) ciosRequestInput.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) ciosRequestInput.path("content")).put(Constants.STATUS, Constants.LIVE);
-//                ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
-//                if (dto.getCompetencies_v5() != null) {
-//                    contentNode.set(Constants.COMPETENCIES_V5, dto.getCompetencies_v5());
-//                }
-//                if (dto.getContentPartner() != null) {
-//                    contentNode.set(Constants.CONTENT_PARTNER, dto.getContentPartner());
-//                }
-//                if (dto.getTags() != null) {
-//                    contentNode.set("searchTags", dto.getTags());
-//                }
                 igotContent.setCiosData(ciosRequestInput);
             } else {
                 igotContent.setContentId(ciosContentEntity.get().getContentId());
@@ -374,16 +369,6 @@ public class CiosContentServiceImpl implements CiosContentService {
                 ((ObjectNode) ciosRequestInput.path("content")).put(Constants.CREATED_ON, String.valueOf(igotContent.getCreatedOn()));
                 ((ObjectNode) ciosRequestInput.path("content")).put(Constants.LAST_UPDATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) ciosRequestInput.path("content")).put(Constants.STATUS, Constants.LIVE);
-//                ObjectNode contentNode = (ObjectNode) jsonNode.path("content");
-//                if (dto.getCompetencies_v5() != null) {
-//                    contentNode.set(Constants.COMPETENCIES_V5, dto.getCompetencies_v5());
-//                }
-//                if (dto.getContentPartner() != null) {
-//                    contentNode.set(Constants.CONTENT_PARTNER, dto.getContentPartner());
-//                }
-//                if (dto.getTags() != null) {
-//                    contentNode.set("searchTags", addSearchTags(dto.getTags()));
-//                }
                 igotContent.setCiosData(ciosRequestInput);
             }
             return igotContent;
