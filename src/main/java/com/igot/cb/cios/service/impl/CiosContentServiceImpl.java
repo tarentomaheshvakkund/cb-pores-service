@@ -15,6 +15,7 @@ import com.igot.cb.cios.repository.CiosRepository;
 import com.igot.cb.cios.service.CiosContentService;
 import com.igot.cb.contentpartner.repository.ContentPartnerRepository;
 import com.igot.cb.contentpartner.service.ContentPartnerService;
+import com.igot.cb.playlist.util.ProjectUtil;
 import com.igot.cb.pores.cache.CacheService;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
@@ -185,9 +186,10 @@ public class CiosContentServiceImpl implements CiosContentService {
 
 
     @Override
-    public Object onboardContent(List<ObjectDto> data) {
+    public ApiResponse onboardContent(List<ObjectDto> data) {
+        log.info("CiosContentServiceImpl::createOrUpdateContent");
+        ApiResponse apiResponse=ProjectUtil.createDefaultResponse(Constants.API_CIOS_CURATION_CREATE);
         try {
-            log.info("CiosContentServiceImpl::createOrUpdateContent");
             Timestamp timestamp=new Timestamp(System.currentTimeMillis());
             for (ObjectDto eachData : data) {
                 if (eachData.getStatus().equalsIgnoreCase("draft")) {
@@ -210,13 +212,14 @@ public class CiosContentServiceImpl implements CiosContentService {
                     ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
                     filterCriteriaMap.put("partnerCode", eachData.getContentPartner().get("partnerCode").asText());
                     ArrayNode requestedFields = objectMapper.createArrayNode();
-                    requestedFields.add("status");
                     requestedFields.add("externalId");
                     ArrayNode facets = objectMapper.createArrayNode();
                     facets.add("status");
                     payload.set("filterCriteriaMap", filterCriteriaMap);
                     payload.set("requestedFields", requestedFields);
                     payload.set("facets", facets);
+                    payload.put("pageNumber",0);
+                    payload.put("pageSize",1);
                     JsonNode node = callCiosSearchApiToGetStatusCount(payload);
                     Long totalCount = node.get("totalCount").asLong();
                     Long draftCount = 0L;
@@ -265,13 +268,14 @@ public class CiosContentServiceImpl implements CiosContentService {
                     ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
                     filterCriteriaMap.put("partnerCode", eachData.getContentPartner().get("partnerCode").asText());
                     ArrayNode requestedFields = objectMapper.createArrayNode();
-                    requestedFields.add("status");
                     requestedFields.add("externalId");
                     ArrayNode facets = objectMapper.createArrayNode();
                     facets.add("status");
                     payload.set("filterCriteriaMap", filterCriteriaMap);
                     payload.set("requestedFields", requestedFields);
                     payload.set("facets", facets);
+                    payload.put("pageNumber",0);
+                    payload.put("pageSize",1);
                     JsonNode node = callCiosSearchApiToGetStatusCount(payload);
                     Long totalCount = node.get("totalCount").asLong();
                     Long draftCount = 0L;
@@ -306,9 +310,15 @@ public class CiosContentServiceImpl implements CiosContentService {
                     esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE, ciosContentEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
                 }
             }
-            return "Data updated successfully";
+            Map<String, Object> result = new HashMap<>();
+            result.put("ApiResponse", "All data curated successfully");
+            apiResponse.setResult(result);
+            return apiResponse;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            apiResponse.getParams().setErrMsg(e.getMessage());
+            apiResponse.getParams().setStatus(Constants.FAILED);
+            apiResponse.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            return apiResponse;
         }
     }
 

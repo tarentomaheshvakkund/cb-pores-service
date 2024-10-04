@@ -342,6 +342,7 @@ public class Constants {
     public static final String LIVE_COURSES_COUNT = "liveCoursesCount";
     public static final String PUBLISHED_ON = "publishedOn";
     public static final String UPDATED_DATE = "updatedDate";
+    public static final String API_CIOS_CURATION_CREATE = "api.cios.curation.create";
 
     private Constants() {
     }
