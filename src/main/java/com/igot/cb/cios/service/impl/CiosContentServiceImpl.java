@@ -205,7 +205,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                         JsonNode searchTags = addSearchTags(eachData.getTags());
                         contentNode.set(Constants.SEARCHTAGS, searchTags);
                     }
-                    JsonNode draftResponse=apiCallToCiosSecondaryDbForUpdateData(jsonNode);
+                    apiCallToCiosSecondaryDbForUpdateData(jsonNode);
                     ObjectNode payload = objectMapper.createObjectNode();
                     ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
                     filterCriteriaMap.put("partnerCode", eachData.getContentPartner().get("partnerCode").asText());
@@ -242,7 +242,6 @@ public class CiosContentServiceImpl implements CiosContentService {
                     } else {
                         log.error("No data found in the response.");
                     }
-                    return draftResponse;
                 } else {
                     log.info("Status of the data {}",eachData.getStatus());
                     JsonNode jsonNode = eachData.getContentData();
@@ -305,13 +304,12 @@ public class CiosContentServiceImpl implements CiosContentService {
                     log.debug("map value for elastic search {}", map);
                     cacheService.putCache(ciosContentEntity.getContentId(), ciosContentEntity.getCiosData());
                     esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE, ciosContentEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
-                    return ciosContentEntity;
                 }
             }
+            return "Data updated successfully";
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return null;
     }
 
     private JsonNode callCiosSearchApiToGetStatusCount(JsonNode jsonNode) {
