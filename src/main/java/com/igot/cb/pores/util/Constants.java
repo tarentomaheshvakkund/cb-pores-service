@@ -332,7 +332,17 @@ public class Constants {
     public static final String NO_DATA_FOR_ID = "No data found for this Id: ";
     public static final String ID_MISSING = "Id is missing in the request";
     public static final String MDO_LEADER ="MDO_LEADER";
+    public static final String COMPETENCIESVALIDATION_FILE_JSON = "/payloadValidation/competenciesValidation.json";
     public static final String TIMESTAMP = "timeStamp";
+    public static final String IS_AUTHENTICATE = "isAuthenticate";
+    public static final Boolean ACTIVE_STATUS_AUTHENTICATE = false;
+    public static final String PARTNERCODE = "partnerCode";
+    public static final String TOTAL_COURSES_COUNT = "totalCoursesCount";
+    public static final String DRAFT_COURSES_COUNT = "draftCoursesCount";
+    public static final String LIVE_COURSES_COUNT = "liveCoursesCount";
+    public static final String PUBLISHED_ON = "publishedOn";
+    public static final String UPDATED_DATE = "updatedDate";
+    public static final String API_CIOS_CURATION_CREATE = "api.cios.curation.create";
 
     private Constants() {
     }

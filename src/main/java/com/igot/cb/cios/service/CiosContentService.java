@@ -4,6 +4,7 @@ package com.igot.cb.cios.service;
 import com.igot.cb.cios.dto.ObjectDto;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
+import com.igot.cb.pores.util.ApiResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +17,8 @@ public interface CiosContentService {
 
     Object deleteContent(String contentId);
 
-    Object onboardCornellContent(List<ObjectDto> data);
+    ApiResponse onboardContent(List<ObjectDto> data);
 
-    Object fetchDataByExternalId(String externalid);
-
-
+    Object fetchDataByExternalIdAndPartnerId(String externalid);
 
 }

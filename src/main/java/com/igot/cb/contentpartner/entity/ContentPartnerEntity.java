@@ -1,5 +1,4 @@
-package com.igot.cb.cios.entity;
-
+package com.igot.cb.contentpartner.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
@@ -14,26 +13,38 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.io.Serializable;
 import java.sql.Timestamp;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-@Entity
-@Table(name="cornell_content_entity")
+@AllArgsConstructor
+@Table(name ="content_partner")
 @TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
-public class CornellContentEntity implements Serializable {
+@Entity
+public class ContentPartnerEntity {
     @Id
-    private String externalId;
+    private String id;
+
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
-    private JsonNode ciosData;
+    private JsonNode data;
+
+    private Timestamp createdOn;
+
+    private Timestamp updatedOn;
+
     private Boolean isActive;
-    private Timestamp createdDate;
-    private Timestamp updatedDate;
+
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
-    private JsonNode sourceData;
+    private JsonNode trasformContentJson;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private JsonNode transformProgressJson;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private JsonNode trasformCertificateJson;
 }
