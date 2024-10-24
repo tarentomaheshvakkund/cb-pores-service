@@ -343,6 +343,8 @@ public class Constants {
     public static final String PUBLISHED_ON = "publishedOn";
     public static final String UPDATED_DATE = "updatedDate";
     public static final String API_CIOS_CURATION_CREATE = "api.cios.curation.create";
+    public static final String STATUS_NOT_VALID = "Status is not valid";
+    public static final String CONTENT_PARTNER_FILE_JSON = "/payloadValidation/contentpartnervalidationfile.json";
 
     private Constants() {
     }

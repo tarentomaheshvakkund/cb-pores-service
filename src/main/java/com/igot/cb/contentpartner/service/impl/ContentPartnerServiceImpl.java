@@ -73,7 +73,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 }
                 log.info("ContentPartnerServiceImpl::createOrUpdate:creating content partner provider");
                 String id = String.valueOf(UUID.randomUUID());
-                ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE, partnerDetails.path("partnerCode").asText(null));
+                ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE, partnerDetails.path("partnerCode").asText(""));
                 ((ObjectNode) partnerDetails).put(Constants.ID, id);
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                 ((ObjectNode) partnerDetails).put(Constants.TOTAL_COURSES_COUNT, 0);
@@ -93,10 +93,12 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 contentPartnerEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                 contentPartnerEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                 contentPartnerEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
+                contentPartnerEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
                 ObjectNode objectNode = (ObjectNode) partnerDetails;
                 objectNode.remove("trasformContentJson");
                 objectNode.remove("transformProgressJson");
                 objectNode.remove("trasformCertificateJson");
+                objectNode.remove("serviceRegistryDetails");
                 addSearchTags(objectNode);
                 contentPartnerEntity.setData(objectNode);
                 ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
@@ -132,12 +134,15 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                         response.setResponseCode(HttpStatus.BAD_REQUEST);
                         return response;
                     }
+                    JsonNode data = partnerDetails.get("data");
+                    payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, data);
                     ContentPartnerEntity jsonEntity = content.get();
                     jsonEntity.setUpdatedOn(currentTime);
                     jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
                     jsonEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                     jsonEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                     jsonEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
+                    jsonEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
                     ObjectNode objectNode = (ObjectNode) partnerDetails;
                     objectNode.remove("trasformContentJson");
                     objectNode.remove("transformProgressJson");

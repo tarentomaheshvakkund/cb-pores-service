@@ -52,7 +52,6 @@
       "required": [
         "name",
         "description",
-        "duration",
         "redirectUrl",
         "appIcon",
         "externalId"

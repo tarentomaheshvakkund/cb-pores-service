@@ -33,12 +33,10 @@
       }
     },
     "createdOn": {
-      "type": "string",
-      "format": "date-time"
+      "type": "string"
     },
     "updatedOn": {
-      "type": "string",
-      "format": "date-time"
+      "type": "string"
     },
     "trasformContentJson": {
       "type": "array"
@@ -72,6 +70,9 @@
       "items": {
         "type": "string"
       }
+    },
+    "serviceRegistryDetails": {
+      "type": "object"
     }
   },
   "required": [

@@ -19,6 +19,6 @@ public interface CiosContentService {
 
     ApiResponse onboardContent(List<ObjectDto> data);
 
-    Object fetchDataByExternalIdAndPartnerId(String externalid);
+    Object fetchDataByExternalIdAndPartnerId(String externalid,String partnerid);
 
 }

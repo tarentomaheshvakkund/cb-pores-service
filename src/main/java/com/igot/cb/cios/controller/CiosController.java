@@ -43,8 +43,8 @@ public class CiosController {
         return new ResponseEntity<>(ciosContentService.fetchDataByContentId(contentId), HttpStatus.OK);
     }
 
-    @GetMapping("/v1/content/readby/externalid/{externalid}")
-    public ResponseEntity<Object> fetchDataByExternalId(@PathVariable String externalid) {
-        return new ResponseEntity<>(ciosContentService.fetchDataByExternalIdAndPartnerId(externalid), HttpStatus.OK);
+    @GetMapping("/v1/content/readby/externalid/{externalid}/{partnerid}")
+    public ResponseEntity<Object> fetchDataByExternalId(@PathVariable String externalid,@PathVariable String partnerid) {
+        return new ResponseEntity<>(ciosContentService.fetchDataByExternalIdAndPartnerId(externalid,partnerid), HttpStatus.OK);
     }
 }
