@@ -293,6 +293,12 @@ public class CiosContentServiceImpl implements CiosContentService {
             return searchResult;
         }
         try {
+            HashMap<String, Object> filterCriteriaMap = searchCriteria.getFilterCriteriaMap();
+            if (filterCriteriaMap == null) {
+                filterCriteriaMap = new HashMap<>();
+            }
+            filterCriteriaMap.put("isActive", true);
+            searchCriteria.setFilterCriteriaMap(filterCriteriaMap);
             searchResult = esUtilService.searchDocuments(Constants.CIOS_INDEX_NAME, searchCriteria);
             redisTemplate.opsForValue()
                     .set(generateRedisJwtTokenKey(searchCriteria), searchResult, searchResultRedisTtl,
