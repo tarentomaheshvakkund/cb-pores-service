@@ -8,6 +8,7 @@ import com.igot.cb.pores.elasticsearch.dto.FacetDTO;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.networknt.schema.JsonSchemaFactory;
 import java.io.IOException;
@@ -61,6 +62,9 @@ public class EsUtilServiceImpl implements EsUtilService {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private CbServerProperties cbServerProperties;
 
     @Autowired
     public EsUtilServiceImpl(RestHighLevelClient elasticsearchClient, EsConfig esConnection) {
@@ -144,6 +148,10 @@ public class EsUtilServiceImpl implements EsUtilService {
 
     @Override
     public SearchResult searchDocuments(String esIndexName, SearchCriteria searchCriteria) {
+        String searchString = searchCriteria.getSearchString();
+        if (searchString != null && searchString.length() > cbServerProperties.getSearchStringMaxRegexLength()) {
+            throw new RuntimeException("The length of the search string exceeds the allowed maximum of " + cbServerProperties.getSearchStringMaxRegexLength() + " characters.");
+        }
         SearchSourceBuilder searchSourceBuilder = buildSearchSourceBuilder(searchCriteria);
         SearchRequest searchRequest = new SearchRequest(esIndexName);
         searchRequest.source(searchSourceBuilder);
@@ -212,7 +220,12 @@ public class EsUtilServiceImpl implements EsUtilService {
         searchSourceBuilder.query(boolQueryBuilder);
         addSortToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
         addRequestedFieldsToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
-        addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
+       // addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
+        String searchString = searchCriteria.getSearchString();
+        if (isNotBlank(searchString)) {
+            QueryBuilder matchPhraseQuery = getMatchPhraseQuery("searchTags.keyword", searchString, true,boolQueryBuilder);
+            boolQueryBuilder.must(matchPhraseQuery);
+        }
         addFacetsToSearchSourceBuilder(searchCriteria.getFacets(), searchSourceBuilder);
         QueryBuilder queryPart = buildQueryPart(searchCriteria.getQuery());
         boolQueryBuilder.must(queryPart);
@@ -317,6 +330,21 @@ public class EsUtilServiceImpl implements EsUtilService {
                     QueryBuilders.boolQuery()
                             .should(new WildcardQueryBuilder("searchTags.keyword", "*" + searchString.toLowerCase() + "*")));
         }
+    }
+
+    private QueryBuilder getMatchPhraseQuery(String propertyName, String values, boolean match,BoolQueryBuilder boolQueryBuilder) {
+        BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
+        if (match) {
+                queryBuilder.should(QueryBuilders
+                        .regexpQuery(propertyName,
+                                ".*" + values.toLowerCase() + ".*"));
+            } else {
+                queryBuilder.mustNot(QueryBuilders
+                        .regexpQuery(propertyName,
+                                ".*" + values.toLowerCase() + ".*"));
+            }
+
+        return queryBuilder;
     }
 
     private void addFacetsToSearchSourceBuilder(

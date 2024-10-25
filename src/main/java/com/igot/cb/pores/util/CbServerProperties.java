@@ -153,5 +153,7 @@ public class CbServerProperties {
   @Value("${kafka.topic.framework.create}")
   private String topicFrameworkCreate;
 
+  @Value("${search.string.max.regex.length}")
+  private int searchStringMaxRegexLength;
 
 }
