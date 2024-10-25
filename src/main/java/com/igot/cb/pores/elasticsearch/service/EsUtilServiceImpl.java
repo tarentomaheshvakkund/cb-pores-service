@@ -149,9 +149,8 @@ public class EsUtilServiceImpl implements EsUtilService {
     @Override
     public SearchResult searchDocuments(String esIndexName, SearchCriteria searchCriteria) {
         String searchString = searchCriteria.getSearchString();
-        int maxRegexLength = cbServerProperties.getSearchStringMaxRegexLength();
-        if (searchString != null && searchString.length() > maxRegexLength) {
-            throw new RuntimeException("The length of the search string exceeds the allowed maximum of " + maxRegexLength + " characters.");
+        if (searchString != null && searchString.length() > cbServerProperties.getSearchStringMaxRegexLength()) {
+            throw new RuntimeException("The length of the search string exceeds the allowed maximum of " + cbServerProperties.getSearchStringMaxRegexLength() + " characters.");
         }
         SearchSourceBuilder searchSourceBuilder = buildSearchSourceBuilder(searchCriteria);
         SearchRequest searchRequest = new SearchRequest(esIndexName);
