@@ -212,7 +212,12 @@ public class EsUtilServiceImpl implements EsUtilService {
         searchSourceBuilder.query(boolQueryBuilder);
         addSortToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
         addRequestedFieldsToSearchSourceBuilder(searchCriteria, searchSourceBuilder);
-        addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
+       // addQueryStringToFilter(searchCriteria.getSearchString(), boolQueryBuilder);
+        String searchString = searchCriteria.getSearchString();
+        if (isNotBlank(searchString)) {
+            QueryBuilder matchPhraseQuery = getMatchPhraseQuery("searchTags.keyword", searchString, true,boolQueryBuilder);
+            boolQueryBuilder.must(matchPhraseQuery);
+        }
         addFacetsToSearchSourceBuilder(searchCriteria.getFacets(), searchSourceBuilder);
         QueryBuilder queryPart = buildQueryPart(searchCriteria.getQuery());
         boolQueryBuilder.must(queryPart);
@@ -317,6 +322,21 @@ public class EsUtilServiceImpl implements EsUtilService {
                     QueryBuilders.boolQuery()
                             .should(new WildcardQueryBuilder("searchTags.keyword", "*" + searchString.toLowerCase() + "*")));
         }
+    }
+
+    private QueryBuilder getMatchPhraseQuery(String propertyName, String values, boolean match,BoolQueryBuilder boolQueryBuilder) {
+        BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
+        if (match) {
+                queryBuilder.should(QueryBuilders
+                        .regexpQuery(propertyName,
+                                ".*" + values.toLowerCase() + ".*"));
+            } else {
+                queryBuilder.mustNot(QueryBuilders
+                        .regexpQuery(propertyName,
+                                ".*" + values.toLowerCase() + ".*"));
+            }
+
+        return queryBuilder;
     }
 
     private void addFacetsToSearchSourceBuilder(
