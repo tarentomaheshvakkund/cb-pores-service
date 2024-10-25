@@ -8,6 +8,7 @@ import com.igot.cb.pores.elasticsearch.dto.FacetDTO;
 import com.igot.cb.pores.elasticsearch.dto.SearchCriteria;
 import com.igot.cb.pores.elasticsearch.dto.SearchResult;
 import com.igot.cb.pores.exceptions.CustomException;
+import com.igot.cb.pores.util.CbServerProperties;
 import com.igot.cb.pores.util.Constants;
 import com.networknt.schema.JsonSchemaFactory;
 import java.io.IOException;
@@ -61,6 +62,9 @@ public class EsUtilServiceImpl implements EsUtilService {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private CbServerProperties cbServerProperties;
 
     @Autowired
     public EsUtilServiceImpl(RestHighLevelClient elasticsearchClient, EsConfig esConnection) {
@@ -144,6 +148,11 @@ public class EsUtilServiceImpl implements EsUtilService {
 
     @Override
     public SearchResult searchDocuments(String esIndexName, SearchCriteria searchCriteria) {
+        String searchString = searchCriteria.getSearchString();
+        int maxRegexLength = cbServerProperties.getSearchStringMaxRegexLength();
+        if (searchString != null && searchString.length() > maxRegexLength) {
+            throw new RuntimeException("The length of the search string exceeds the allowed maximum of " + maxRegexLength + " characters.");
+        }
         SearchSourceBuilder searchSourceBuilder = buildSearchSourceBuilder(searchCriteria);
         SearchRequest searchRequest = new SearchRequest(esIndexName);
         searchRequest.source(searchSourceBuilder);
