@@ -153,8 +153,11 @@ public class CbServerProperties {
   @Value("${kafka.topic.framework.create}")
   private String topicFrameworkCreate;
 
-    @Value("${cios.content.service.host}")
-    private String ciosContentServiceHost;
+  @Value("${search.string.max.regex.length}")
+  private int searchStringMaxRegexLength;
+
+  @Value("${cios.content.service.host}")
+  private String ciosContentServiceHost;
 
     @Value("${cios.content.service.update.api}")
     private String ciosContentServiceUpdateApiUrl;
