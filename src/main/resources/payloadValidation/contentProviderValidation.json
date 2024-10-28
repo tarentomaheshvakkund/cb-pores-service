@@ -2,11 +2,17 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "id": {
+      "type": "string"
+    },
     "contentPartnerName": {
       "type": "string"
     },
     "description": {
       "type": "string"
+    },
+    "isActive": {
+      "type": "boolean"
     },
     "role": {
       "type": "string"
@@ -14,21 +20,69 @@
     "link": {
       "type": "string"
     },
-    "image": {
+    "websiteUrl": {
       "type": "string"
     },
-    "createdDate": {
-      "type": "string",
-      "format": "date-time"
+    "documentUrl": {
+      "type": "string"
     },
-    "updatedDate": {
-      "type": "string",
-      "format": "date-time"
+    "providerTips": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "createdOn": {
+      "type": "string"
+    },
+    "updatedOn": {
+      "type": "string"
+    },
+    "trasformContentJson": {
+      "type": "array"
+    },
+    "transformProgressJson": {
+      "type": "array"
+    },
+    "trasformCertificateJson": {
+      "type": "object"
+    },
+    "certificateTemplateUrl": {
+      "type": "string"
+    },
+    "partnerCode": {
+      "type": "string"
+    },
+    "isAuthenticate": {
+      "type": "boolean"
+    },
+    "totalCoursesCount": {
+      "type": "number"
+    },
+    "draftCoursesCount": {
+      "type": "number"
+    },
+    "liveCoursesCount": {
+      "type": "number"
+    },
+    "searchTags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "serviceRegistryDetails": {
+      "type": "object"
     }
   },
   "required": [
     "contentPartnerName",
-    "role",
-    "link"
-  ]
+    "websiteUrl",
+    "link",
+    "description",
+    "totalCoursesCount",
+    "draftCoursesCount",
+    "liveCoursesCount"
+  ],
+  "additionalProperties": false
 }

@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface CiosRepository extends JpaRepository<CiosContentEntity,String> {
+    Optional<CiosContentEntity> findByExternalIdAndPartnerId(String externalId,String PartnerId);
     Optional<CiosContentEntity> findByExternalId(String externalId);
 
     Optional<CiosContentEntity> findByContentIdAndIsActive(String contentId, boolean b);

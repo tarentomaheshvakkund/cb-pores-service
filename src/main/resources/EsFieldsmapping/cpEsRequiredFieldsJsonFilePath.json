@@ -1,7 +1,4 @@
 {
-  "sourceSystem": {
-    "type": "keyword"
-  },
   "id": {
     "type": "keyword"
   },
@@ -11,24 +8,48 @@
   "description": {
     "type": "string"
   },
-  "role": {
+  "websiteUrl": {
     "type": "string"
   },
   "link": {
     "type": "string"
   },
-  "image": {
+  "documentUrl": {
     "type": "string"
   },
-  "createdDate": {
+  "providerTips": {
+    "type": "string"
+  },
+  "createdOn": {
     "type": "date",
     "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
   },
-  "updatedDate": {
+  "updatedOn": {
     "type": "date",
     "format": ["yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "epoch_millis"]
   },
   "isActive": {
     "type": "boolean"
+  },
+  "searchTags": {
+    "type": "keyword"
+  },
+  "certificateTemplateUrl": {
+    "type": "string"
+  },
+  "isAuthenticate": {
+    "type": "boolean"
+  },
+  "partnerCode": {
+    "type": "string"
+  },
+  "totalCoursesCount": {
+    "type": "number"
+  },
+  "draftCoursesCount": {
+    "type": "number"
+  },
+  "liveCoursesCount": {
+    "type": "number"
   }
 }

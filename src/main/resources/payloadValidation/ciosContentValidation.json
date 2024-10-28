@@ -42,6 +42,9 @@
         "contentId": {
           "type": "string"
         },
+        "searchTags": {
+          "type": "string"
+        },
         "isActive": {
           "type": "boolean"
         }
@@ -49,7 +52,6 @@
       "required": [
         "name",
         "description",
-        "duration",
         "redirectUrl",
         "appIcon",
         "externalId"
