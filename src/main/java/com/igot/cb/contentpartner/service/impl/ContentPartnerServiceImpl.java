@@ -85,6 +85,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, partnerDetails);
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
                 ((ObjectNode) partnerDetails).put(Constants.UPDATED_ON, String.valueOf(currentTime));
+                ((ObjectNode) partnerDetails).put(Constants.DOCUMENT_UPLOADED_DATE, partnerDetails.path(Constants.DOCUMENT_UPLOADED_DATE).asText(null));
                 ContentPartnerEntity contentPartnerEntity = new ContentPartnerEntity();
                 contentPartnerEntity.setId(id);
                 contentPartnerEntity.setCreatedOn(currentTime);
@@ -152,6 +153,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     ObjectNode dataNode = (ObjectNode) objectNode.remove("data");
                     dataNode.put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     dataNode.put(Constants.UPDATED_ON, String.valueOf(currentTime));
+                    ((ObjectNode) partnerDetails).put(Constants.DOCUMENT_UPLOADED_DATE, partnerDetails.path(Constants.DOCUMENT_UPLOADED_DATE).asText(null));
                     dataNode.put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     if (dataNode.path(Constants.IS_AUTHENTICATE).isMissingNode()) {
                         dataNode.put(Constants.IS_AUTHENTICATE, content.get().getData().get(Constants.IS_AUTHENTICATE));

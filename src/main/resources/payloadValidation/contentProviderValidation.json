@@ -73,6 +73,9 @@
     },
     "serviceRegistryDetails": {
       "type": "object"
+    },
+    "documentUploadedDate": {
+      "type": "string"
     }
   },
   "required": [

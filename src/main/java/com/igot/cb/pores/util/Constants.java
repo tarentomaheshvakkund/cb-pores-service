@@ -345,6 +345,7 @@ public class Constants {
     public static final String API_CIOS_CURATION_CREATE = "api.cios.curation.create";
     public static final String STATUS_NOT_VALID = "Status is not valid";
     public static final String CONTENT_PARTNER_FILE_JSON = "/payloadValidation/contentpartnervalidationfile.json";
+    public static final String DOCUMENT_UPLOADED_DATE = "documentUploadedDate";
 
     private Constants() {
     }
