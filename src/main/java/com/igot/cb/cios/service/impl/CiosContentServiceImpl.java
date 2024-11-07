@@ -213,7 +213,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                         contentNode.set(Constants.CONTENT_PARTNER, eachData.getContentPartner());
                     }
                     if (eachData.getTags() != null) {
-                        JsonNode searchTags = addSearchTags(eachData.getTags());
+                        JsonNode searchTags = addSearchTags(eachData.getTags(),eachData.getContentData());
                         contentNode.set(Constants.SEARCHTAGS, searchTags);
                     }
                     apiCallToCiosSecondaryDbForUpdateData(jsonNode);
@@ -273,7 +273,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                         contentNode.set(Constants.CONTENT_PARTNER, eachData.getContentPartner());
                     }
                     if (eachData.getTags() != null) {
-                        JsonNode searchTags = addSearchTags(eachData.getTags());
+                        JsonNode searchTags = addSearchTags(eachData.getTags(),eachData.getContentData());
                         contentNode.set(Constants.SEARCHTAGS, searchTags);
                     }
                     apiCallToCiosSecondaryDbForUpdateData(jsonNode);
@@ -400,10 +400,12 @@ public class CiosContentServiceImpl implements CiosContentService {
         }
     }
 
-    private JsonNode addSearchTags(List<String> tags) {
-        List<String> lowercaseTags = tags.stream()
+    private JsonNode addSearchTags(List<String> tags,JsonNode jsonNode) {
+        List<String> lowercaseTags = new ArrayList<>();
+        lowercaseTags.add(jsonNode.path("content").get("name").textValue().toLowerCase());
+        lowercaseTags.addAll(tags.stream()
                 .map(String::toLowerCase)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
         ArrayNode searchTagsArray = objectMapper.valueToTree(lowercaseTags);
         return searchTagsArray;
     }

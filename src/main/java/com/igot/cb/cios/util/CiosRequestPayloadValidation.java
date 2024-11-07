@@ -12,10 +12,6 @@ public class CiosRequestPayloadValidation {
 
     public void validateModel(ObjectDto objectDto) {
 
-        if (objectDto.getTags() == null) {
-            throw new CustomException("TAGS", "Tags are missing in the request", HttpStatus.BAD_REQUEST);
-        }
-
         if (objectDto.getStatus() == null) {
             throw new CustomException("STATUS", "Status is missing in the request", HttpStatus.BAD_REQUEST);
         }
