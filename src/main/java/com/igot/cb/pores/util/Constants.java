@@ -346,6 +346,13 @@ public class Constants {
     public static final String STATUS_NOT_VALID = "Status is not valid";
     public static final String CONTENT_PARTNER_FILE_JSON = "/payloadValidation/contentpartnervalidationfile.json";
     public static final String DOCUMENT_UPLOADED_DATE = "documentUploadedDate";
+    public static final String EXTERNAL_ID = "externalId";
+    public static final String FILTER_CRITERIA_MAP= "filterCriteriaMap";
+    public static final String REQUESTED_FIELDS = "requestedFields";
+    public static final String PAGE_NUMBER = "pageNumber";
+    public static final String PAGE_SIZE = "pageSize";
+    public static final String DRAFT = "draft";
+    public static final String VALUE = "value";
 
     private Constants() {
     }

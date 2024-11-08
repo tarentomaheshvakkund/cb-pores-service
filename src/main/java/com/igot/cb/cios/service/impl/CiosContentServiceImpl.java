@@ -195,7 +195,9 @@ public class CiosContentServiceImpl implements CiosContentService {
         ApiResponse apiResponse=ProjectUtil.createDefaultResponse(Constants.API_CIOS_CURATION_CREATE);
         try {
             Timestamp timestamp=new Timestamp(System.currentTimeMillis());
+            String partnerCode=null;
             for (ObjectDto eachData : data) {
+                partnerCode=eachData.getContentPartner().get("partnerCode").asText();
                 if (eachData.getStatus().equals("draft")) {
                     log.info("Status of the data {}",eachData.getStatus());
                     JsonNode jsonNode = eachData.getContentData();
@@ -217,43 +219,6 @@ public class CiosContentServiceImpl implements CiosContentService {
                         contentNode.set(Constants.SEARCHTAGS, searchTags);
                     }
                     apiCallToCiosSecondaryDbForUpdateData(jsonNode);
-                    ObjectNode payload = objectMapper.createObjectNode();
-                    ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
-                    filterCriteriaMap.put("partnerCode", eachData.getContentPartner().get("partnerCode").asText());
-                    ArrayNode requestedFields = objectMapper.createArrayNode();
-                    requestedFields.add("externalId");
-                    ArrayNode facets = objectMapper.createArrayNode();
-                    facets.add("status");
-                    payload.set("filterCriteriaMap", filterCriteriaMap);
-                    payload.set("requestedFields", requestedFields);
-                    payload.set("facets", facets);
-                    payload.put("pageNumber",0);
-                    payload.put("pageSize",1);
-                    JsonNode node = callCiosSearchApiToGetStatusCount(payload);
-                    Long totalCount = node.get("totalCount").asLong();
-                    Long draftCount = 0L;
-                    Long liveCount = 0L;
-                    JsonNode facetsResult = node.get("facets").get("status");
-                    for (JsonNode facet : facetsResult) {
-                        String value = facet.get("value").asText();
-                        if ("draft".equalsIgnoreCase(value)) {
-                            draftCount = facet.get("count").asLong();
-                        } else if ("live".equalsIgnoreCase(value)) {
-                            liveCount = facet.get("count").asLong();
-                        }
-                    }
-                    ApiResponse response = contentPartnerService.getContentDetailsByPartnerCode(eachData.getContentPartner().get("partnerCode").asText());
-                    Map<String, Object> contentPartnerResponse = response.getResult();
-                    if (contentPartnerResponse != null && contentPartnerResponse.containsKey("data")) {
-                        Map<String, Object> contentPartnerResponseData = (Map<String, Object>) contentPartnerResponse.get("data");
-                        contentPartnerResponseData.put(Constants.TOTAL_COURSES_COUNT, totalCount);
-                        contentPartnerResponseData.put(Constants.DRAFT_COURSES_COUNT, draftCount);
-                        contentPartnerResponseData.put(Constants.LIVE_COURSES_COUNT, liveCount);
-                        JsonNode contentPartnerRequestData = objectMapper.convertValue(contentPartnerResponse, JsonNode.class);
-                        contentPartnerService.createOrUpdate(contentPartnerRequestData);
-                    } else {
-                        log.error("No data found in the response.");
-                    }
                 } else if(eachData.getStatus().equals("live")) {
                     log.info("Status of the data {}",eachData.getStatus());
                     ciosRequestPayloadValidation.validateModel(eachData);
@@ -277,43 +242,6 @@ public class CiosContentServiceImpl implements CiosContentService {
                         contentNode.set(Constants.SEARCHTAGS, searchTags);
                     }
                     apiCallToCiosSecondaryDbForUpdateData(jsonNode);
-                    ObjectNode payload = objectMapper.createObjectNode();
-                    ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
-                    filterCriteriaMap.put("partnerCode", eachData.getContentPartner().get("partnerCode").asText());
-                    ArrayNode requestedFields = objectMapper.createArrayNode();
-                    requestedFields.add("externalId");
-                    ArrayNode facets = objectMapper.createArrayNode();
-                    facets.add("status");
-                    payload.set("filterCriteriaMap", filterCriteriaMap);
-                    payload.set("requestedFields", requestedFields);
-                    payload.set("facets", facets);
-                    payload.put("pageNumber",0);
-                    payload.put("pageSize",1);
-                    JsonNode node = callCiosSearchApiToGetStatusCount(payload);
-                    Long totalCount = node.get("totalCount").asLong();
-                    Long draftCount = 0L;
-                    Long liveCount = 0L;
-                    JsonNode facetsResult = node.get("facets").get("status");
-                    for (JsonNode facet : facetsResult) {
-                        String value = facet.get("value").asText();
-                        if ("draft".equalsIgnoreCase(value)) {
-                            draftCount = facet.get("count").asLong();
-                        } else if ("live".equalsIgnoreCase(value)) {
-                            liveCount = facet.get("count").asLong();
-                        }
-                    }
-                    ApiResponse response = contentPartnerService.getContentDetailsByPartnerCode(eachData.getContentPartner().get("partnerCode").asText());
-                    Map<String, Object> contentPartnerResponse = response.getResult();
-                    if (contentPartnerResponse != null && contentPartnerResponse.containsKey("data")) {
-                        Map<String, Object> contentPartnerResponseData = (Map<String, Object>) contentPartnerResponse.get("data");
-                        contentPartnerResponseData.put(Constants.TOTAL_COURSES_COUNT, totalCount);
-                        contentPartnerResponseData.put(Constants.DRAFT_COURSES_COUNT, draftCount);
-                        contentPartnerResponseData.put(Constants.LIVE_COURSES_COUNT, liveCount);
-                        JsonNode contentPartnerRequestData = objectMapper.convertValue(contentPartnerResponse, JsonNode.class);
-                        contentPartnerService.createOrUpdate(contentPartnerRequestData);
-                    } else {
-                        log.error("No data found in the response.");
-                    }
                     CiosContentEntity ciosContentEntity = createNewContent(jsonNode);
                     ciosRepository.save(ciosContentEntity);
                     log.info("Id of content created: {}", ciosContentEntity.getContentId());
@@ -329,6 +257,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                     return apiResponse;
                 }
             }
+            fetchAndUpdateContentCountsInPartnerDb(partnerCode);
             Map<String, Object> result = new HashMap<>();
             result.put("ApiResponse", "All data curated successfully");
             apiResponse.setResult(result);
@@ -338,6 +267,48 @@ public class CiosContentServiceImpl implements CiosContentService {
             apiResponse.getParams().setStatus(Constants.FAILED);
             apiResponse.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             return apiResponse;
+        }
+    }
+
+    private void fetchAndUpdateContentCountsInPartnerDb(String partnerCode) {
+        ObjectNode payload = objectMapper.createObjectNode();
+        ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
+        filterCriteriaMap.put(Constants.PARTNERCODE, partnerCode);
+        ArrayNode requestedFields = objectMapper.createArrayNode();
+        requestedFields.add(Constants.EXTERNAL_ID);
+        ArrayNode facets = objectMapper.createArrayNode();
+        facets.add(Constants.STATUS);
+        payload.set(Constants.FILTER_CRITERIA_MAP, filterCriteriaMap);
+        payload.set(Constants.REQUESTED_FIELDS, requestedFields);
+        payload.set(Constants.FACETS, facets);
+        payload.put(Constants.PAGE_NUMBER, 0);
+        payload.put(Constants.PAGE_SIZE, 1);
+        JsonNode node = callCiosSearchApiToGetStatusCount(payload);
+        Long totalCount = node.get(Constants.TOTAL_COUNT).asLong();
+        Long draftCount = 0L;
+        Long liveCount = 0L;
+        JsonNode facetsResult = node.get(Constants.FACETS).get(Constants.STATUS);
+        for (JsonNode facet : facetsResult) {
+            String value = facet.get(Constants.VALUE).asText();
+            Long count = facet.get(Constants.COUNT).asLong();
+            if (Constants.DRAFT.equalsIgnoreCase(value)) {
+                draftCount = count;
+            } else if ("live".equalsIgnoreCase(value)) {
+                liveCount = count;
+            }
+        }
+        log.info("Total count: {}, Draft count: {}, Live count: {}", totalCount, draftCount, liveCount);
+        ApiResponse response = contentPartnerService.getContentDetailsByPartnerCode(partnerCode);
+        Map<String, Object> contentPartnerResponse = response.getResult();
+        if (contentPartnerResponse != null && contentPartnerResponse.containsKey(Constants.DATA)) {
+            Map<String, Object> contentPartnerResponseData = (Map<String, Object>) contentPartnerResponse.get("data");
+            contentPartnerResponseData.put(Constants.TOTAL_COURSES_COUNT, totalCount);
+            contentPartnerResponseData.put(Constants.DRAFT_COURSES_COUNT, draftCount);
+            contentPartnerResponseData.put(Constants.LIVE_COURSES_COUNT, liveCount);
+            JsonNode contentPartnerRequestData = objectMapper.convertValue(contentPartnerResponse, JsonNode.class);
+            contentPartnerService.createOrUpdate(contentPartnerRequestData);
+        } else {
+            log.error("No data found in the response.");
         }
     }
 
@@ -400,9 +371,16 @@ public class CiosContentServiceImpl implements CiosContentService {
         }
     }
 
-    private JsonNode addSearchTags(List<String> tags,JsonNode jsonNode) {
+    private JsonNode addSearchTags(List<String> tags, JsonNode jsonNode) {
         List<String> lowercaseTags = new ArrayList<>();
-        lowercaseTags.add(jsonNode.path("content").get("name").textValue().toLowerCase());
+        String contentName = null;
+        if (jsonNode.path(Constants.CONTENT) != null
+                && jsonNode.path(Constants.CONTENT).get(Constants.NAME) != null) {
+            contentName = jsonNode.path(Constants.CONTENT).get(Constants.NAME).textValue();
+        }
+        if (contentName != null && !tags.contains(contentName)) {
+            lowercaseTags.add(contentName);
+        }
         lowercaseTags.addAll(tags.stream()
                 .map(String::toLowerCase)
                 .collect(Collectors.toList()));
