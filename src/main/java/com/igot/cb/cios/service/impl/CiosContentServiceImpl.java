@@ -376,7 +376,7 @@ public class CiosContentServiceImpl implements CiosContentService {
         String contentName = null;
         if (jsonNode.path(Constants.CONTENT) != null
                 && jsonNode.path(Constants.CONTENT).get(Constants.NAME) != null) {
-            contentName = jsonNode.path(Constants.CONTENT).get(Constants.NAME).textValue();
+            contentName = jsonNode.path(Constants.CONTENT).get(Constants.NAME).textValue().toLowerCase();
         }
         if (contentName != null && !tags.contains(contentName)) {
             lowercaseTags.add(contentName);
