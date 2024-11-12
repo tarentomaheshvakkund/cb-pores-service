@@ -21,8 +21,5 @@ public class CiosRequestPayloadValidation {
         if (objectDto.getContentPartner() == null) {
             throw new CustomException("CONTENT_PARTNER", "Content Partner is missing in the request", HttpStatus.BAD_REQUEST);
         }
-        if (objectDto.getCompetencies_v5() == null) {
-            throw new CustomException("COMPETENCIES_V5", "Competencies are missing in the request", HttpStatus.BAD_REQUEST);
-        }
     }
 }

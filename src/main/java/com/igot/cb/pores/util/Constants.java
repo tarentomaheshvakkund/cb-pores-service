@@ -353,6 +353,7 @@ public class Constants {
     public static final String PAGE_SIZE = "pageSize";
     public static final String DRAFT = "draft";
     public static final String VALUE = "value";
+    public static final String COMPETENCIES_V6 = "competencies_v6";
 
     private Constants() {
     }

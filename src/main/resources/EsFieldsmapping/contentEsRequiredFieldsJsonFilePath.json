@@ -43,6 +43,9 @@
   "competencies_v5": {
     "type": "keyword"
   },
+  "competencies_v6": {
+    "type": "keyword"
+  },
   "contentPartner": {
     "type": "text"
   }
