@@ -237,7 +237,7 @@ public class CiosContentServiceImpl implements CiosContentService {
                         contentNode.set(Constants.COMPETENCIES_V5, eachData.getCompetencies_v5());
                     }
                     if (eachData.getCompetencies_v6() != null) {
-                        payloadValidation.validatePayload(Constants.COMPETENCIESVALIDATION_FILE_JSON, eachData.getCompetencies_v6());
+                        payloadValidation.validatePayload(Constants.COMPETENCIES_V6_VALIDATION_FILE_JSON, eachData.getCompetencies_v6());
                         contentNode.set(Constants.COMPETENCIES_V6, eachData.getCompetencies_v6());
                     }
                     if (eachData.getContentPartner() != null) {

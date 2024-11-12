@@ -354,6 +354,7 @@ public class Constants {
     public static final String DRAFT = "draft";
     public static final String VALUE = "value";
     public static final String COMPETENCIES_V6 = "competencies_v6";
+    public static final String COMPETENCIES_V6_VALIDATION_FILE_JSON = "/payloadValidation/competenciesV6Validation.json";
 
     private Constants() {
     }
