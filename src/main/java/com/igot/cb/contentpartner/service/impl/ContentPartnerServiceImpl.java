@@ -95,11 +95,13 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 contentPartnerEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                 contentPartnerEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
                 contentPartnerEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
+                contentPartnerEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
                 ObjectNode objectNode = (ObjectNode) partnerDetails;
                 objectNode.remove("trasformContentJson");
                 objectNode.remove("transformProgressJson");
                 objectNode.remove("trasformCertificateJson");
                 objectNode.remove("serviceRegistryDetails");
+                objectNode.remove("contentFileValidation");
                 addSearchTags(objectNode);
                 contentPartnerEntity.setData(objectNode);
                 ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
@@ -144,12 +146,13 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     jsonEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
                     jsonEntity.setTrasformCertificateJson(partnerDetails.get("trasformCertificateJson"));
                     jsonEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
+                    jsonEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
                     ObjectNode objectNode = (ObjectNode) partnerDetails;
                     objectNode.remove("trasformContentJson");
                     objectNode.remove("transformProgressJson");
                     objectNode.remove("trasformCertificateJson");
                     objectNode.remove("id");
-
+                    objectNode.remove("contentFileValidation");
                     ObjectNode dataNode = (ObjectNode) objectNode.remove("data");
                     dataNode.put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     dataNode.put(Constants.UPDATED_ON, String.valueOf(currentTime));
