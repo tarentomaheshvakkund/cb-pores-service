@@ -51,4 +51,8 @@ public class ContentPartnerEntity {
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
     private JsonNode serviceRegistryDetails;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private JsonNode contentFileValidation;
 }
