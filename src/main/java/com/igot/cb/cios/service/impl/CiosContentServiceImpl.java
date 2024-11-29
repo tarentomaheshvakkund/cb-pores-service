@@ -136,12 +136,16 @@ public class CiosContentServiceImpl implements CiosContentService {
         if (ciosContentEntity.isPresent()) {
             CiosContentEntity fetchedEntity = ciosContentEntity.get();
             JsonNode fetchedJsonData = fetchedEntity.getCiosData();
+            String partnerCode = fetchedJsonData.path("content").path("contentPartner").get("partnerCode").asText();
             ((ObjectNode) fetchedJsonData.path("content")).put(Constants.UPDATED_ON, String.valueOf(currentTime));
             ((ObjectNode) fetchedJsonData.path("content")).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS_FALSE);
+            ((ObjectNode) fetchedJsonData.path("content")).put(Constants.STATUS, Constants.DRAFT);
             fetchedEntity.setCiosData(fetchedJsonData);
             fetchedEntity.setLastUpdatedOn(currentTime);
             fetchedEntity.setIsActive(false);
             ciosRepository.save(fetchedEntity);
+            apiCallToCiosSecondaryDbForUpdateData(fetchedJsonData);
+            fetchAndUpdateContentCountsInPartnerDb(partnerCode);
             Map<String, Object> map = objectMapper.convertValue(fetchedEntity.getCiosData().get("content"), Map.class);
             esUtilService.addDocument(Constants.CIOS_INDEX_NAME, Constants.INDEX_TYPE, fetchedEntity.getContentId(), map, cbServerProperties.getElasticCiosJsonPath());
             cacheService.deleteCache(fetchedEntity.getContentId());
@@ -278,6 +282,7 @@ public class CiosContentServiceImpl implements CiosContentService {
     }
 
     private void fetchAndUpdateContentCountsInPartnerDb(String partnerCode) {
+        log.info("CiosContentServiceImpl::fetchAndUpdateContentCountsInPartnerDb:inside");
         ObjectNode payload = objectMapper.createObjectNode();
         ObjectNode filterCriteriaMap = objectMapper.createObjectNode();
         filterCriteriaMap.put(Constants.PARTNERCODE, partnerCode);
@@ -330,6 +335,7 @@ public class CiosContentServiceImpl implements CiosContentService {
     }
 
     private JsonNode apiCallToCiosSecondaryDbForUpdateData(JsonNode jsonNode) {
+        log.info("CiosContentServiceImpl::apiCallToCiosSecondaryDbForUpdateData:inside");
         String apiUrl = cbServerProperties.getCiosContentServiceHost()+cbServerProperties.getCiosContentServiceUpdateApiUrl();
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -409,7 +415,9 @@ public class CiosContentServiceImpl implements CiosContentService {
             if (filterCriteriaMap == null) {
                 filterCriteriaMap = new HashMap<>();
             }
-            filterCriteriaMap.put("isActive", true);
+            if(filterCriteriaMap.get("isActive")==null){
+                filterCriteriaMap.put("isActive", true);
+            }
             searchCriteria.setFilterCriteriaMap(filterCriteriaMap);
             searchResult = esUtilService.searchDocuments(Constants.CIOS_INDEX_NAME, searchCriteria);
             redisTemplate.opsForValue()
