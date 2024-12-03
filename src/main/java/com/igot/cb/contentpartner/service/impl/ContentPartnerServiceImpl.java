@@ -93,7 +93,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 contentPartnerEntity.setIsActive(Constants.ACTIVE_STATUS);
                 contentPartnerEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                 contentPartnerEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
-                contentPartnerEntity.setCertificateTemplateUrl(partnerDetails.get("certificateTemplateUrl").asText());
+                contentPartnerEntity.setCertificateTemplateUrl(partnerDetails.path("certificateTemplateUrl").asText(" "));
                 contentPartnerEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
                 contentPartnerEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
                 ObjectNode objectNode = (ObjectNode) partnerDetails;
@@ -144,7 +144,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
                     jsonEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
                     jsonEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
-                    jsonEntity.setCertificateTemplateUrl(partnerDetails.get("certificateTemplateUrl").asText());
+                    jsonEntity.setCertificateTemplateUrl(partnerDetails.path("certificateTemplateUrl").asText(" "));
                     jsonEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
                     jsonEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
                     ObjectNode objectNode = (ObjectNode) partnerDetails;
