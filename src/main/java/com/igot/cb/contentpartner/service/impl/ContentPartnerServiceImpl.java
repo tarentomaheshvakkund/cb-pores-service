@@ -96,12 +96,16 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 contentPartnerEntity.setCertificateTemplateUrl(partnerDetails.path("certificateTemplateUrl").asText(" "));
                 contentPartnerEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
                 contentPartnerEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
+                contentPartnerEntity.setTransformContentViaApi(partnerDetails.get("transformContentViaApi"));
+                contentPartnerEntity.setTransformProgressViaApi(partnerDetails.get("transformProgressViaApi"));
                 ObjectNode objectNode = (ObjectNode) partnerDetails;
                 objectNode.remove("trasformContentJson");
                 objectNode.remove("transformProgressJson");
                 objectNode.remove("certificateTemplateUrl");
                 objectNode.remove("serviceRegistryDetails");
                 objectNode.remove("contentFileValidation");
+                objectNode.remove("transformContentViaApi");
+                objectNode.remove("transformProgressViaApi");
                 addSearchTags(objectNode);
                 contentPartnerEntity.setData(objectNode);
                 ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
@@ -110,6 +114,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 Map<String, Object> result = objectMapper.convertValue(saveJsonEntity, Map.class);
                 cacheService.putCache(saveJsonEntity.getId(), result);
                 if (!partnerDetails.path(Constants.PARTNERCODE).isMissingNode()) {
+                    log.info("during content partner create Deleting cache for partner code {}", partnerDetails.path(Constants.PARTNERCODE).asText());
                     cacheService.deleteCache(partnerDetails.get(Constants.PARTNERCODE).asText());
                 }
                 log.info("Content partner created");
@@ -147,12 +152,16 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                     jsonEntity.setCertificateTemplateUrl(partnerDetails.path("certificateTemplateUrl").asText(" "));
                     jsonEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
                     jsonEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
+                    jsonEntity.setTransformContentViaApi(partnerDetails.get("transformContentViaApi"));
+                    jsonEntity.setTransformProgressViaApi(partnerDetails.get("transformProgressViaApi"));
                     ObjectNode objectNode = (ObjectNode) partnerDetails;
                     objectNode.remove("trasformContentJson");
                     objectNode.remove("transformProgressJson");
                     objectNode.remove("certificateTemplateUrl");
                     objectNode.remove("id");
                     objectNode.remove("contentFileValidation");
+                    objectNode.remove("transformContentViaApi");
+                    objectNode.remove("transformProgressViaApi");
                     ObjectNode dataNode = (ObjectNode) objectNode.remove("data");
                     dataNode.put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     dataNode.put(Constants.UPDATED_ON, String.valueOf(currentTime));
@@ -181,6 +190,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                         Map<String, Object> result = objectMapper.convertValue(updateJsonEntity, Map.class);
                         cacheService.putCache(updateJsonEntity.getId(), result);
                         if (!dataNode.path(Constants.PARTNERCODE).isMissingNode()) {
+                            log.info("deleting the content partner from cache");
                             cacheService.deleteCache(dataNode.get(Constants.PARTNERCODE).asText());
                         }
                         log.info("updated the content partner");

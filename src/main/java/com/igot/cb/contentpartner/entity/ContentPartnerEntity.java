@@ -42,7 +42,15 @@ public class ContentPartnerEntity {
 
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
+    private JsonNode transformContentViaApi;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
     private JsonNode transformProgressJson;
+
+    @Type(type = "jsonb")
+    @Column(columnDefinition = "jsonb")
+    private JsonNode transformProgressViaApi;
 
     private String certificateTemplateUrl;
 
