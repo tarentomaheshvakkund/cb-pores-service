@@ -56,16 +56,24 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         try {
             if (partnerDetails.get(Constants.ID) == null) {
-                Optional<ContentPartnerEntity> optionalEntity = entityRepository.findByContentPartnerName(partnerDetails.get("contentPartnerName").asText());
+                String partnerName = partnerDetails.path(Constants.CONTENT_PARTNER_NAME).asText();
+                String partnerCode = partnerDetails.path(Constants.PARTNERCODE).asText();
+                Optional<ContentPartnerEntity> optionalEntity = entityRepository.findByContentPartnerName(partnerName);
                 if (optionalEntity.isPresent()) {
-                    response.getParams().setErrMsg("Content partner name already present in DB");
+                    if (partnerCode != null && !partnerCode.isEmpty()) {
+                        if (entityRepository.findByPartnerCode(partnerCode).isPresent()) {
+                            response.getParams().setErrMsg(Constants.CONTENT_PARTNER_CODE_AND_NAME_ALREADY_PRESENT);
+                        }else{
+                            response.getParams().setErrMsg(Constants.CONTENT_PARTNER_NAME_ALREADY_PRESENT);
+                        }
+                    }
                     response.getParams().setStatus(Constants.FAILED);
                     response.setResponseCode(HttpStatus.BAD_REQUEST);
                     return response;
                 }
-                if (partnerDetails.path("partnerCode").asText() != null && !partnerDetails.path("partnerCode").asText().isEmpty()) {
-                    if (entityRepository.findByPartnerCode(partnerDetails.get("partnerCode").asText()).isPresent()) {
-                        response.getParams().setErrMsg("Content partner code already present in DB");
+                if (partnerCode != null && !partnerCode.isEmpty()) {
+                    if (entityRepository.findByPartnerCode(partnerCode).isPresent()) {
+                        response.getParams().setErrMsg(Constants.CONTENT_PARTNER_CODE_ALREADY_PRESENT);
                         response.getParams().setStatus(Constants.FAILED);
                         response.setResponseCode(HttpStatus.BAD_REQUEST);
                         return response;
@@ -73,7 +81,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 }
                 log.info("ContentPartnerServiceImpl::createOrUpdate:creating content partner provider");
                 String id = String.valueOf(UUID.randomUUID());
-                ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE, partnerDetails.path("partnerCode").asText(""));
+                ((ObjectNode) partnerDetails).put(Constants.PARTNERCODE, partnerDetails.get("partnerCode"));
                 ((ObjectNode) partnerDetails).put(Constants.ID, id);
                 ((ObjectNode) partnerDetails).put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                 ((ObjectNode) partnerDetails).put(Constants.TOTAL_COURSES_COUNT, 0);
@@ -81,6 +89,9 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 ((ObjectNode) partnerDetails).put(Constants.LIVE_COURSES_COUNT, 0);
                 if (partnerDetails.path(Constants.IS_AUTHENTICATE).isMissingNode()) {
                     ((ObjectNode) partnerDetails).put(Constants.IS_AUTHENTICATE, Constants.ACTIVE_STATUS_AUTHENTICATE);
+                }
+                if (partnerDetails.path(Constants.PROVIDER_TIPS).isMissingNode()) {
+                    ((ObjectNode) partnerDetails).put(Constants.PROVIDER_TIPS, ((ObjectNode) partnerDetails).arrayNode());
                 }
                 payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, partnerDetails);
                 ((ObjectNode) partnerDetails).put(Constants.CREATED_ON, String.valueOf(currentTime));
@@ -91,21 +102,21 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 contentPartnerEntity.setCreatedOn(currentTime);
                 contentPartnerEntity.setUpdatedOn(currentTime);
                 contentPartnerEntity.setIsActive(Constants.ACTIVE_STATUS);
-                contentPartnerEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
-                contentPartnerEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
-                contentPartnerEntity.setCertificateTemplateUrl(partnerDetails.path("certificateTemplateUrl").asText(" "));
-                contentPartnerEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
-                contentPartnerEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
-                contentPartnerEntity.setTransformContentViaApi(partnerDetails.get("transformContentViaApi"));
-                contentPartnerEntity.setTransformProgressViaApi(partnerDetails.get("transformProgressViaApi"));
+                contentPartnerEntity.setTrasformContentJson(partnerDetails.get(Constants.TRANSFORM_CONTENT_JSON));
+                contentPartnerEntity.setTransformProgressJson(partnerDetails.get(Constants.TRANSFORM_PROGRESS_JSON));
+                contentPartnerEntity.setCertificateTemplateUrl(partnerDetails.path(Constants.CERTIFICATE_TEMPLATE_URL).asText(" "));
+                contentPartnerEntity.setServiceRegistryDetails(partnerDetails.get(Constants.SERVICE_REGISTRY_DETAILS));
+                contentPartnerEntity.setContentFileValidation(partnerDetails.get(Constants.CONTENT_FILE_VALIDATION));
+                contentPartnerEntity.setTransformContentViaApi(partnerDetails.get(Constants.TRANSFORM_CONTENT_VIA_API));
+                contentPartnerEntity.setTransformProgressViaApi(partnerDetails.get(Constants.TRANSFORM_PROGRESS_VIA_API));
                 ObjectNode objectNode = (ObjectNode) partnerDetails;
-                objectNode.remove("trasformContentJson");
-                objectNode.remove("transformProgressJson");
-                objectNode.remove("certificateTemplateUrl");
-                objectNode.remove("serviceRegistryDetails");
-                objectNode.remove("contentFileValidation");
-                objectNode.remove("transformContentViaApi");
-                objectNode.remove("transformProgressViaApi");
+                objectNode.remove(Constants.TRANSFORM_CONTENT_JSON);
+                objectNode.remove(Constants.TRANSFORM_PROGRESS_JSON);
+                objectNode.remove(Constants.CERTIFICATE_TEMPLATE_URL);
+                objectNode.remove(Constants.SERVICE_REGISTRY_DETAILS);
+                objectNode.remove(Constants.CONTENT_FILE_VALIDATION);
+                objectNode.remove(Constants.TRANSFORM_CONTENT_VIA_API);
+                objectNode.remove(Constants.TRANSFORM_PROGRESS_VIA_API);
                 addSearchTags(objectNode);
                 contentPartnerEntity.setData(objectNode);
                 ContentPartnerEntity saveJsonEntity = entityRepository.save(contentPartnerEntity);
@@ -121,54 +132,49 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                 response.setResult(result);
                 response.setResponseCode(HttpStatus.OK);
             } else {
+                String partnerName = partnerDetails.path(Constants.DATA).get(Constants.CONTENT_PARTNER_NAME).asText();
                 log.info("Updating content partner entity");
                 response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_UPDATE);
                 String existingId = partnerDetails.get("id").asText();
                 Optional<ContentPartnerEntity> content = entityRepository.findById(existingId);
                 if (content.isPresent()) {
-                    if (partnerDetails.path("data").path("partnerCode").asText() != null && !partnerDetails.path("data").path("partnerCode").asText().isEmpty()) {
-                        Optional<ContentPartnerEntity> existingPartnerCodeEntity = entityRepository.findByPartnerCode(partnerDetails.path("data").get("partnerCode").asText());
-                        if (existingPartnerCodeEntity.isPresent() && !existingPartnerCodeEntity.get().getId().equals(existingId)) {
-                            response.getParams().setErrMsg("Content partner code already present in DB");
-                            response.getParams().setStatus(Constants.FAILED);
-                            response.setResponseCode(HttpStatus.BAD_REQUEST);
-                            return response;
-                        }
-                    }
-
-                    if (entityRepository.findByContentPartnerName(partnerDetails.path("data").get("contentPartnerName").asText()).filter(entity -> !entity.getId().equals(existingId)).isPresent()) {
-                        response.getParams().setErrMsg("Content partner name already present in DB");
+                    if (entityRepository.findByContentPartnerName(partnerName).filter(entity -> !entity.getId().equals(existingId)).isPresent()) {
+                        response.getParams().setErrMsg(Constants.CONTENT_PARTNER_NAME_ALREADY_PRESENT);
                         response.getParams().setStatus(Constants.FAILED);
                         response.setResponseCode(HttpStatus.BAD_REQUEST);
                         return response;
                     }
-                    JsonNode data = partnerDetails.get("data");
+                    JsonNode data = partnerDetails.get(Constants.DATA);
                     payloadValidation.validatePayload(Constants.PAYLOAD_VALIDATION_FILE_CONTENT_PROVIDER, data);
                     ContentPartnerEntity jsonEntity = content.get();
                     jsonEntity.setUpdatedOn(currentTime);
                     jsonEntity.setIsActive(Constants.ACTIVE_STATUS);
-                    jsonEntity.setTrasformContentJson(partnerDetails.get("trasformContentJson"));
-                    jsonEntity.setTransformProgressJson(partnerDetails.get("transformProgressJson"));
-                    jsonEntity.setCertificateTemplateUrl(partnerDetails.path("certificateTemplateUrl").asText(" "));
-                    jsonEntity.setServiceRegistryDetails(partnerDetails.get("serviceRegistryDetails"));
-                    jsonEntity.setContentFileValidation(partnerDetails.get("contentFileValidation"));
-                    jsonEntity.setTransformContentViaApi(partnerDetails.get("transformContentViaApi"));
-                    jsonEntity.setTransformProgressViaApi(partnerDetails.get("transformProgressViaApi"));
+                    jsonEntity.setTrasformContentJson(partnerDetails.get(Constants.TRANSFORM_CONTENT_JSON));
+                    jsonEntity.setTransformProgressJson(partnerDetails.get(Constants.TRANSFORM_PROGRESS_JSON));
+                    jsonEntity.setCertificateTemplateUrl(partnerDetails.path(Constants.CERTIFICATE_TEMPLATE_URL).asText(" "));
+                    jsonEntity.setServiceRegistryDetails(partnerDetails.get(Constants.SERVICE_REGISTRY_DETAILS));
+                    jsonEntity.setContentFileValidation(partnerDetails.get(Constants.CONTENT_FILE_VALIDATION));
+                    jsonEntity.setTransformContentViaApi(partnerDetails.get(Constants.TRANSFORM_CONTENT_VIA_API));
+                    jsonEntity.setTransformProgressViaApi(partnerDetails.get(Constants.TRANSFORM_PROGRESS_VIA_API));
                     ObjectNode objectNode = (ObjectNode) partnerDetails;
-                    objectNode.remove("trasformContentJson");
-                    objectNode.remove("transformProgressJson");
-                    objectNode.remove("certificateTemplateUrl");
-                    objectNode.remove("id");
-                    objectNode.remove("contentFileValidation");
-                    objectNode.remove("transformContentViaApi");
-                    objectNode.remove("transformProgressViaApi");
-                    ObjectNode dataNode = (ObjectNode) objectNode.remove("data");
+                    objectNode.remove(Constants.TRANSFORM_CONTENT_JSON);
+                    objectNode.remove(Constants.TRANSFORM_PROGRESS_JSON);
+                    objectNode.remove(Constants.CERTIFICATE_TEMPLATE_URL);
+                    objectNode.remove(Constants.ID);
+                    objectNode.remove(Constants.CONTENT_FILE_VALIDATION);
+                    objectNode.remove(Constants.TRANSFORM_CONTENT_VIA_API);
+                    objectNode.remove(Constants.TRANSFORM_PROGRESS_VIA_API);
+                    ObjectNode dataNode = (ObjectNode) objectNode.remove(Constants.DATA);
                     dataNode.put(Constants.CREATED_ON, String.valueOf(content.get().getCreatedOn()));
                     dataNode.put(Constants.UPDATED_ON, String.valueOf(currentTime));
+                    dataNode.put(Constants.PARTNERCODE, jsonEntity.getData().get(Constants.PARTNERCODE));
                     ((ObjectNode) partnerDetails).put(Constants.DOCUMENT_UPLOADED_DATE, partnerDetails.path(Constants.DOCUMENT_UPLOADED_DATE).asText(null));
                     dataNode.put(Constants.IS_ACTIVE, Constants.ACTIVE_STATUS);
                     if (dataNode.path(Constants.IS_AUTHENTICATE).isMissingNode()) {
                         dataNode.put(Constants.IS_AUTHENTICATE, content.get().getData().get(Constants.IS_AUTHENTICATE));
+                    }
+                    if (partnerDetails.path(Constants.PROVIDER_TIPS).isMissingNode()) {
+                        ((ObjectNode) partnerDetails).put(Constants.PROVIDER_TIPS, ((ObjectNode) partnerDetails).arrayNode());
                     }
                     if (dataNode.path(Constants.TOTAL_COURSES_COUNT).isMissingNode()) {
                         dataNode.put(Constants.TOTAL_COURSES_COUNT, content.get().getData().get(Constants.TOTAL_COURSES_COUNT));
@@ -198,7 +204,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
                         response.setResponseCode(HttpStatus.OK);
                     }
                 } else {
-                    response.getParams().setErrMsg("Data not present in DB With given ID");
+                    response.getParams().setErrMsg(Constants.DATA_NOT_PRESENT);
                     response.getParams().setStatus(Constants.FAILED);
                     response.setResponseCode(HttpStatus.BAD_REQUEST);
                 }

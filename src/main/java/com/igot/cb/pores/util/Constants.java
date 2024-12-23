@@ -356,6 +356,26 @@ public class Constants {
     public static final String COMPETENCIES_V6 = "competencies_v6";
     public static final String COMPETENCIES_V6_VALIDATION_FILE_JSON = "/payloadValidation/competenciesV6Validation.json";
     public static final String SPV_PUBLISHER ="SPV_PUBLISHER";
+    public static final String CONTENT_PARTNER_NAME = "contentPartnerName";
+    public static final String CONTENT_PARTNER_CODE_AND_NAME_ALREADY_PRESENT = "Content partnerCode and partnerName already present in DB";
+    public static final String CONTENT_PARTNER_NAME_ALREADY_PRESENT = "Content partnerName already present in DB";
+    public static final String CONTENT_PARTNER_CODE_ALREADY_PRESENT = "Content partnerCode already present in DB";
+    public static final String PROVIDER_TIPS = "providerTips";
+    public static final String DATA_NOT_PRESENT = "Data not present in DB With given ID";
+    public static final String TRANSFORM_CONTENT_JSON ="trasformContentJson";
+    public static final String TRANSFORM_PROGRESS_JSON ="transformProgressJson";
+    public static final String CERTIFICATE_TEMPLATE_URL ="certificateTemplateUrl";
+    public static final String SERVICE_REGISTRY_DETAILS ="serviceRegistryDetails";
+    public static final String CONTENT_FILE_VALIDATION = "contentFileValidation";
+    public static final String TRANSFORM_CONTENT_VIA_API ="transformContentViaApi";
+    public static final String TRANSFORM_PROGRESS_VIA_API = "transformProgressViaApi";
+
+
+
+
+
+
+
 
     private Constants() {
     }
