@@ -160,7 +160,7 @@ public class CiosContentServiceImpl implements CiosContentService {
 
     @Override
     public Object fetchDataByExternalIdAndPartnerId(String externalid,String partnerid) {
-        log.info("getting content by extid: {} and parterid: {} " + externalid,partnerid);
+        log.info("getting content by extid: {} and parterid: {} ",externalid,partnerid);
         if (StringUtils.isEmpty(externalid)) {
             log.error("CiosContentServiceImpl::read:Id not found");
             throw new CustomException(Constants.ERROR, "externalid is mandatory", HttpStatus.BAD_REQUEST);
