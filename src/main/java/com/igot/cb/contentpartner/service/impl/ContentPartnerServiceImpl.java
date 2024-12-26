@@ -52,6 +52,7 @@ public class ContentPartnerServiceImpl implements ContentPartnerService {
 
     @Override
     public ApiResponse createOrUpdate(JsonNode partnerDetails) {
+        log.info("ContentPartnerServiceImpl::createOrUpdate:inside");
         ApiResponse response = ProjectUtil.createDefaultResponse(Constants.API_PARTNER_CREATE);
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         try {
